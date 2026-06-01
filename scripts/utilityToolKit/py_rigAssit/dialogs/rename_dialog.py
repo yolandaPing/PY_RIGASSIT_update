@@ -224,30 +224,42 @@ class PYRenameBox(PyouPersistentWindow):
             return ret
 
     def _run_rename(self, mode):
-        pyRename.rename(
-            Mode=mode,
-            select_type=self.type_radio_group.checkedId(),
-            prefix=self.prefix_field.text(),
-            Inc=self.start_number_field.value(),
-            suffix=self.suffix_field.text()
-        )
+        cmds.undoInfo(openChunk=True)
+        try:
+            pyRename.rename(
+                Mode=mode,
+                select_type=self.type_radio_group.checkedId(),
+                prefix=self.prefix_field.text(),
+                Inc=self.start_number_field.value(),
+                suffix=self.suffix_field.text()
+            )
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def _rename_apply(self):
-        pyRename.rename(
-            Mode=4,
-            select_type=self.type_radio_group.checkedId(),
-            prefix=self.prefix_field.text(),
-            Inc=self.start_number_field.value(),
-            suffix=self.suffix_field.text(),
-            fullName=self.full_name_field.text()
-        )
+        cmds.undoInfo(openChunk=True)
+        try:
+            pyRename.rename(
+                Mode=4,
+                select_type=self.type_radio_group.checkedId(),
+                prefix=self.prefix_field.text(),
+                Inc=self.start_number_field.value(),
+                suffix=self.suffix_field.text(),
+                fullName=self.full_name_field.text()
+            )
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def _add_prefix(self):
         selection = pm.ls(sl=True)
         prefix = self.prefix_field.text()
-        for each in selection:
-            new_name = prefix + '_' + each
-            pm.rename(each, new_name)
+        cmds.undoInfo(openChunk=True)
+        try:
+            for each in selection:
+                new_name = prefix + '_' + each
+                pm.rename(each, new_name)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def _rename(self):
         selection = pm.ls(sl=True)
@@ -261,22 +273,28 @@ class PYRenameBox(PyouPersistentWindow):
 
         if suffix != '':
             suffix = '_' + suffix
+        cmds.undoInfo(openChunk=True)
+        try:
+            for individual_object in selection:
+                if increment is not None:
+                    number = str(increment)
+                    increment += 1
 
-        for individual_object in selection:
-            if increment is not None:
-                number = str(increment)
-                increment += 1
-
-            new_name = (prefix + name + number + suffix)
-            pm.rename(individual_object, new_name)
+                new_name = (prefix + name + number + suffix)
+                pm.rename(individual_object, new_name)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def _add_suffix(self):
         selection = pm.ls(sl=True)
         suffix = self.suffix_field.text()
-
-        for individual_object in selection:
-            new_name = individual_object + '_' + suffix
-            pm.rename(individual_object, new_name)
+        cmds.undoInfo(openChunk=True)
+        try:
+            for individual_object in selection:
+                new_name = individual_object + '_' + suffix
+                pm.rename(individual_object, new_name)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def search_fieldReplace(self):
         replace_method = self.hierarchy_option.currentIndex() + 1  # Convert to 1-based index
@@ -320,18 +338,23 @@ class PYRenameBox(PyouPersistentWindow):
         return
 
     def remove_prefix_from_object(self, obj="", prefix=""):
-        if prefix == "":
-            prefix = __PyAttrUtils__.get_prefix_name(obj)
-            if prefix != []:
-                prefix = prefix[0]
-            else:
-                prefix == ""
-        if prefix == "" or prefix is None or prefix == []:
-            return
+        cmds.undoInfo(openChunk=True)
 
-        if obj.startswith(prefix):
-            new_name = obj[len(prefix):]
-            cmds.rename(obj.strip(), new_name.strip())
+        try:
+            if prefix == "":
+                prefix = __PyAttrUtils__.get_prefix_name(obj)
+                if prefix != []:
+                    prefix = prefix[0]
+                else:
+                    prefix == ""
+            if prefix == "" or prefix is None or prefix == []:
+                return
+
+            if obj.startswith(prefix):
+                new_name = obj[len(prefix):]
+                cmds.rename(obj.strip(), new_name.strip())
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def remove_suffix_from_object(self, obj="", suffix=""):
         if suffix == "":
@@ -343,10 +366,14 @@ class PYRenameBox(PyouPersistentWindow):
 
         if suffix == "" or suffix is None or suffix == []:
             return
+        cmds.undoInfo(openChunk=True)
 
-        if obj.endswith(suffix):
-            new_name = obj[:-len(suffix)]
-            cmds.rename(obj.strip(), new_name.strip())
+        try:
+            if obj.endswith(suffix):
+                new_name = obj[:-len(suffix)]
+                cmds.rename(obj.strip(), new_name.strip())
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
 
 def main():
