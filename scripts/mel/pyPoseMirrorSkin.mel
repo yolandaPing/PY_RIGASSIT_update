@@ -1,0 +1,267 @@
+/*
+time: 20250322
+author: You P
+email: yolandaping1224@gmail.com
+*/
+
+
+global proc string pyPoseMirrorSkin(
+    string $left_prex,
+    string $right_prex,
+    string $mid_prex,
+    string $noMirror,
+    int $leftToright
+) {
+
+    // ----------------------------------------------------------------------
+    // Selection
+    // ----------------------------------------------------------------------
+
+    string $sel[] = `ls -sl -fl -tl 1`;
+
+    if (!size($sel)) {
+        return "No object selected.";
+    }
+
+    string $obj[] = stringToStringArray($sel[0], ".");
+
+    // ----------------------------------------------------------------------
+    // Prefix
+    // ----------------------------------------------------------------------
+
+    string $lKeyA[] = stringToStringArray($left_prex, "/");
+    string $rKeyA[] = stringToStringArray($right_prex, "/");
+    string $mKeyA[] = stringToStringArray($mid_prex, "/");
+
+    if (
+        size($lKeyA) != size($rKeyA) ||
+        !size($lKeyA) ||
+        !size($rKeyA) ||
+        !size($mKeyA)
+    ) {
+        return "Error retrieving string, please check!!!";
+    }
+
+    string $nMir[] = stringToStringArray($noMirror, "/");
+
+    // ----------------------------------------------------------------------
+    // SkinCluster
+    // ----------------------------------------------------------------------
+
+    string $skinClusterNode = `findRelatedSkinCluster $obj[0]`;
+
+    if ($skinClusterNode == "") {
+        return "No skin cluster found on selected object.";
+    }
+
+    string $inf[] = `skinCluster -q -inf $skinClusterNode`;
+
+    // remove invalid noMirror joints
+    string $dif[] = stringArrayRemove($inf, $nMir);
+
+    if (size($dif)) {
+        $nMir = stringArrayRemove($dif, $nMir);
+    }
+
+    // ----------------------------------------------------------------------
+    // Build mirror lists
+    // ----------------------------------------------------------------------
+
+    string $left[];
+    string $right[];
+    string $middle[];
+
+    for ($i = 0; $i < size($inf); $i++) {
+
+        string $joint = $inf[$i];
+        string $otherSide = pyFindOtherSide($joint, $lKeyA, $rKeyA);
+
+        // --------------------------------------------------------------
+        // mirror pair
+        // --------------------------------------------------------------
+
+        if (
+            $otherSide != "" &&
+            `stringArrayContains $otherSide $inf`
+        ) {
+
+            $left[size($left)] = $joint;
+            $right[size($right)] = $otherSide;
+
+            continue;
+        }
+
+        // --------------------------------------------------------------
+        // middle joint
+        // --------------------------------------------------------------
+
+        for ($m = 0; $m < size($mKeyA); $m++) {
+
+            if (`gmatch $joint ("*" + $mKeyA[$m] + "*")`) {
+
+                $middle[size($middle)] = $joint;
+                break;
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // Cleanup duplicate data
+    // ----------------------------------------------------------------------
+
+    $middle = stringArrayRemove($right, $middle);
+
+    if (size($nMir)) {
+
+        $left = stringArrayRemove($nMir, $left);
+        $right = stringArrayRemove($nMir, $right);
+
+        $middle = stringArrayCatenate($nMir, $middle);
+        $middle = stringArrayRemoveDuplicates($middle);
+    }
+
+    // ----------------------------------------------------------------------
+    // Check missing joints
+    // ----------------------------------------------------------------------
+
+    int $count = size($left) + size($right) + size($middle);
+
+    if (size($inf) != $count) {
+
+        string $dif_inf[] = stringArrayRemove($left, $inf);
+        $dif_inf = stringArrayRemove($right, $dif_inf);
+        $dif_inf = stringArrayRemove($middle, $dif_inf);
+
+        if (size($dif_inf)) {
+
+            string $result = "";
+
+            for ($i = 0; $i < size($dif_inf); $i++) {
+
+                float $pos[] = `xform -q -ws -t $dif_inf[$i]`;
+
+                // not middle joint
+                if (abs($pos[0]) > 0.0001) {
+
+                    $result += ($dif_inf[$i] + "/");
+                }
+                else {
+
+                    $middle[size($middle)] = $dif_inf[$i];
+                }
+            }
+
+            if ($result != "") {
+                return $result;
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // Maya tool context
+    // ----------------------------------------------------------------------
+
+    int $version = `about -v`;
+
+    if ($version > 2019) {
+
+        global string $gSelect;
+        $gSelect = "selectSuperContext";
+
+        setToolTo $gSelect;
+    }
+
+    // ----------------------------------------------------------------------
+    // Temp group
+    // ----------------------------------------------------------------------
+
+    if (`objExists PoseMirrorSkin_Temp_grp`) {
+        delete PoseMirrorSkin_Temp_grp;
+    }
+
+    createNode -ss transform -n "PoseMirrorSkin_Temp_grp";
+
+    // disable skinCluster
+    setAttr ($skinClusterNode + ".envelope") 0;
+
+    // ----------------------------------------------------------------------
+    // Create temp mirror joints
+    // ----------------------------------------------------------------------
+
+    for ($i = 0; $i < size($left); $i++) {
+
+        string $lTemp = "TempJnt_" + $left[$i];
+        string $rTemp = "TempJnt_" + $right[$i];
+
+        createNode -p "PoseMirrorSkin_Temp_grp" -ss joint -n $lTemp;
+        xform -t 1 $i 0 $lTemp;
+
+        createNode -p "PoseMirrorSkin_Temp_grp" -ss joint -n $rTemp;
+        xform -t -1 $i 0 $rTemp;
+    }
+
+    // middle
+    for ($i = 0; $i < size($middle); $i++) {
+
+        string $mTemp = "TempJnt_" + $middle[$i];
+
+        createNode -p "PoseMirrorSkin_Temp_grp" -ss joint -n $mTemp;
+
+        xform -t 0 $i 0 $mTemp;
+    }
+
+    // ----------------------------------------------------------------------
+    // Connect temp matrix
+    // ----------------------------------------------------------------------
+
+    string $matrix[] =
+        `listConnections -c 1 -d 0 ($skinClusterNode + ".matrix")`;
+
+    for ($i = 0; $i < size($inf); $i++) {
+
+        connectAttr -f
+            ("TempJnt_" + $inf[$i] + ".worldMatrix[0]")
+            $matrix[$i * 2];
+    }
+
+    // ----------------------------------------------------------------------
+    // Copy skin
+    // ----------------------------------------------------------------------
+
+    if ($leftToright) {
+
+        copySkinWeights
+            -ss $skinClusterNode
+            -ds $skinClusterNode
+            -mirrorMode YZ
+            -sa closestPoint;
+    }
+    else {
+
+        copySkinWeights
+            -ss $skinClusterNode
+            -ds $skinClusterNode
+            -mirrorMode YZ
+            -mi
+            -sa closestPoint;
+    }
+
+    // ----------------------------------------------------------------------
+    // Restore matrix
+    // ----------------------------------------------------------------------
+
+    for ($i = 0; $i < size($inf); $i++) {
+
+        connectAttr -f
+            ($inf[$i] + ".worldMatrix[0]")
+            $matrix[$i * 2];
+    }
+
+    // enable skinCluster
+    setAttr ($skinClusterNode + ".envelope") 1;
+
+    // cleanup
+    delete PoseMirrorSkin_Temp_grp;
+
+    return "PoseMirrorSkin completed successfully.";
+}
