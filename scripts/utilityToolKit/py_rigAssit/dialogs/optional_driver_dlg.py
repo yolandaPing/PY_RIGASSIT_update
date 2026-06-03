@@ -794,33 +794,43 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
     def optional_apply(self):
         closest = self.parent_closest_cbx.isChecked()
         checked_type = self.optional_block.checkedId()
-        driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-        self._mfd.apply_Optional(driver, driven, checked_type, closest)
-
+        cmds.undoInfo(openChunk=True)
+        try:
+            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            self._mfd.apply_Optional(driver, driven, checked_type, closest)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def constraints_apply(self, connect=False, *args):
         parent = self.parent_cbx.isChecked()
         point = self.point_cbx.isChecked()
         orient = self.orient_cbx.isChecked()
         scale = self.scale_cbx.isChecked()
-        driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-        print(driver, driven )
-        if connect:
-            self._mfd.create_connect(driver, driven, [parent, point, orient, scale])
-        else:
-            self._mfd.create_constraint(driver, driven, [parent, point, orient, scale])
-
+        cmds.undoInfo(openChunk=True)
+        try:
+            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            print(driver, driven )
+            if connect:
+                self._mfd.create_connect(driver, driven, [parent, point, orient, scale])
+            else:
+                self._mfd.create_constraint(driver, driven, [parent, point, orient, scale])
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def set_driveKey_apply(self):
+        
         driver_value = [self.driver_field1.value(), self.driver_field2.value(), self.driver_field3.value()]
         driven_value = [self.driven_field1.value(), self.driven_field2.value(), self.driven_field3.value()]
         pre_Cycle = self.pre_Cycle_cbx.isChecked()
         post_Cycle = self.post_Cycle_cbx.isChecked()
-        driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-        driver_value, driven_value = self._mfd.sift_list_value(driver_value, driven_value)
+        cmds.undoInfo(openChunk=True)
+        try:
+            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            driver_value, driven_value = self._mfd.sift_list_value(driver_value, driven_value)
 
-        self._mfd.SetDrivenKey(driver, driven, driver_value, driven_value, pre_Cycle, post_Cycle)
-
+            self._mfd.SetDrivenKey(driver, driven, driver_value, driven_value, pre_Cycle, post_Cycle)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def copy_sdk_apply(self):
         prefix_Search = self.search_text.text()
@@ -836,47 +846,59 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         else:
             search_Attr = None
             replace_Attr = None
-        driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-        self._mfd._cheek_pairs([driver, driven])
-        if prefix_Search is None or prefix_Replace is None:
-            mayaPrint.error(" Please enter a string to search/replace ! ")
-            return
 
-        else:
-            print("------------------The following are the running results------------------")
-            for dri, drn in _pair_iter(driver, driven):
-                if _type != 3:
-                    if "." not in dri or "." not in drn:
-                        mayaPrint.error("The loaded object has no attributes, please check")
-                        return
-                    if _type == 1:
-                        self._cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,
-                                        search_Attr,
-                                        replace_Attr)
-                        print(" {} >>> {} is ok".format(dri, drn))
-                    elif _type == 2:
-                        self._cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr, replace_Attr,
-                                                   posneg=map[is_rev])
-                        print(" {} >>> {} is ok".format(dri, drn))
+        cmds.undoInfo(openChunk=True)
+        try:
+            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            self._mfd._cheek_pairs([driver, driven])
+            if prefix_Search is None or prefix_Replace is None:
+                mayaPrint.error(" Please enter a string to search/replace ! ")
+                return
+
+            else:
+                print("------------------The following are the running results------------------")
+                for dri, drn in _pair_iter(driver, driven):
+                    if _type != 3:
+                        if "." not in dri or "." not in drn:
+                            mayaPrint.error("The loaded object has no attributes, please check")
+                            return
+                        if _type == 1:
+                            self._cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,
+                                            search_Attr,
+                                            replace_Attr)
+                            print(" {} >>> {} is ok".format(dri, drn))
+                        elif _type == 2:
+                            self._cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr, replace_Attr,
+                                                    posneg=map[is_rev])
+                            print(" {} >>> {} is ok".format(dri, drn))
+                        else:
+                            pass
                     else:
-                        pass
-                else:
-                    self._cysdk.mirror_specify_sdk(dri, drn, map[is_rev])
-                    print(" {} >>> {} is ok".format(dri, drn))
+                        self._cysdk.mirror_specify_sdk(dri, drn, map[is_rev])
+                        print(" {} >>> {} is ok".format(dri, drn))
 
-            mayaPrint.log(" SDK copy succeeded!")
+                mayaPrint.log(" SDK copy succeeded!")
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
 
     def transfer_info_apply(self):
         Type = self.infocon_block.checkedId()
-        driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-        self._mfd.copy_in_out_connect(driver, driven, Type)
-
+        cmds.undoInfo(openChunk=True)
+        try:
+            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            self._mfd.copy_in_out_connect(driver, driven, Type)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def combine_apply(self):
-        driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-        self._mfd.combine_dirve(driver, driven)
-        mayaPrint.log("finish !")
+        cmds.undoInfo(openChunk=True)
+        try:
+            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            self._mfd.combine_dirve(driver, driven)
+            mayaPrint.log("finish !")
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
 
 class PYOptionalDriveDialog(PyouPersistentWindow):
