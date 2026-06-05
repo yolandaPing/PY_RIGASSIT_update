@@ -286,3 +286,11 @@ def follow_tool(ui):
 def InsertJoints(ui):
     mel_file = os.path.join(base_dir, "scripts", "mel", "Insertjoint_selected.mel")
     mel.eval('source ' + json.dumps(mel_file) + '; pyFitResampleUI;')
+
+
+@CommandDispatcher.register("Convert Drivenkeys")
+def animkeys_to_drivenkeys(ui):
+    __import__(
+        'py_rigAssit.dialogs.convert_drivenkeys_ui',
+        fromlist=['main']
+    ).main()

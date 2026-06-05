@@ -390,8 +390,8 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             (" InsertJoints ", lambda: self.dispatcher.execute("InsertJoints")),
             (" IKFK Rigging ", lambda: self.dispatcher.execute("IKFK Rigging")),
             (" Follow World ", lambda: self.dispatcher.execute("Follow World")),
-            (" Attribute Edit", lambda: self.dispatcher.execute("Attribute Edit")),
-
+            (" Attribute Edit ", lambda: self.dispatcher.execute("Attribute Edit")),
+            (" Convert Drivenkeys ", lambda: self.dispatcher.execute("Convert Drivenkeys")),
 
         ], self)
 

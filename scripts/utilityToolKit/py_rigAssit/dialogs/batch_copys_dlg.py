@@ -70,7 +70,6 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         _widgest.separator(bottom_layout)
         self.create_type_widgets(bottom_layout)
         # bottom_layout.addStretch()
-
         v_splitter.addWidget(top_frame)
         v_splitter.addWidget(bottom_frame)
         v_splitter.setStretchFactor(0, 1)
@@ -83,14 +82,10 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         return container_main
 
     def source_widgets(self, frame):
-
-        # layout
         self.main_layout_source = QtWidgets.QVBoxLayout(frame)
         self.main_layout_source.setSpacing(0)
 
         btn_layout_source = QtWidgets.QHBoxLayout()
-
-        # widgets
         source_label = QtWidgets.QLabel("source:")
         source_label.setAlignment(QtCore.Qt.AlignCenter)
 
@@ -103,7 +98,6 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         self.remove_source_btn = QtWidgets.QPushButton("remove")
         self.remove_source_btn.setProperty("danger", True)
 
-        # combine widgets layout
         self.main_layout_source.addWidget(source_label)
         self.main_layout_source.addWidget(self.source_list)
         self.main_layout_source.addLayout(btn_layout_source)
@@ -111,17 +105,11 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         btn_layout_source.addWidget(self.remove_source_btn)
 
     def target_widgets(self, frame):
-
-        # layout
         self.main_layout_target = QtWidgets.QVBoxLayout(frame)
         self.main_layout_target.setSpacing(0)
-
         btn_layout_target = QtWidgets.QHBoxLayout()
-
-        # widgets
         target_label = QtWidgets.QLabel("target:")
         target_label.setAlignment(QtCore.Qt.AlignCenter)
-
         self.target_list = QtWidgets.QListWidget()
         self.target_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
@@ -130,7 +118,6 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         self.remove_target_btn = QtWidgets.QPushButton("remove")
         self.remove_target_btn.setProperty("danger", True)
 
-        # combine widgets layout
         self.main_layout_target.addWidget(target_label)
         self.main_layout_target.addWidget(self.target_list)
         self.main_layout_target.addLayout(btn_layout_target)
@@ -138,19 +125,14 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         btn_layout_target.addWidget(self.remove_target_btn)
 
     def create_textScrollList_lay(self, parent_layout):
-
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         splitter.setHandleWidth(3)
         splitter.setChildrenCollapsible(True)
-
         frame1 = QtWidgets.QFrame()
         frame2 = QtWidgets.QFrame()
-
         splitter.addWidget(frame1)
         splitter.addWidget(frame2)
-
         splitter.setSizes([100, 100])
-
         self.source_widgets(frame1)
         self.target_widgets(frame2)
 

@@ -7,6 +7,7 @@ import os
 import sys
 import json
 import shutil
+import xml.etree.ElementTree as ET
 from datetime import datetime
 
 try:
@@ -49,7 +50,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
         self.timeStamp = TIMESTAMP
         self.WINDOW_NAME = 'OpenPipeline v{} (Maya{})'.format(VERSION, cmds.about(version=True))
-        # self.font_size = "13px"
+
         self.pm = None
         self.current_project_path = ''
         self.current_project_name = ''
@@ -67,7 +68,6 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
         self.init_ui()
 
-        # 初始化UI后才能调用这些方法
         self.load_projects()
         self.select_last_project()
         self.load_fbx_config()
@@ -75,10 +75,10 @@ class PYPenpipelineDialog(PyouPersistentWindow):
     def init_ui(self):
 
         main_layout = QtWidgets.QVBoxLayout(self)
+        
         main = QtWidgets.QVBoxLayout()
         main_layout.addLayout(main)
 
-        # 项目根路径行
         root_row = QtWidgets.QHBoxLayout()
         lbl_root = QtWidgets.QLabel(u'项目路径:')
         lbl_root.setStyleSheet("font: bold ; ")
@@ -86,17 +86,15 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.root_path_label = QtWidgets.QLabel(u'未设置')
         self.root_path_label.setStyleSheet(' color:black; ')
         self.root_path_label.setFixedWidth(320)
-        self.root_path_label.setMaximumHeight(30)
-        btn_set_root = QtWidgets.QPushButton(u'设置项目路径')
+
+        btn_set_root = QtWidgets.QPushButton(u' [设置项目路径] ')
         btn_set_root.setStyleSheet("{} color: black;".format(_widgest.button_bgc))
         btn_set_root.clicked.connect(self.set_project_root_path)
-        btn_check_root = QtWidgets.QPushButton(u'检查项目')
+        btn_check_root = QtWidgets.QPushButton(u' [检查项目] ')
         btn_check_root.clicked.connect(self.check_projects_in_root)
-        btn_check_config = QtWidgets.QPushButton(u'检查配置')
+        btn_check_config = QtWidgets.QPushButton(u' [检查配置] ')
         btn_check_config.clicked.connect(self.check_config)
-        btn_check_config.setMaximumHeight(30)
-        btn_set_root.setMaximumHeight(30)
-        btn_check_root.setMaximumHeight(30)
+
         root_row.addWidget(lbl_root)
         root_row.addWidget(self.root_path_label)
         root_row.addWidget(btn_set_root)
@@ -113,19 +111,16 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.project_combo = QtWidgets.QComboBox()
         self.project_combo.setFixedWidth(200)
         self.project_combo.currentTextChanged.connect(self.on_project_changed)
-        btn_new = QtWidgets.QPushButton(u'新建')
+        btn_new = QtWidgets.QPushButton(u' [新建] ')
         btn_new.setStyleSheet("{} color: black;".format(_widgest.button_bgc))
         btn_new.clicked.connect(self.create_project_dialog)
-        btn_open = QtWidgets.QPushButton('打开项目')
+        btn_open = QtWidgets.QPushButton(' [打开项目] ')
         btn_open.clicked.connect(self.open_existing_project)
         btn_refresh = QtWidgets.QPushButton('')
         btn_refresh.setIcon(QtGui.QIcon(":refresh.png"))
         btn_refresh.setToolTip(u"刷新")
         btn_refresh.clicked.connect(self.load_projects)
-        btn_new.setMaximumHeight(25)
-        btn_open.setMaximumHeight(25)
-        btn_refresh.setFixedHeight(30)
-        btn_refresh.setFixedWidth(30)
+
         prow.addWidget(lbl)
         prow.addWidget(self.project_combo)
         prow.addWidget(btn_new)
@@ -134,14 +129,16 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         prow.addStretch()
         main.addLayout(prow)
 
-        _widgest.separator(main, False)
         _widgest.separator(main, True)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
         # left: asset types + asset list
         leftw = QtWidgets.QWidget()
+        
         leftl = QtWidgets.QVBoxLayout()
+        leftl.setContentsMargins(0, 8, 0, 0)
+        
         type_row = QtWidgets.QHBoxLayout()
         tlabel = QtWidgets.QLabel(u'类型:')
         tlabel.setStyleSheet("font: bold ; ")
@@ -159,39 +156,44 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         btn_deltype.setStyleSheet("font: bold 16px; {} color: red;".format(_widgest.button_bgc))
         btn_deltype.clicked.connect(self.delete_asset_type)
         type_row.addWidget(tlabel)
-        type_row.addWidget(self.type_combo)
+        type_row.addWidget(self.type_combo, 1)
         type_row.addWidget(btn_addtype)
         type_row.addWidget(btn_deltype)
         leftl.addLayout(type_row)
 
-        search_row = QtWidgets.QHBoxLayout()
-        s_lbl = QtWidgets.QLabel(u'搜索:')
-        s_lbl.setFixedWidth(40)
+        asset_group = QtWidgets.QGroupBox(u"对象名称")
+        asset_layout = QtWidgets.QVBoxLayout(asset_group)
+        asset_layout.setContentsMargins(4, 6, 4, 4)
+
         self.search_edit = QtWidgets.QLineEdit()
         self.search_edit.setPlaceholderText(u'搜索资产...')
         self.search_edit.textChanged.connect(self.filter_assets)
-        search_row.addWidget(s_lbl)
-        search_row.addWidget(self.search_edit)
-        leftl.addLayout(search_row)
 
+        leftl.addWidget(asset_group)
+        
         self.asset_list = QtWidgets.QListWidget()
-        self.asset_list.itemClicked.connect(self.on_asset_clicked)
         self.asset_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.asset_list.setAlternatingRowColors(True)
+        self.asset_list.itemClicked.connect(self.on_asset_clicked)
         self.asset_list.customContextMenuRequested.connect(self.show_asset_context_menu)
-        leftl.addWidget(self.asset_list)
+
+        asset_layout.addWidget(self.search_edit)     
+        asset_layout.addWidget(self.asset_list)
 
         asset_btn_row = QtWidgets.QHBoxLayout()
         self.btn_create_asset = QtWidgets.QPushButton('New')
-        self.btn_create_asset.setStyleSheet("{} color: black;".format(_widgest.button_bgc))
         self.btn_create_asset.clicked.connect(self.create_asset_dialog)
         self.btn_create_asset.setEnabled(False)
         self.btn_delete_asset = QtWidgets.QPushButton('Delete!!!')
-        self.btn_delete_asset.setStyleSheet("{} color: red;".format(_widgest.button_bgc))
         self.btn_delete_asset.clicked.connect(self.delete_asset_dialog)
+
+        self.btn_create_asset.setProperty("main", True)
+        self.btn_delete_asset.setProperty("main", True)
+        self.btn_delete_asset.setStyleSheet("color: red;")
         self.btn_delete_asset.setEnabled(False)
         self.btn_delete_asset.setVisible(False)
-        self.btn_create_asset.setMaximumHeight(25)
-        self.btn_delete_asset.setMaximumHeight(25)
+        # self.btn_create_asset.setMaximumHeight(25)
+        # self.btn_delete_asset.setMaximumHeight(25)
         asset_btn_row.addWidget(self.btn_create_asset)
         asset_btn_row.addWidget(self.btn_delete_asset)
         asset_btn_row.addStretch()
@@ -201,53 +203,57 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
         centerw = QtWidgets.QWidget()
         center_layout = QtWidgets.QVBoxLayout(centerw)
-
+        center_layout.setContentsMargins(0, 0, 0, 0)
         # 子类型部分
-        subtype_frame = QtWidgets.QFrame()
-        subtype_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        subtype_frame = QtWidgets.QGroupBox(u"任务")
         subtype_layout = QtWidgets.QVBoxLayout(subtype_frame)
-        sublb_layout = QtWidgets.QHBoxLayout()
-        sublb_layout.addWidget(QtWidgets.QLabel(u'任务:'))
+
         self.info_label = QtWidgets.QLabel(u'未选择资产')
         self.info_label.setWordWrap(True)
         self.info_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.info_label.setMaximumHeight(35)
+        self.info_label.setMaximumHeight(15)
         self.info_label.setStyleSheet('color:yellow; font-size: 12px;')
-        sublb_layout.addWidget(self.info_label)
-        subtype_layout.addLayout(sublb_layout)
+
+        subtype_layout.addWidget(self.info_label)
 
         self.subtype_list = QtWidgets.QListWidget()
+        self.subtype_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.subtype_list.setAlternatingRowColors(True)
         self.subtype_list.itemClicked.connect(self.on_subtype_clicked)
         self.subtype_list.itemDoubleClicked.connect(self.on_subtype_double_clicked)
-        self.subtype_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.subtype_list.customContextMenuRequested.connect(self.show_subtype_context_menu)
         subtype_layout.addWidget(self.subtype_list)
 
         sub_btns = QtWidgets.QHBoxLayout()
         self.btn_add_sub = QtWidgets.QPushButton(u'New')
-        self.btn_add_sub.clicked.connect(self.add_subtype_dialog)
-        self.btn_add_sub.setStyleSheet("{} color: green;".format(_widgest.button_bgc))
+        
         self.btn_add_sub.setEnabled(False)
         self.btn_del_sub = QtWidgets.QPushButton(u'Delete')
-        self.btn_del_sub.clicked.connect(self.delete_subtype)
-        self.btn_del_sub.setStyleSheet("{} color: black;".format(_widgest.button_bgc))
+
         self.btn_del_sub.setEnabled(False)
         self.btn_rename_sub = QtWidgets.QPushButton(u'Rename')
-        self.btn_rename_sub.setStyleSheet("{} color: black;".format(_widgest.button_bgc))
-        self.btn_rename_sub.clicked.connect(self.rename_subtype)
+        
+        self.btn_add_sub.setProperty("main", True)
+        self.btn_add_sub.setStyleSheet("color: green;")
+        self.btn_del_sub.setProperty("main", True)
+        self.btn_rename_sub.setProperty("main", True)
         self.btn_rename_sub.setEnabled(False)
-        self.btn_add_sub.setMaximumHeight(25)
-        self.btn_del_sub.setMaximumHeight(25)
-        self.btn_rename_sub.setMaximumHeight(25)
+
         sub_btns.addWidget(self.btn_add_sub)
         sub_btns.addWidget(self.btn_del_sub)
         sub_btns.addWidget(self.btn_rename_sub)
         subtype_layout.addLayout(sub_btns)
 
+        self.btn_add_sub.clicked.connect(self.add_subtype_dialog)
+        self.btn_del_sub.clicked.connect(self.delete_subtype)
+        self.btn_rename_sub.clicked.connect(self.rename_subtype)
+
         # 版本列表部分
-        version_frame = QtWidgets.QFrame()
-        version_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        version_frame = QtWidgets.QGroupBox("")
+
         version_layout = QtWidgets.QVBoxLayout(version_frame)
+        version_layout.setContentsMargins(4, 0, 4, 4)
+
         version_title_layout = QtWidgets.QHBoxLayout()
         version_title_layout.addWidget(QtWidgets.QLabel(u'版本:'))
         self.version_count_text = QtWidgets.QLabel('')
@@ -256,8 +262,9 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         version_layout.addLayout(version_title_layout)
 
         self.version_list = QtWidgets.QListWidget()
-        self.version_list.itemDoubleClicked.connect(self.open_selected_version)
         self.version_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.version_list.setAlternatingRowColors(True)
+        self.version_list.itemDoubleClicked.connect(self.open_selected_version)
         self.version_list.customContextMenuRequested.connect(self.show_version_context_menu)
         version_layout.addWidget(self.version_list)
 
@@ -315,33 +322,30 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         top_container = QtWidgets.QWidget()
         top_layout = QtWidgets.QVBoxLayout(top_container)
         top_layout.setContentsMargins(0, 0, 0, 0)
+        pv_col_grp = QtWidgets.QGroupBox(u"预览")
+        pv_col = QtWidgets.QVBoxLayout(pv_col_grp)
+        pv_col.setContentsMargins(4, 6, 4, 4)
 
-        pv_row = QtWidgets.QHBoxLayout()
-        pv_col = QtWidgets.QVBoxLayout()
-        label = QtWidgets.QLabel(u'预览:')
-        label.setStyleSheet("font: bold 14px;")
-        label.setFixedHeight(30)
-        pv_col.addWidget(label)
         self.preview_label = QtWidgets.QLabel()
-        self.preview_label.setFixedSize(220, 161)
-        self.preview_label.setStyleSheet('background:#333; border:1px solid #555')
+        self.preview_label.setMinimumSize(220, 161)
         self.preview_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.preview_label.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Sunken)
+        self.preview_label.setStyleSheet("background-color: #2b2b2b; color: #888;")
+
         self.btn_snapshot = QtWidgets.QPushButton('Take Snapshot')
         self.btn_snapshot.clicked.connect(self.take_snapshot)
         self.btn_snapshot.setEnabled(False)
         pv_col.addWidget(self.btn_snapshot)
         pv_col.addWidget(self.preview_label)
-        pv_row.addLayout(pv_col)
-        top_layout.addLayout(pv_row)
+       
+        top_layout.addWidget(pv_col_grp)
         top_container.setMinimumHeight(200)
         top_container.setMaximumHeight(500)
 
-        bottom_container = QtWidgets.QWidget()
+        bottom_container = QtWidgets.QGroupBox("Notes")
         bottom_layout = QtWidgets.QVBoxLayout(bottom_container)
-        bottom_layout.setContentsMargins(0, 5, 0, 0)
-        notes_label = QtWidgets.QLabel('Notes:')
-        notes_label.setStyleSheet("font: bold 14px;")
-        bottom_layout.addWidget(notes_label)
+        bottom_layout.setContentsMargins(4, 6, 4, 4)
+
         self.notes_text = QtWidgets.QTextEdit()
         self.notes_text.setReadOnly(True)
         self.notes_text.setMinimumHeight(150)

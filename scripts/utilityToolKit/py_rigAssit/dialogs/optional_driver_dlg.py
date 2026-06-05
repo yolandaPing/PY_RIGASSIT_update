@@ -209,22 +209,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.driven_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.driven_list.customContextMenuRequested.connect(self.show_context_driven_menu)
 
-        # menu mod
-        # driver_load_menu.triggered.connect(lambda: self._obj.load_list_widget_items(self.driver_list, True, True))
-        # driver_append_menu.triggered.connect(lambda: self._obj.load_list_widget_items(self.driver_list, False, True))
-        # driver_remove_menu.triggered.connect(lambda: self._obj.remove_seleted_items(self.driver_list))
-        # driver_left_to_right_menu.triggered.connect(lambda: self.mirror_selection(self.driver_list, self.driven_list,True))
-        # driver_right_to_left_menu.triggered.connect(lambda: self.mirror_selection(self.driver_list, self.driven_list,False))
-        # driver_search_to_replace_menu.triggered.connect( lambda: self.replace_string_ui(self.driver_list, self.driven_list))
-        # driver_select_all_menu.triggered.connect(lambda: self.dispatcher.execute("Menu Select All", self.driver_list))
-        # driven_load_menu.triggered.connect(lambda: self._obj.load_list_widget_items(self.driven_list, True, True))
-        # driven_append_menu.triggered.connect( lambda: self._obj.load_list_widget_items(self.driven_list, False, True))
-        # driven_remove_menu.triggered.connect(lambda: self._obj.remove_seleted_items(self.driven_list))
-        # driven_left_to_right_menu.triggered.connect(lambda: self.mirror_selection(self.driven_list, self.driver_list, True))
-        # driven_right_to_left_menu.triggered.connect(lambda: self.mirror_selection(self.driven_list, self.driver_list, False))
-        # driven_search_to_replace_menu.triggered.connect(lambda: self.replace_string_ui(self.driven_list, self.driver_list, obj="Driven"))
-        # driven_select_all_menu.triggered.connect(lambda: self.dispatcher.execute("Menu Select All", self.driven_list))
-
         from functools import partial
 
         driver_load_menu.triggered.connect(

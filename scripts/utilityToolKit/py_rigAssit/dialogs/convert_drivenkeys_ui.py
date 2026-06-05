@@ -16,11 +16,11 @@ import maya.cmds as cmds
 class PYConvertDrivenkeysUI(GetUIuse):
 
     def __init__(self):
-        self.WINDOW_NAME = 'Convert Drivenkeys'
+        self.WINDOW_NAME = 'Animkeys Convert Drivenkeys'
         self.windowT = 'PYConvertDrivenkeysWindow'
         self.timeStamp = ' 2026'
 
-        self.withHight = (350, 200)
+        self.withHight = (350, 220)
 
     def _build_ui(self):
         if (cmds.window(self.windowT, q=True, ex=True)):
@@ -56,6 +56,8 @@ class PYConvertDrivenkeysUI(GetUIuse):
         cmds.floatFieldGrp('pyconvert_driver_attr_value', label='driver min/max value: ', v1=0.0, v2=10.0, en=1, nf=2,
                            cw3=(120, 65, 65))
         cmds.separator(st='none', h=10)
+        cmds.text(l=u'选择k动画对象,channelbox选择属性', font="smallObliqueLabelFont")
+
         cmds.rowColumnLayout(nc=2, adj=1, cw=[(1, 320), (2, 20)])
         cmds.button(label='Apply', bgc=self.button_bgc, h=30, command=partial(self.apply))
         Help.symbolHelpImageButton(file="", name="convert_drivenkeys", With=26)
