@@ -71,8 +71,8 @@ Why Should I use this ?
 # 使用
 关于PY_RIGASSIT 工具使用 [About PY_RIGASSIT Tool](https://space.bilibili.com/3493142019967757?spm_id_from=333.1007.0.0)
 
-# 闲鱼下载
-PY_RIGASSIT 下载 [PY_RIGASSIT](https://m.tb.cn/h.7lqLwhV?tk=kDADUV6ekXE)
+# 激活
+PY_RIGASSIT 新用户可联系领取激活权限
 
 # 安装
 * 请确保你的maya已安装pymel ！！！安装和导入 PyMEL [Autodesk Maya PyMel]((https://pan.quark.cn/s/fe8c6e815f8e))
@@ -83,6 +83,10 @@ PY_RIGASSIT 下载 [PY_RIGASSIT](https://m.tb.cn/h.7lqLwhV?tk=kDADUV6ekXE)
 ![工具安装](https://github.com/user-attachments/assets/2b55c755-48bb-458d-88ba-dea12f37b45d)
 ![卸载](https://github.com/user-attachments/assets/cece5589-fdce-4285-a86f-fed28c0d9984)
 
+# 自动更新：（有加速器开启加速！！！ maya需要全部关闭！！！）
+* 更新前建议运行 Clean_清理.bat
+* A.运行”Update更新.bat“ 在线自动更新；
+* B.运行”Update更新_Git.bat“ 在线自动更新(推荐，需要安装Git)；
 
 # 快速进入安装包下载地址
 * ![进入下载地址](https://github.com/user-attachments/assets/f6dfb8ec-c322-4992-bbd5-a523d5dfd8c0)
