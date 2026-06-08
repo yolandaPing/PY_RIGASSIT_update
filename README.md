@@ -75,7 +75,7 @@ Why Should I use this ?
 * PY_RIGASSIT 新用户可联系领取激活权限
 
 # 安装
-* 请确保你的maya已安装pymel ！！！安装和导入 PyMEL [Autodesk Maya PyMel]()
+* 请确保你的maya已安装pymel ！！！安装和导入 PyMEL指导： [Autodesk Maya PyMel](https://help.autodesk.com/view/MAYAUL/2025/ENU/?guid=GUID-2AA5EFCE-53B1-46A0-8E43-4CD0B2C72FB4)
 * 双击Install安装.bat 输入 y 安装工具，n 取消
 * uninstall卸载.bat 输入 y 卸载工具，n 取消
 * 支持maya2018-2026
