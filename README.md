@@ -86,7 +86,7 @@ Why Should I use this ?
 # 自动更新（有加速器开启加速！！！ maya需要全部关闭！！！）
 * 更新前建议运行 Clean_清理.bat
 * A.运行”Update更新.bat“ 在线自动更新；
-* B.运行”Update更新_Git.bat“ 在线自动更新(推荐，需要安装Git)；
+* B.运行”Update更新_Git.bat“ 在线自动更新(推荐，需要安装Git) [Git 下载地址](https://git-scm.com/download/win)；
 
 # 手动更新
 * 下载PY_RIGASSIT_update更新包 [PY_RIGASSIT_update](https://github.com/yolandaPing/PY_RIGASSIT_update.git)
