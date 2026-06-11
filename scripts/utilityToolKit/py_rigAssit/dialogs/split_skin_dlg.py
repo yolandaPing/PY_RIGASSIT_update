@@ -11,13 +11,191 @@ from py_rigAssit.dialogs import Help, decorator, mayaPrint
 from selectOrRemove import SelectOrremoveObj
 from py_rigAssit.common.loader import SelectionLoader
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
-import JointEdit.split_skin_weight as split_skin_weight
 import py_rigAssit.common.img_commands
+from JointEdit import split_skin_weight
+from DefromConvertWeight import soft_core
+
 import maya.cmds as cmds
 
 PY_WIDGEST = Widgets()
+dispatcher = CommandDispatcher()
+
 MAYA_VISON = int(cmds.about(version=True))
 _obj = SelectOrremoveObj()
+
+labels = [u"sec  ", u"vertical", u"tangent", u"IK ", u"FK  ", u"chains root", u"chains path"]
+types = ["soft", "vertical", "tangent", "points", "lines", "chains_root", "chains"]
+
+
+class PYSoftWeight_Manager(QtWidgets.QWidget):
+    txts = ('选择点，调节好soft的范围', "竖直拆分权重", "沿这轴向的切面", "解锁所有需要拆分的IK（single/ point）关节",
+            "解锁所有需要拆分的FK（chain）关节", "解锁关节链里的父级拆分", "拆分所有链条")
+
+    def __init__(self, parent=None):
+        super(PYSoftWeight_Manager, self).__init__( parent)
+        self.SOFT_HEADS = "SoftWeightHEADS"
+
+
+    def setup_ui(self):
+        container_main = QtWidgets.QWidget()
+        container_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        main_layout = QtWidgets.QVBoxLayout(container_main)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        main_layout.setSpacing(8)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(1, 1, 1, 1)
+        option_form = QtWidgets.QFormLayout()
+        selected_field_layout = QtWidgets.QHBoxLayout()
+
+        self.bezier = PY_WIDGEST.create_Bezier()
+        self.show_grid_mode = QtWidgets.QCheckBox('show gird')
+        self.interpolation_menu = QtWidgets.QComboBox()
+        self.interpolation_menu.addItems(['Default', 'Linear', 'Smooth', 'Spline'])
+        self.interpolation_menu.currentTextChanged.connect(self.on_interpolation_changed)
+        interpolation_menu_layout = QtWidgets.QFormLayout()
+        interpolation_menu_layout.addRow('Interpolation:', self.interpolation_menu)
+
+        decimals = 2
+        selected_value_field = QtWidgets.QDoubleSpinBox()
+        selected_opsition_field = QtWidgets.QDoubleSpinBox()
+
+        selected_value_field.setDecimals(decimals)
+        selected_opsition_field.setDecimals(decimals)
+        selected_value_field.setRange(0.0, 1.0)
+        selected_opsition_field.setRange(0.0, 1.0)
+
+        selected_field_layout.addLayout(interpolation_menu_layout)
+        selected_field_layout.addStretch()
+        selected_field_layout.addWidget(QtWidgets.QLabel("value:"))
+        selected_field_layout.addWidget(selected_value_field, 1)
+        selected_field_layout.addWidget(QtWidgets.QLabel("pos:"))
+        selected_field_layout.addWidget(selected_opsition_field, 1)
+
+        selected_value_field.setEnabled(False)
+        selected_opsition_field.setEnabled(False)
+
+        self.type = QtWidgets.QButtonGroup()
+        radio_layout = QtWidgets.QGridLayout()
+        for i, text in enumerate(labels):
+            radio = QtWidgets.QRadioButton(text)
+            self.type.addButton(radio, i)
+            radio_layout.addWidget(radio, i // 4, i % 4, 1, 1)
+        self.type.button(0).setChecked(True)
+
+        self.hit_txt = PY_WIDGEST.create_text('{}'.format(self.txts[0]))
+        self.falloff_radius = PY_WIDGEST.create_floatSlider("Falloff radius")
+        self.falloff_radius.setRange(.001, 10)
+        self.falloff_radius.setValue(1)
+
+        radius_layout = QtWidgets.QHBoxLayout()
+        self.falloff_reset_btn = QtWidgets.QPushButton("reset 1.0")
+        radius_layout.addWidget(self.falloff_radius, 2)
+        radius_layout.addWidget(self.falloff_reset_btn)
+
+        self.real_mode = QtWidgets.QCheckBox("运行后，可使用实时")
+
+        option_form.addRow(radio_layout)
+        option_form.addRow(self.hit_txt)
+        option_form.addRow(radius_layout)
+        option_form.addRow("Real:", self.real_mode)
+
+        sec = PY_WIDGEST.create_section("Option")
+        sec.addLayout(option_form)
+
+        layout.addWidget(self.bezier, 1)
+        layout.addWidget(self.show_grid_mode)
+        layout.addLayout(selected_field_layout)
+        layout.addWidget(sec)
+
+        btn_layout, self.btn_apply, self.soft_help_btn = PY_WIDGEST.create_Qbuttons(" Apply ")
+
+        main_layout.addLayout(layout, 1)
+        main_layout.addLayout(btn_layout)
+
+        self._connect_signals()
+
+        return container_main
+
+    def _connect_signals(self):
+        self.bezier.valueChanged.connect(self.real_paint_weight)
+        self.show_grid_mode.stateChanged.connect( lambda state: self.bezier.setGridVisible(state == QtCore.Qt.Checked))
+        self.falloff_radius.valueChange.connect(self.real_paint_weight)
+        self.falloff_reset_btn.clicked.connect(self.reset_radius_to_default)
+        self.type.buttonClicked[int].connect(self.on_type_changed)
+        self.real_mode.stateChanged.connect(self.real_mode_changed)
+        self.btn_apply.clicked.connect(self.paint_weight)
+        self.soft_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 21))
+        self.on_real = False
+
+    def get_menu_item(self, item):
+        return item
+
+    def on_interpolation_changed(self, item):
+        presets = {
+            'Default': [[0.0, 1.0], [0.33, 1.0], [0.67, 0.0], [1.0, 0.0]],
+            'Linear': [[0.0, 1.0], [0.0, 1.0], [1.0, 0.0], [1.0, 0.0]],
+            'Smooth': [[0.0, 1.0], [0.5, 1.0], [0.5, 0.0], [1.0, 0.0]],
+            'Spline': [[0.0, 1.0], [0.25, 1.0], [0.75, 0.0], [1.0, 0.0]]
+        }
+        points = presets.get(item, presets['Default'])
+        self.bezier.points = points
+        self.bezier.update()
+
+        if self.real_mode.isChecked():
+            self.bezier.valueChanged.emit()
+
+    def on_radius_slider_changed(self):
+        self.real_paint_weight()
+
+    def reset_radius_to_default(self):
+        self.falloff_radius.setValue(1.0)
+
+    def on_type_changed(self, xid):
+        self.hit_txt.setText(self.txts[xid])
+        if self.on_real:
+            soft_core.paint(*self.get_ui_kwargs())
+
+    def type_changed(self):
+        self.real_mode.setChecked(QtCore.Qt.Unchecked)
+
+    def real_mode_changed(self):
+        self.on_real = False
+        if self.real_mode.isChecked():
+            self.on_real = soft_core.init(types[self.type.checkedId()])
+            self.real_paint_weight()
+
+        self.show_heads()
+
+    def show_heads(self):
+        if self.on_real:
+            cmds.headsUpDisplay(self.SOFT_HEADS, s=2, b=0, bs="medium", l="Soft Weight Real-time", lfs="large")
+            Help.inView_Message("red", "Entered Soft Weight Real-time ")
+        else:
+            try:
+                if cmds.headsUpDisplay(self.SOFT_HEADS, ex=1):
+                    cmds.headsUpDisplay(self.SOFT_HEADS, rem=1)
+            except:
+                pass
+            Help.inView_Message("yellow", "Exited Soft Weight Real-time ")
+
+    def get_ui_kwargs(self):
+        typ = types[self.type.checkedId()]
+        r = self.falloff_radius.value()
+        xs = [x for x, y in self.bezier.points]
+        ys = [1 - y for x, y in self.bezier.points]
+        # print(typ, xs, ys, r)
+        return typ, xs, ys, r
+
+    def paint_weight(self):
+        if self.real_mode.isChecked():
+            self.real_paint_weight()
+        else:
+            soft_core.paint(*self.get_ui_kwargs())
+
+    def real_paint_weight(self):
+        if self.on_real:
+            soft_core.solve(*self.get_ui_kwargs())
 
 
 class PYSplitWeightLayout(PyouPersistentWindow):
@@ -39,12 +217,12 @@ class PYSplitWeightLayout(PyouPersistentWindow):
 
 
     def init_ui(self, copyright=False):
-        self.dispatcher = CommandDispatcher()
         main = QtWidgets.QVBoxLayout(self)
         main.setContentsMargins(4, 4, 4, 4)
         main.setSpacing(4)
         main.addWidget(PY_WIDGEST.create_title("Split SkinWeight", 15, self.WEBS))
-        main.addLayout(self.split_skin_lay(), 1)
+        main.addWidget(self.build_tabs(), 1)
+
         if copyright:
             PY_WIDGEST.create_copyrightText(main, "2025-2026")
 
@@ -53,11 +231,27 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         self.create_connection()
         return main
 
+    def build_tabs(self):
+
+        self.tabs = QtWidgets.QTabWidget()
+        self.tabs.setTabPosition(QtWidgets.QTabWidget.West)
+        # self.tabs.setTabPosition(QtWidgets.QTabWidget.North)
+        self.tabs.setMovable(False)
+        self.tabs.setUsesScrollButtons(False)
+        self.soft_widget = PYSoftWeight_Manager()
+        self.tabs.addTab(self.split_skin_lay(), "de boor")
+        self.tabs.addTab(self.soft_widget.setup_ui(), "soft")
+
+        return self.tabs
+
+
     def split_skin_lay(self):
-        main_layout = QtWidgets.QVBoxLayout()
+        container_main = QtWidgets.QWidget()
+        container_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        main_layout = QtWidgets.QVBoxLayout(container_main)
 
         layout1, self.geo_filed, self.geo_btn = PY_WIDGEST.create_QLineEdit_row("Geometry:" )
-        layout2, self.mask_filed, self.mask_btn = PY_WIDGEST.create_QLineEdit_row("Mask Jnt/Lay:")
+        layout2, self.mask_filed, self.mask_btn = PY_WIDGEST.create_QLineEdit_row("Joint/Lay:")
 
         split_type_layout = QtWidgets.QHBoxLayout()
         self.split_mask_block = PY_WIDGEST.create_radiogroup(
@@ -110,8 +304,9 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         main_layout.addWidget(self.degree_container)
         PY_WIDGEST.separator(main_layout, True)
         main_layout.addLayout(btn_layout)
-        self.split_help_btn.clicked.connect(lambda: self.dispatcher.execute("Show Help", 19))
-        return main_layout
+        self.split_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 19))
+        return container_main
+
 
     def listWidget_layout(self):
         main_layout = QtWidgets.QVBoxLayout()
@@ -175,6 +370,7 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         self.split_mask_block.idClicked.connect(self._on_mask_type_toggled)
         self.split_btn.clicked.connect(self.split_weight)
 
+
     def _on_mask_type_toggled(self, btn_id):
 
         maps = {1: u"> 拆分刷好的骨骼权重", 2: u"> 拆分ng2 mask"}
@@ -183,11 +379,11 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         if btn_id == 1:
             self.mask_btn.setEnabled(True)
             self.degree_container.setEnabled(self.degree_enable)
-            self.split_help_btn.clicked.connect(lambda: self.dispatcher.execute("Show Help", 19))
+            self.split_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 19))
         else:
             self.mask_btn.setEnabled(False)
             self.degree_container.setEnabled(True)
-            self.split_help_btn.clicked.connect(lambda: self.dispatcher.execute("Show Help", 20))
+            self.split_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 20))
 
 
     def _attr_block_toggled(self, btn_id):

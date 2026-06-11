@@ -53,12 +53,14 @@ QLabel[title="true"] {
 }
 
 QLabel[isText="true"] {
+    font-family: "Microsoft YaHei";
     font-size: 11px;
     font-weight: bold;
-    color: #629cbe;
+    color: #96c9e7;
 }
 
 QLabel[isText="false"] {
+    font-family: "Microsoft YaHei";
     font-size: 11px;
     font-weight: bold;
     color: #e68b86;
@@ -370,6 +372,7 @@ QCheckBox,
 QRadioButton {
     color: #ffffff;
     spacing: 4px;
+    font-family: "Microsoft YaHei";
     font-weight: 500;  
 }
 

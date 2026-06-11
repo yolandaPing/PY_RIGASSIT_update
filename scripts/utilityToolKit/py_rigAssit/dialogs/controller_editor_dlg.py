@@ -179,6 +179,7 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
             default_id=1
         )
         self.scale_slider = PY_WIDGEAT.create_floatSlider()
+        self.scale_slider.setRange(0.01, 5.0)
         self.scale_slider.setValue(0.25)
         size = QtCore.QSize(20, 20)
         self.add_btn = QtWidgets.QPushButton()

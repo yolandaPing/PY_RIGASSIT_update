@@ -19,11 +19,9 @@ try:
     from ui_framework.widgets.button import GridButtons
 except:
     from CommonUse.button import GridButtons
-from JointEdit.JointEditFun import EditJnt
 from py_rigAssit.dialogs.skin_inverseMatrix_dialog import SkinInvertMatrixDialog
 from py_rigAssit.dialogs.ikfk_system_layout import IKFKWidget
 from py_rigAssit.common.loader import SelectionLoader
-from JointEdit import mirror_skinWeight
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
 import py_rigAssit.common.commands
 import JointEdit.exp_inp_skinClusterIO as exp_inp_skinClusterIO
@@ -32,7 +30,6 @@ import maya.cmds as cmds, maya.mel as mel
 _widgest = Widgets()
 
 skinInverse_lay = SkinInvertMatrixDialog()
-EditJnt = EditJnt()
 
 
 class PYJointEditLayout(PyouPersistentWindow):
@@ -57,8 +54,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         main.setContentsMargins(2, 2, 2, 2)
         main.setSpacing(4)
         main.addWidget(_widgest.create_title("Rigging Dialog", 15, None))
-        # main.addWidget(_widgest.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它"))
-        # main.addWidget(self.build_tabs(), 1)
 
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
@@ -136,16 +131,20 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         # Quick
         joint_size_layout = QtWidgets.QHBoxLayout(self)
-        self.joint_size = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.joint_size.setRange(1, 1000)  # 映射 0.1~10.0 => 1~100
+        self.joint_size = _widgest.create_floatSlider("Joint Size:")
+        self.joint_size.setValue(0.25)
+        self.joint_size.setRange(0.01, 10.0)
+
+        # self.joint_size = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        # self.joint_size.setRange(1, 1000)  # 映射 0.1~10.0 => 1~100
         self.joint_spinbox = QtWidgets.QDoubleSpinBox()
         self.joint_spinbox.setRange(0.01, 10.0)
         self.joint_spinbox.setSingleStep(0.01)
         self.joint_spinbox.setDecimals(2)
         self.joint_reset_btn = QtWidgets.QPushButton("reset 1.0")
-        joint_size_layout.addWidget(_widgest.create_text("Joint Size:"), 1)
-        joint_size_layout.addWidget(self.joint_spinbox, 1)
-        joint_size_layout.addWidget(self.joint_size, 2)
+        # joint_size_layout.addWidget(_widgest.create_text("Joint Size:"), 1)
+        # joint_size_layout.addWidget(self.joint_spinbox, 1)
+        joint_size_layout.addWidget(self.joint_size, 1)
         joint_size_layout.addWidget(self.joint_reset_btn)
 
         sec1 = _widgest.create_section("Quick Actions")
@@ -485,9 +484,9 @@ class PYJointEditLayout(PyouPersistentWindow):
         return layout, line_edit
 
     def create_connection(self):
-        self.joint_size.valueChanged.connect(self.on_joint_slider_changed)
+        self.joint_size.valueChange.connect(self.on_joint_slider_changed)
         self.joint_reset_btn.clicked.connect(self.reset_joint_to_default)
-        self.joint_spinbox.valueChanged.connect(self.on_spinbox_joint_changed)
+        # self.joint_spinbox.valueChanged.connect(self.on_spinbox_joint_changed)
         self.mir_jnt_apple_btn.clicked.connect(self.mirror_build)
         self.sk_mirror_btn.clicked.connect(self.mirror_skin_build)
         self.skin_other_select_btn.clicked.connect(self._select_no_stand_joint)
@@ -536,11 +535,9 @@ class PYJointEditLayout(PyouPersistentWindow):
             current = cmds.jointDisplayScale(q=True)
         except:
             current = 1.0
-        self.joint_spinbox.blockSignals(True)
+
         self.joint_size.blockSignals(True)
-        self.joint_spinbox.setValue(current)
         self.joint_size.setValue(int(current * 100))
-        self.joint_spinbox.blockSignals(False)
         self.joint_size.blockSignals(False)
 
     def apply_joint_scale(self, value):
@@ -550,11 +547,8 @@ class PYJointEditLayout(PyouPersistentWindow):
             cmds.warning(u"设置关节显示比例失败: {}".format(str(e)))
 
     def on_joint_slider_changed(self, slider_val):
-        real_val = slider_val / 100.0
-        self.joint_spinbox.blockSignals(True)
-        self.joint_spinbox.setValue(real_val)
-        self.joint_spinbox.blockSignals(False)
-        self.apply_joint_scale(real_val)
+        # real_val = slider_val / 100.0
+        self.apply_joint_scale(slider_val)
 
     def on_spinbox_joint_changed(self, real_val):
         slider_val = int(round(real_val * 100))
@@ -565,7 +559,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.apply_joint_scale(real_val)
 
     def reset_joint_to_default(self):
-        self.joint_spinbox.setValue(1.0)
+        self.joint_size.setValue(1.0)
 
     def _on_copy_type_toggled(self, btn_id):
         self.sk_optimize_hint.setText(self.OPTIMIZE_HINT[btn_id])
@@ -580,8 +574,10 @@ class PYJointEditLayout(PyouPersistentWindow):
         else:
             field.setText(objs[0])
 
-    
     def mirror_build(self):
+        from JointEdit.JointEditFun import EditJnt
+        EditJnt = EditJnt()
+
         EditJnt.mirror_joints_build(self.mir_jnt_search_filed.text(), self.mir_jnt_replace_filed.text(), self.across_block.checkedId(), self.function_block.checkedId())
 
     def _select_no_stand_joint(self):
@@ -704,6 +700,9 @@ class PYJointEditLayout(PyouPersistentWindow):
 
     
     def run_batch_copy_skin(self):
+        from JointEdit.JointEditFun import EditJnt
+        EditJnt = EditJnt()
+
         source_field = self.sk_source_filed.text()
         type = self.sk_copy_block.checkedId()
         new_sc = False
