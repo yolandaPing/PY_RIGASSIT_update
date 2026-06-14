@@ -708,3 +708,42 @@ class Bezier(QtWidgets.QWidget):
         self.__mirror = False
         self.__adsorb = False
 
+
+class RadioSelector(QtWidgets.QWidget):
+
+    valueChanged = QtCore.Signal(int, str)
+
+    def __init__(self, labels, columns=4, parent=None):
+        super(RadioSelector, self).__init__(parent)
+
+        self.button_group = QtWidgets.QButtonGroup(self)
+        self.layout = QtWidgets.QGridLayout(self)
+
+        for i, text in enumerate(labels):
+            radio = QtWidgets.QRadioButton(text)
+            self.button_group.addButton(radio, i)
+
+            self.layout.addWidget(radio, i // columns, i % columns)
+
+        self.button_group.buttonClicked[int].connect(self._on_changed)
+
+        if self.button_group.buttons():
+            self.button_group.button(0).setChecked(True)
+
+    def _on_changed(self, index):
+        btn = self.button_group.button(index)
+        if btn:
+            self.valueChanged.emit(index, btn.text())
+
+    def checkedId(self):
+        return self.button_group.checkedId()
+
+    def checkedText(self):
+        btn = self.button_group.checkedButton()
+        return btn.text() if btn else None
+
+    def setCheckedId(self, index):
+        btn = self.button_group.button(index)
+        if btn:
+            btn.setChecked(True)
+

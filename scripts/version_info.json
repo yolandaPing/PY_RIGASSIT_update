@@ -1,6 +1,6 @@
 {
   "tip":[
-  "0.6.2.0",
+  "0.6.2.1",
   "2022-2026",
   "https://github.com/yolandaPing/PY_RIGASSIT.get",
   "https://github.com/yolandaPing/PY_RIGASSIT_update",
@@ -44,7 +44,7 @@
   "2026-03-19. v 05.9.6   joint模块里普通版权重导入导出速度提升8-10倍, 优化2023+蒙皮节点拷贝",
   "2026-05-05. v 06.0.0   ui升级新版本， 添加热盒工具",
   "2026-05-17. v 06.1.0   添加 UVPin 钉对象， RBF 添加新镜像",
-  "2026-06-11. v 06.2.0   添加 soft bezier 转权重（想学的去看萌芽的教程）"
+  "2026-06-11. v 06.2.0   添加 soft split 转权重（想学的去看萌芽的教程）"
 ],
   "jointEdit":[
   "4.1.0",

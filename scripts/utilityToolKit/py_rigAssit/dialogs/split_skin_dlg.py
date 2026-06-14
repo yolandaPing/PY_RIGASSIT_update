@@ -12,8 +12,7 @@ from selectOrRemove import SelectOrremoveObj
 from py_rigAssit.common.loader import SelectionLoader
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
 import py_rigAssit.common.img_commands
-from JointEdit import split_skin_weight
-from DefromConvertWeight import soft_core
+from DefromConvertWeight.soft_core_controller import SoftCoreController
 
 import maya.cmds as cmds
 
@@ -23,18 +22,19 @@ dispatcher = CommandDispatcher()
 MAYA_VISON = int(cmds.about(version=True))
 _obj = SelectOrremoveObj()
 
-labels = [u"sec  ", u"vertical", u"tangent", u"IK ", u"FK  ", u"chains root", u"chains path"]
+labels = [u"sec  ", u"vertical", u"tangent", u"IK ", u"FK chain  ", u"chains root", u"chains path"]
 types = ["soft", "vertical", "tangent", "points", "lines", "chains_root", "chains"]
 
 
 class PYSoftWeight_Manager(QtWidgets.QWidget):
-    txts = ('选择点，调节好soft的范围', "竖直拆分权重", "沿这轴向的切面", "解锁所有需要拆分的IK（single/ point）关节",
-            "解锁所有需要拆分的FK（chain）关节", "解锁关节链里的父级拆分", "拆分所有链条")
+    txts = ('选择点，调节好soft的范围，解锁对应关节', "解锁关节竖直拆分权重", "解锁关节沿这轴向的切面", "解锁所有需要拆分的IK（single/ point）关节",
+            "解锁所有需要拆分的FK（joint chain）关节", "解锁关节链里的父级拆分", "解锁的所有链条按path拆分")
 
     def __init__(self, parent=None):
         super(PYSoftWeight_Manager, self).__init__( parent)
         self.SOFT_HEADS = "SoftWeightHEADS"
-
+        self.vector = 0
+        self.controller = SoftCoreController()
 
     def setup_ui(self):
         container_main = QtWidgets.QWidget()
@@ -75,14 +75,9 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         selected_value_field.setEnabled(False)
         selected_opsition_field.setEnabled(False)
 
-        self.type = QtWidgets.QButtonGroup()
-        radio_layout = QtWidgets.QGridLayout()
-        for i, text in enumerate(labels):
-            radio = QtWidgets.QRadioButton(text)
-            self.type.addButton(radio, i)
-            radio_layout.addWidget(radio, i // 4, i % 4, 1, 1)
-        self.type.button(0).setChecked(True)
-
+        self.type = PY_WIDGEST.create_radioSelector(labels, columns=4)
+        vector = PY_WIDGEST.create_radioSelector(["X", "Y", "Z"], columns=3)
+        vector.valueChanged.connect(self.on_vector_map_changed)
         self.hit_txt = PY_WIDGEST.create_text('{}'.format(self.txts[0]))
         self.falloff_radius = PY_WIDGEST.create_floatSlider("Falloff radius")
         self.falloff_radius.setRange(.001, 10)
@@ -95,14 +90,15 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
 
         self.real_mode = QtWidgets.QCheckBox("运行后，可使用实时")
 
-        option_form.addRow(radio_layout)
+        option_form.addRow(self.type)
         option_form.addRow(self.hit_txt)
+        option_form.addRow("Vector:",vector)
         option_form.addRow(radius_layout)
         option_form.addRow("Real:", self.real_mode)
 
         sec = PY_WIDGEST.create_section("Option")
         sec.addLayout(option_form)
-
+        layout.addWidget(PY_WIDGEST.create_text('Weight Falloff Curve'))
         layout.addWidget(self.bezier, 1)
         layout.addWidget(self.show_grid_mode)
         layout.addLayout(selected_field_layout)
@@ -114,7 +110,7 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         main_layout.addLayout(btn_layout)
 
         self._connect_signals()
-
+        self.controller.set_vector(self.vector)
         return container_main
 
     def _connect_signals(self):
@@ -122,14 +118,31 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         self.show_grid_mode.stateChanged.connect( lambda state: self.bezier.setGridVisible(state == QtCore.Qt.Checked))
         self.falloff_radius.valueChange.connect(self.real_paint_weight)
         self.falloff_reset_btn.clicked.connect(self.reset_radius_to_default)
-        self.type.buttonClicked[int].connect(self.on_type_changed)
+        self.type.valueChanged.connect(self.on_type_changed)
         self.real_mode.stateChanged.connect(self.real_mode_changed)
         self.btn_apply.clicked.connect(self.paint_weight)
-        self.soft_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 21))
+        self.soft_help_btn.clicked.connect(self.show_split_help)
         self.on_real = False
 
     def get_menu_item(self, item):
         return item
+
+    def show_heads(self):
+        if cmds.headsUpDisplay(self.SOFT_HEADS, ex=1):
+            cmds.headsUpDisplay(self.SOFT_HEADS, rem=1)
+
+        if self.on_real:
+            cmds.headsUpDisplay(
+                self.SOFT_HEADS,
+                s=2,
+                b=0,
+                bs="medium",
+                l="Soft Weight Real-time",
+                lfs="large"
+            )
+            Help.inView_Message("red", "Entered Soft Weight Real-time")
+        else:
+            Help.inView_Message("yellow", "Exited Soft Weight Real-time")
 
     def on_interpolation_changed(self, item):
         presets = {
@@ -138,12 +151,13 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
             'Smooth': [[0.0, 1.0], [0.5, 1.0], [0.5, 0.0], [1.0, 0.0]],
             'Spline': [[0.0, 1.0], [0.25, 1.0], [0.75, 0.0], [1.0, 0.0]]
         }
+
         points = presets.get(item, presets['Default'])
         self.bezier.points = points
         self.bezier.update()
 
-        if self.real_mode.isChecked():
-            self.bezier.valueChanged.emit()
+        if self.real_mode.isChecked() and self.on_real:
+            self.real_paint_weight()
 
     def on_radius_slider_changed(self):
         self.real_paint_weight()
@@ -153,49 +167,52 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
 
     def on_type_changed(self, xid):
         self.hit_txt.setText(self.txts[xid])
-        if self.on_real:
-            soft_core.paint(*self.get_ui_kwargs())
+        typ = types[xid]
+        self.controller.set_type(typ)
+        if self.real_mode.isChecked():
+            self.real_paint_weight()
+
+    def on_vector_map_changed(self, xid):
+        self.vector = xid
+        self.controller.set_vector(xid)
+        self.controller.set_type(types[self.type.checkedId()])
+        if self.real_mode.isChecked():
+            self.real_paint_weight()
 
     def type_changed(self):
         self.real_mode.setChecked(QtCore.Qt.Unchecked)
 
-    def real_mode_changed(self):
-        self.on_real = False
-        if self.real_mode.isChecked():
-            self.on_real = soft_core.init(types[self.type.checkedId()])
+    def real_mode_changed(self, state):
+        enabled = (state == QtCore.Qt.Checked)
+
+        self.controller.set_real_mode(enabled)
+        self.on_real = enabled
+
+        if enabled:
             self.real_paint_weight()
 
         self.show_heads()
-
-    def show_heads(self):
-        if self.on_real:
-            cmds.headsUpDisplay(self.SOFT_HEADS, s=2, b=0, bs="medium", l="Soft Weight Real-time", lfs="large")
-            Help.inView_Message("red", "Entered Soft Weight Real-time ")
-        else:
-            try:
-                if cmds.headsUpDisplay(self.SOFT_HEADS, ex=1):
-                    cmds.headsUpDisplay(self.SOFT_HEADS, rem=1)
-            except:
-                pass
-            Help.inView_Message("yellow", "Exited Soft Weight Real-time ")
 
     def get_ui_kwargs(self):
         typ = types[self.type.checkedId()]
         r = self.falloff_radius.value()
         xs = [x for x, y in self.bezier.points]
         ys = [1 - y for x, y in self.bezier.points]
-        # print(typ, xs, ys, r)
         return typ, xs, ys, r
 
     def paint_weight(self):
-        if self.real_mode.isChecked():
-            self.real_paint_weight()
-        else:
-            soft_core.paint(*self.get_ui_kwargs())
+        typ, xs, ys, r = self.get_ui_kwargs()
+        self.controller.paint(typ, xs, ys, r)
 
     def real_paint_weight(self):
-        if self.on_real:
-            soft_core.solve(*self.get_ui_kwargs())
+        if self.real_mode.isChecked():
+            typ, xs, ys, r = self.get_ui_kwargs()
+            self.controller.solve(typ, xs, ys, r)
+
+    def show_split_help(self):
+        QtWidgets.QMessageBox.information(self, "帮助", "拆分权重工具\n\n"
+                                                      "前往b站观看使用视频 \n")
+
 
 
 class PYSplitWeightLayout(PyouPersistentWindow):
@@ -399,6 +416,7 @@ class PYSplitWeightLayout(PyouPersistentWindow):
 
 
     def split_weight(self):
+        from JointEdit import split_skin_weight
         geo_filed = self.geo_filed.text()
         mask_filed = self.mask_filed.text()
         split_joints_list = _obj.get_list_widget_items(self.split_joints_list)

@@ -17,7 +17,7 @@ Why Should I use this ?
 
 ============================================================
 
-# 当前版本 0.6.2.0
+# 当前版本 0.6.2.1
 
 <img width="2486" height="1139" alt="新版ui" src="https://github.com/user-attachments/assets/4b715585-ae7b-4ec8-a809-539a5acbc6d7" />
 <img width="2551" height="1332" alt="第六版升级" src="https://github.com/user-attachments/assets/e14d61bf-b37a-417e-a6ac-174921d7e1d7" />
@@ -42,7 +42,7 @@ Why Should I use this ?
 * ✔批量拷贝sdk、和导出sdk数据、
 * ✔批量镜像sdk工具
 * ✔变形器权重批量拷贝工具
-* ✔拆分权重工具、
+* ✔拆分权重工具(曲线拆分， soft拆分)、
 * ✔mel转python工具、
 * ✔脚本编辑器着色工具、
 * ✔maya2024或以上版本支持一个模型上多个蒙皮节点拷贝权重，
