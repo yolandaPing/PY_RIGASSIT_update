@@ -301,15 +301,19 @@ class PYRenameBox(PyouPersistentWindow):
         search_text = self.search_field.text()
         replace_text = self.replace_field.text()
 
-        if replace_method == 1:
-            selection = pm.ls(sl=True)
-        else:
-            pm.select(hi=True)
-            selection = pm.ls(sl=True)
+        cmds.undoInfo(openChunk=True)
+        try:
+            if replace_method == 1:
+                selection = pm.ls(sl=True)
+            else:
+                pm.select(hi=True)
+                selection = pm.ls(sl=True)
 
-        for individual_object in selection:
-            new_name = individual_object.replace(search_text, replace_text)
-            pm.rename(individual_object, new_name)
+            for individual_object in selection:
+                new_name = individual_object.replace(search_text, replace_text)
+                pm.rename(individual_object, new_name)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def remove_prefix_or_suffix(self, is_prefix=True):
         replace_method = 1 if self.selected_radio.isChecked() else 2

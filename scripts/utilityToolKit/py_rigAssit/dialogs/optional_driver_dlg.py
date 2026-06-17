@@ -16,21 +16,16 @@ from py_rigAssit.dialogs import Help, decorator, mayaPrint
 
 import maya.cmds as cmds
 
-
 PY_WIDGEAT = Widgets()
 
 
 class SafeListWidget(QtWidgets.QListWidget):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
-            item = self.itemAt(event.pos())
-            if item:
-                # 保持当前 selection，不让 Qt 改掉
-                if not item.isSelected():
-                    item.setSelected(True)
-                self.setCurrentItem(item)
+            event.accept()
+            self.customContextMenuRequested.emit(event.pos())
             return
-        super(SafeListWidget, self).mousePressEvent(event)
+        super().mousePressEvent(event)
 
 
 def _pair_iter(oldMod, newMod):
@@ -46,18 +41,15 @@ def _pair_iter(oldMod, newMod):
 
 
 class PYOptionalDriveLayout(QtWidgets.QWidget):
-
     _obj = SelectOrremoveObj()
     _mfd = MultifunctionalDrive()
     _cysdk = CopySDKFun()
 
-
     def __init__(self, parent=PY_WIDGEAT.maya_main_window()):
-        super(PYOptionalDriveLayout, self).__init__( parent)
+        super(PYOptionalDriveLayout, self).__init__(parent)
         self.WINDOW_NAME = "Optional Drive "
         self.timeStamp = '2022-2026'
         self._text_font = "font: bold 11px"
-
 
     def init_ui(self, copyright=False):
         self.dispatcher = CommandDispatcher()
@@ -85,7 +77,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         v_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         v_splitter.setChildrenCollapsible(True)
 
-        # ===== 上 =====
         top_frame = QtWidgets.QFrame()
         top_layout = QtWidgets.QVBoxLayout(top_frame)
         top_layout.setContentsMargins(0, 0, 0, 0)
@@ -94,7 +85,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         scroll_layout.addWidget(top_frame)
 
         # scroll_layout.addStretch(1)
-        # ===== 下=====
         bottom_frame = QtWidgets.QFrame()
         bottom_layout = QtWidgets.QVBoxLayout(bottom_frame)
         bottom_layout.setSpacing(1)
@@ -174,33 +164,40 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
     def add_empty_space_menu(self):
 
         self.driver_empty_space_menu = QtWidgets.QMenu(self)
-        driver_load_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu,"Load 载入", None,  enabled=True)
-        driver_append_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Append 追加", ":QR_add.png",enabled=True)
-        driver_remove_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu,"Remove 移除", ":QR_delete.png", enabled=True)
+        driver_load_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Load 载入", None,
+                                                                enabled=True)
+        driver_append_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Append 追加",
+                                                                  ":QR_add.png", enabled=True)
+        driver_remove_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Remove 移除",
+                                                                  ":QR_delete.png", enabled=True)
         PY_WIDGEAT.add_separator(self, self.driver_empty_space_menu)
-        driver_select_all_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Select All", None, enabled=True)
-        driver_left_to_right_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu,"L > R", None, enabled=True)
-        driver_right_to_left_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "R > L", None, enabled=True)
+        driver_select_all_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Select All",
+                                                                      None, enabled=True)
+        driver_left_to_right_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "L > R",
+                                                                         None, enabled=True)
+        driver_right_to_left_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "R > L",
+                                                                         None, enabled=True)
         PY_WIDGEAT.add_separator(self, self.driver_empty_space_menu)
-        driver_search_to_replace_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu, "Search > Replace", None, enabled=True)
-
+        driver_search_to_replace_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driver_empty_space_menu,
+                                                                             "Search > Replace", None, enabled=True)
 
         self.driven_empty_space_menu = QtWidgets.QMenu(self)
         driven_load_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "Load 载入",
-                                                                   None, enabled=True)
+                                                                None, enabled=True)
         driven_append_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "Append 追加",
-                                                                     ":QR_add.png", enabled=True)
+                                                                  ":QR_add.png", enabled=True)
         driven_remove_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "Remove 移除",
-                                                                     ":QR_delete.png", enabled=True)
+                                                                  ":QR_delete.png", enabled=True)
         PY_WIDGEAT.add_separator(self, self.driven_empty_space_menu)
-        driven_select_all_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "Select All",  None, enabled=True)
+        driven_select_all_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "Select All",
+                                                                      None, enabled=True)
         driven_left_to_right_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "L > R",
-                                                                            None, enabled=True)
+                                                                         None, enabled=True)
         driven_right_to_left_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu, "R > L",
-                                                                            None, enabled=True)
+                                                                         None, enabled=True)
         PY_WIDGEAT.add_separator(self, self.driven_empty_space_menu)
         driven_search_to_replace_menu = PY_WIDGEAT.add_empty_space_menu_item(self, self.driven_empty_space_menu,
-                                                                                "Search > Replace", None, enabled=True)
+                                                                             "Search > Replace", None, enabled=True)
 
         # # Set context menu policy设置上下文菜单
         self.driver_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -337,7 +334,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.help_btn_op.setIcon(QtGui.QIcon(":\help.png"))
         self.apply_btn_op.setProperty("main", True)
         self.help_btn_op.setProperty("help", True)
-        btn_layout.addWidget(self.apply_btn_op,9)
+        btn_layout.addWidget(self.apply_btn_op, 9)
         btn_layout.addWidget(self.help_btn_op)
 
         main_layout.addWidget(label)
@@ -355,9 +352,9 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout()
         # main_layout.setSpacing(4)
         checkbox_layout = QtWidgets.QHBoxLayout()
-        self.parent_cbx = QtWidgets.QCheckBox (' Parent')
+        self.parent_cbx = QtWidgets.QCheckBox(' Parent')
         self.point_cbx = QtWidgets.QCheckBox(' Point')
-        self.orient_cbx = QtWidgets.QCheckBox (' Orient')
+        self.orient_cbx = QtWidgets.QCheckBox(' Orient')
         self.scale_cbx = QtWidgets.QCheckBox(' Scale')
         checkbox_layout.addWidget(self.parent_cbx)
         checkbox_layout.addWidget(self.point_cbx)
@@ -371,8 +368,8 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.Help_btn_con = QtWidgets.QPushButton()
         self.Help_btn_con.setIcon(QtGui.QIcon(":\help.png"))
         self.Help_btn_con.setProperty("help", True)
-        button_layout.addWidget(self.Constraints_btn,5)
-        button_layout.addWidget(self.Connect_btn,5)
+        button_layout.addWidget(self.Constraints_btn, 5)
+        button_layout.addWidget(self.Connect_btn, 5)
         button_layout.addWidget(self.Help_btn_con, 0)
         main_layout.addWidget(PY_WIDGEAT.create_text("无需载入属性，直接载入对象，选中需要的类型", 12))
         main_layout.addWidget(QtWidgets.QLabel("Type: "))
@@ -421,7 +418,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.driven_field2.setDecimals(decimals)
         self.driven_field3.setDecimals(decimals)
 
-        #设置范围
+        # 设置范围
         self.driver_field1.setRange(-500.0, 500.0)
         self.driver_field2.setRange(-500.0, 500.0)
         self.driver_field3.setRange(-500.0, 500.0)
@@ -554,7 +551,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
 
     def copy_INFOconnect_wigrts_layout(self, parent_layout):
 
-        self.frame_button_infocon = PY_WIDGEAT.create_collapsible_frame(u' Copy Input / Output Info  (拷贝/转移信息) ',True)
+        self.frame_button_infocon = PY_WIDGEAT.create_collapsible_frame(u' Copy Input / Output Info  (拷贝/转移信息) ', True)
         main_layout = QtWidgets.QVBoxLayout()
 
         self.infocon_block = PY_WIDGEAT.create_radiogroup(
@@ -566,7 +563,8 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
             default_id=1
         )
 
-        self.hint_out = PY_WIDGEAT.create_text("Transfer the object information of the source output to the new object output.\n将源输出的对象信息转接到新对象输出")
+        self.hint_out = PY_WIDGEAT.create_text(
+            "Transfer the object information of the source output to the new object output.\n将源输出的对象信息转接到新对象输出")
         self.hint_in = PY_WIDGEAT.create_text("Copy the input information of the source object.\n拷贝源对象的输入信息")
         self.hint_in.setVisible(False)
 
@@ -589,7 +587,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
 
     def combin_Dirve_wigets_layout(self, parent_layout):
         # 创建并添加"Buttons"的折叠框
-        self.frame_button_combine = PY_WIDGEAT.create_collapsible_frame(' Combine connect Dirve  (多个组合控制) ',True)
+        self.frame_button_combine = PY_WIDGEAT.create_collapsible_frame(' Combine connect Dirve  (多个组合控制) ', True)
 
         main_layout = QtWidgets.QVBoxLayout()
 
@@ -655,13 +653,13 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         Help.HelpImage("", img)
 
     def _on_load_driver(self):
-        self._obj.load_list_widget_items(self.driver_list,True,True)
+        self._obj.load_list_widget_items(self.driver_list, True, True)
 
     def _on_seleted_driver(self):
         self._obj.list_widget_seleted_item(self.driver_list)
 
     def _on_load_driven(self):
-        self._obj.load_list_widget_items(self.driven_list,True,True)
+        self._obj.load_list_widget_items(self.driven_list, True, True)
 
     def _on_seleted_driven(self):
         self._obj.list_widget_seleted_item(self.driven_list)
@@ -687,7 +685,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
             self.point_cbx.setChecked(False)
             self.orient_cbx.setChecked(False)
 
-    def _on_replace_attr_textFild(self,state):
+    def _on_replace_attr_textFild(self, state):
         if self.replace_AttrCheckbox_cmsdk.isChecked():
             self.search_Attr_text.setEnabled(True)
             self.replace_Attr_text.setEnabled(True)
@@ -731,14 +729,14 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         else:
             self.search_replace_widget.setEnabled(True)
 
-    def mirror_selection(self, search_list_widget, replace_list_widget, LtoR = True):
+    def mirror_selection(self, search_list_widget, replace_list_widget, LtoR=True):
         seleted_obj = self._obj.get_list_widget_seleted(search_list_widget)
         replace_name_obj = self._obj.get_lt_rt_selection(seleted_obj, LtoR)
         self._obj.write_list_widget_items(replace_list_widget, replace_name_obj, clear=False)
 
-    def replace_string_ui(self,search_list_widget,replace_list_widget, obj="Driver"):
+    def replace_string_ui(self, search_list_widget, replace_list_widget, obj="Driver"):
 
-        if obj=="Driver":
+        if obj == "Driver":
             SearchFied_label = "Search Driver: "
             ReplaceFied_label = "Replace Driven: "
             btn_label = "Driver > Driven"
@@ -755,15 +753,20 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         cmds.textFieldGrp('pyConstrainSearchPrefixFied', text="", l=SearchFied_label, cw2=(80, 100), adj=2)
         cmds.textFieldGrp('pyConstrainReplacePrefixFied', text="", l=ReplaceFied_label, cw2=(80, 100), adj=2)
         cmds.text(l="")
-        cmds.rowColumnLayout(cw=[(1, 25),(3, 25)], nc=3, adj=2)
+        cmds.rowColumnLayout(cw=[(1, 25), (3, 25)], nc=3, adj=2)
         cmds.text(l="")
-        cmds.button(h=20, c=lambda *args: self.replace_object_name(search_list_widget,replace_list_widget,search_name=cmds.textFieldGrp('pyConstrainSearchPrefixFied',q=True,tx=True), replace_name=cmds.textFieldGrp('pyConstrainReplacePrefixFied',q=True,tx=True)),l=btn_label)
+        cmds.button(h=20, c=lambda *args: self.replace_object_name(search_list_widget, replace_list_widget,
+                                                                   search_name=cmds.textFieldGrp(
+                                                                       'pyConstrainSearchPrefixFied', q=True, tx=True),
+                                                                   replace_name=cmds.textFieldGrp(
+                                                                       'pyConstrainReplacePrefixFied', q=True,
+                                                                       tx=True)), l=btn_label)
         Help.symbolHelpImageButton(file="", name="constrain_Search_Replace", With=20)
         cmds.setParent('..')
         cmds.text(l="")
         cmds.showWindow(window)
 
-    def replace_object_name(self,search_list_widget,replace_list_widget, search_name, replace_name):
+    def replace_object_name(self, search_list_widget, replace_list_widget, search_name, replace_name):
         seleted_obj = self._obj.get_list_widget_seleted(search_list_widget)
         replace_name_obj = self._obj.get_search_replace_selection(seleted_obj, search_name, replace_name)
         self._obj.write_list_widget_items(replace_list_widget, replace_name_obj, False)
@@ -772,8 +775,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
     def showHHelpImage(self):
         Value = self.optional_block.checkedId()
         imgs = ["optional_parent", "optional_connectAttr", "optional_inverseMatrix_skin", "optional_addBS"]
-        Help.HelpImage("", imgs[Value-1])
-
+        Help.HelpImage("", imgs[Value - 1])
 
     def optional_apply(self):
         closest = self.parent_closest_cbx.isChecked()
@@ -793,7 +795,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         cmds.undoInfo(openChunk=True)
         try:
             driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-            print(driver, driven )
+            print(driver, driven)
             if connect:
                 self._mfd.create_connect(driver, driven, [parent, point, orient, scale])
             else:
@@ -802,7 +804,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
             cmds.undoInfo(closeChunk=True)
 
     def set_driveKey_apply(self):
-        
+
         driver_value = [self.driver_field1.value(), self.driver_field2.value(), self.driver_field3.value()]
         driven_value = [self.driven_field1.value(), self.driven_field2.value(), self.driven_field3.value()]
         pre_Cycle = self.pre_Cycle_cbx.isChecked()
@@ -822,7 +824,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         _type = self.cmsdk_type_block.checkedId()
         is_rev = self.cmsdk_value_block.checkedId()
         ReplaceAttr_ABLE = self.replace_AttrCheckbox_cmsdk.isChecked()
-        map = {1:"+", 2:"-"}
+        map = {1: "+", 2: "-"}
 
         if ReplaceAttr_ABLE:
             search_Attr = self.search_Attr_text.text()
@@ -848,12 +850,13 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
                             return
                         if _type == 1:
                             self._cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,
-                                            search_Attr,
-                                            replace_Attr)
+                                                 search_Attr,
+                                                 replace_Attr)
                             print(" {} >>> {} is ok".format(dri, drn))
                         elif _type == 2:
-                            self._cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr, replace_Attr,
-                                                    posneg=map[is_rev])
+                            self._cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr,
+                                                       replace_Attr,
+                                                       posneg=map[is_rev])
                             print(" {} >>> {} is ok".format(dri, drn))
                         else:
                             pass
@@ -864,7 +867,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
                 mayaPrint.log(" SDK copy succeeded!")
         finally:
             cmds.undoInfo(closeChunk=True)
-
 
     def transfer_info_apply(self):
         Type = self.infocon_block.checkedId()
@@ -897,7 +899,6 @@ class PYOptionalDriveDialog(PyouPersistentWindow):
         self.loadWindowSettings()
         self._build_ui()
 
-
     def _build_ui(self):
         main = QtWidgets.QVBoxLayout(self)
         main.setContentsMargins(4, 4, 4, 4)
@@ -921,10 +922,11 @@ class PYOptionalDriveDialog(PyouPersistentWindow):
 
         PY_WIDGEAT.create_copyrightText(main, self.timeStamp)
 
+
 def main():
     global DriveDialog
     try:
-        DriveDialog.close() # pylint: disable=E0601
+        DriveDialog.close()  # pylint: disable=E0601
         DriveDialog.deleteLater()
     except:
         pass
@@ -932,6 +934,6 @@ def main():
     DriveDialog = PYOptionalDriveDialog()
     DriveDialog.show()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     main()

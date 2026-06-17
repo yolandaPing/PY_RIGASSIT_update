@@ -18,9 +18,11 @@ except:
 
 from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
+
 try:
     from Pipeline.pipelineUtils import *
-    from Pipeline.pipelineUtils import load_projects_from_xml, get_projects_xml_path, ensure_projects_xml, add_project_to_xml, open_folder_in_explorer, open_file_in_explorer
+    from Pipeline.pipelineUtils import load_projects_from_xml, get_projects_xml_path, ensure_projects_xml, \
+        add_project_to_xml, open_folder_in_explorer, open_file_in_explorer
 
 except ImportError as e:
     try:
@@ -31,17 +33,17 @@ except ImportError as e:
 try:
     import maya.cmds as cmds
     import maya.mel as mel
+
     IN_MAYA = True
 except Exception:
     IN_MAYA = False
 
 _cfg = OpenPipelineConfig()
 
-
 import maya.cmds as cmds
 
-def is_scene_strictly_empty():
 
+def is_scene_strictly_empty():
     all_nodes = cmds.ls(long=True) or []
 
     default_nodes = [
@@ -52,18 +54,18 @@ def is_scene_strictly_empty():
         'postProcessList1', 'renderGlobalsList1',
         'defaultRenderGlobals', 'defaultResolution',
         'lambert1', 'particleCloud1', 'standardSurface1',
-        'time1', 'sequenceManager1', 'hardwareRenderingGlobals', 
-        'renderPartition', 'defaultLightList1', 'defaultShaderList1', 
-        'defaultRenderUtilityList1', 'defaultRenderingList1', 'lightList1', 
-        'defaultTextureList1', 'initialShadingGroup', 'initialParticleSE', 
+        'time1', 'sequenceManager1', 'hardwareRenderingGlobals',
+        'renderPartition', 'defaultLightList1', 'defaultShaderList1',
+        'defaultRenderUtilityList1', 'defaultRenderingList1', 'lightList1',
+        'defaultTextureList1', 'initialShadingGroup', 'initialParticleSE',
         'initialMaterialInfo', 'shaderGlow1', 'dof1', 'defaultRenderQuality',
-        'defaultViewColorManager', 'defaultColorMgtGlobals', 'hardwareRenderGlobals', 
+        'defaultViewColorManager', 'defaultColorMgtGlobals', 'hardwareRenderGlobals',
         'characterPartition', 'defaultHardwareRenderGlobals', 'ikSystem', 'hyperGraphInfo',
         'hyperGraphLayout', 'globalCacheControl', 'strokeGlobals', 'dynController1', '|persp|perspShape',
-        '|top|topShape', '|front|frontShape', '|side|sideShape', 'shapeEditorManager', 'poseInterpolatorManager', 
+        '|top|topShape', '|front|frontShape', '|side|sideShape', 'shapeEditorManager', 'poseInterpolatorManager',
         'layerManager', 'defaultLayer', 'renderLayerManager', 'defaultRenderLayer'
     ]
-    
+
     # 将默认节点转换为长名称格式以便比较
     default_long_names = []
     for node in default_nodes:
@@ -73,11 +75,11 @@ def is_scene_strictly_empty():
                 default_long_names.extend(long_name)
         except:
             pass
-    
+
     for node in all_nodes:
         if node not in default_long_names:
             return False
-    
+
     return True
 
 
@@ -103,7 +105,9 @@ def show_subtype_context_menu(main_window, position):
         return
     menu = QtWidgets.QMenu()
     open_action = menu.addAction(u'📂 打开任务路径')
+    Reference_action = menu.addAction('Reference Master')
     open_action.triggered.connect(lambda: open_subtype_path(main_window, item.text()))
+    Reference_action.triggered.connect(lambda: reference_master(main_window, False))
     menu.exec_(main_window.subtype_list.mapToGlobal(position))
 
 
@@ -164,6 +168,11 @@ def open_asset_path(main_window, asset_name):
         open_folder_in_explorer(asset_dir.replace("/", "\\"))
     else:
         QtWidgets.QMessageBox.warning(main_window, u'错误', u'资产路径不存在:\n{}'.format(asset_dir))
+
+
+def reference_master(main_window, namespace=False):
+    """Reference Master文件"""
+    main_window.reference_master(namespace)
 
 
 def open_subtype_path(main_window, subtype_name):
@@ -244,7 +253,7 @@ def delete_selected_version(main_window, version_filename):
             os.remove(file_path)
             if not os.path.exists(file_path):
                 QtWidgets.QMessageBox.information(main_window, u'成功', u'版本文件已删除')
-                
+
                 root_path = _cfg.get_project_root_path()
                 project = _cfg.get_last_project().split("/")[-1]
 
@@ -366,7 +375,7 @@ def export_fbx_with_objects(main_window, fbx_path):
         cmds.select(export_objects, replace=True)
         mel.eval('file -force -options "v=0;" -typ "FBX export" -pr -es "{}";'.format(fbx_path))
         return os.path.exists(fbx_path)
-    
+
     except Exception as e:
         print(u"导出FBX时发生错误: ", e)
         return False

@@ -1381,7 +1381,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         else:
             self.show_info('路径', fpath)
 
-    def reference_master(self):
+    def reference_master(self, namespace=True):
         """Reference Master文件"""
         if not (self.pm and self.selected_asset and self.selected_subtype):
             return
@@ -1392,9 +1392,15 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
         if IN_MAYA:
             try:
-                fname = mf.split("master")[-1]
-                cmds.file(mf, ignoreVersion=1, namespace=fname.split(".ma")[0], r=1, gl=1,
-                          mergeNamespacesOnClash=False, options="v=0;")
+                if namespace:
+                    fname = mf.split("master")[-1]
+                    cmds.file(mf, ignoreVersion=1, namespace=fname.split(".ma")[0], r=1, gl=1,
+                              mergeNamespacesOnClash=False, options="v=0;")
+                else:
+                    cmds.file(mf, r=1,
+                            type="mayaAscii", ignoreVersion=1, gl=1, mergeNamespacesOnClash=True, namespace=":",
+                            options="v=0;")
+
                 self.show_info('成功', 'Reference Master 完成')
             except Exception as e:
                 self.show_warning('失败', str(e))
