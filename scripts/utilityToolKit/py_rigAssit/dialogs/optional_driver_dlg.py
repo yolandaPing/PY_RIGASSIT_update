@@ -11,7 +11,6 @@ from py_rigAssit.common.command_dispatcher import CommandDispatcher
 import py_rigAssit.common.commands
 from selectOrRemove import SelectOrremoveObj
 from ConstrainEdit.Multifunctional_Drive import MultifunctionalDrive
-from ConstrainEdit.copySDKAttr import CopySDKFun
 from py_rigAssit.dialogs import Help, decorator, mayaPrint
 
 import maya.cmds as cmds
@@ -20,13 +19,24 @@ PY_WIDGEAT = Widgets()
 
 
 class SafeListWidget(QtWidgets.QListWidget):
+
+    def __init__(self, parent=None):
+        super(SafeListWidget, self).__init__(parent)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
             event.accept()
-            self.customContextMenuRequested.emit(event.pos())
-            return
-        super().mousePressEvent(event)
 
+            if hasattr(event, "position"):
+                pos = event.position().toPoint()
+            else:
+                pos = event.pos()
+
+            self.customContextMenuRequested.emit(pos)
+            return
+
+        super(SafeListWidget, self).mousePressEvent(event)
 
 def _pair_iter(oldMod, newMod):
     if len(oldMod) == 1:
@@ -43,8 +53,7 @@ def _pair_iter(oldMod, newMod):
 class PYOptionalDriveLayout(QtWidgets.QWidget):
     _obj = SelectOrremoveObj()
     _mfd = MultifunctionalDrive()
-    _cysdk = CopySDKFun()
-
+    
     def __init__(self, parent=PY_WIDGEAT.maya_main_window()):
         super(PYOptionalDriveLayout, self).__init__(parent)
         self.WINDOW_NAME = "Optional Drive "
@@ -819,6 +828,9 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
             cmds.undoInfo(closeChunk=True)
 
     def copy_sdk_apply(self):
+        from ConstrainEdit.copySDKAttr import CopySDKFun
+        _cysdk = CopySDKFun()
+        
         prefix_Search = self.search_text.text()
         prefix_Replace = self.replace_text.text()
         _type = self.cmsdk_type_block.checkedId()
@@ -849,19 +861,19 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
                             mayaPrint.error("The loaded object has no attributes, please check")
                             return
                         if _type == 1:
-                            self._cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,
+                            _cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,
                                                  search_Attr,
                                                  replace_Attr)
                             print(" {} >>> {} is ok".format(dri, drn))
                         elif _type == 2:
-                            self._cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr,
+                            _cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr,
                                                        replace_Attr,
                                                        posneg=map[is_rev])
                             print(" {} >>> {} is ok".format(dri, drn))
                         else:
                             pass
                     else:
-                        self._cysdk.mirror_specify_sdk(dri, drn, map[is_rev])
+                        _cysdk.mirror_specify_sdk(dri, drn, map[is_rev])
                         print(" {} >>> {} is ok".format(dri, drn))
 
                 mayaPrint.log(" SDK copy succeeded!")

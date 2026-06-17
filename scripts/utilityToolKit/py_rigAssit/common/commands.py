@@ -131,11 +131,11 @@ def segment_scale_compensate(ui):
     _edit_jnt().setJointSegmentScale()
 
 
-@CommandDispatcher.register("Soft to skin")
+@CommandDispatcher.register("Split skin")
 @decorator.undo
-def soft_to_weight(ui):
-    from JointEdit.AutomaticConversionWeightFun import AutomaticToWeightFun
-    AutomaticToWeightFun().soft_To_weight()
+def split_skin_ui(ui):
+    from py_rigAssit.dialogs import split_skin_dlg as split_skin_dlg
+    split_skin_dlg.main()
 
 
 @CommandDispatcher.register("Soft add ctrl")

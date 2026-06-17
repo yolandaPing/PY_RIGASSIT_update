@@ -119,8 +119,8 @@
 
     <category name="joint_skin">
         <button>
-            <label>Soft to skin</label>
-            <tooltip><![CDATA[软选后加选权重关节（需要解锁分摊权重的关节）]]></tooltip>
+            <label>Split skin</label>
+            <tooltip><![CDATA[权重拆分工具]]></tooltip>
             <color><![CDATA[cld]]></color>
         </button>
         <button>
