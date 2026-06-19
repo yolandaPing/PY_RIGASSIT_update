@@ -10,6 +10,10 @@
 import os
 import shutil
 from datetime import datetime
+try:
+    from importlib import reload
+except ImportError:
+    pass
 
 try:
     from ui_framework.core.qtCompat import *
@@ -82,6 +86,19 @@ def is_scene_strictly_empty():
 
     return True
 
+def add_menu_label(menu, text):
+    widget = QtWidgets.QWidget()
+    layout = QtWidgets.QHBoxLayout(widget)
+    label = QtWidgets.QLabel(text)
+    label.setStyleSheet("color: yellow; font-weight: bold;")
+    layout.addWidget(label)
+    layout.setContentsMargins(20, 2, 5, 2)
+    widget.setLayout(layout)
+
+    label_fbx_action = QtWidgets.QWidgetAction(menu)
+    label_fbx_action.setDefaultWidget(widget)
+    menu.addAction(label_fbx_action)
+
 
 def show_asset_context_menu(main_window, position):
     """显示资产列表的右键菜单"""
@@ -105,8 +122,10 @@ def show_subtype_context_menu(main_window, position):
         return
     menu = QtWidgets.QMenu()
     open_action = menu.addAction(u'📂 打开任务路径')
-    Reference_action = menu.addAction('Reference Master')
+    Import_action = menu.addAction('import Master')
+    Reference_action = menu.addAction('reference Master')
     open_action.triggered.connect(lambda: open_subtype_path(main_window, item.text()))
+    Import_action.triggered.connect(lambda: import_master(main_window, False))
     Reference_action.triggered.connect(lambda: reference_master(main_window, False))
     menu.exec_(main_window.subtype_list.mapToGlobal(position))
 
@@ -121,23 +140,20 @@ def show_version_context_menu(main_window, position):
 
     version_filename = item.text()
     menu = QtWidgets.QMenu()
-
-    # 菜单项：打开路径
     open_action = menu.addAction(u'📂 打开版本路径')
     open_action.triggered.connect(lambda: open_version_path(main_window, version_filename))
     menu.addSeparator()
-
     set_master_action = menu.addAction(u'⚙ Set Master 📋 ')
     set_master_action.triggered.connect(main_window.set_master)
-
     menu.addSeparator()
-    # 菜单项：FBX相关操作
+    add_menu_label(menu, "⭐ fbx:")
     set_fbx_action = menu.addAction(u'⚙ 设置FBX导出对象')
     set_fbx_action.triggered.connect(main_window.set_fbx_export_objects)
 
     export_fbx_action = menu.addAction(u'📤 导出FBX ({} + {})'.format(
         main_window.fbx_config[0], main_window.fbx_config[1]
     ))
+    export_fbx_action.setProperty('yellow', True)
     export_fbx_action.triggered.connect(lambda: export_fbx_for_version(main_window, version_filename))
     menu.addSeparator()
 
@@ -168,6 +184,33 @@ def open_asset_path(main_window, asset_name):
         open_folder_in_explorer(asset_dir.replace("/", "\\"))
     else:
         QtWidgets.QMessageBox.warning(main_window, u'错误', u'资产路径不存在:\n{}'.format(asset_dir))
+
+
+def import_master(main_window, namespace=False):
+    """Import Master文件"""
+    if not main_window.pm or not main_window.current_asset_type:
+        QtWidgets.QMessageBox.warning(main_window, u'错误', u'请先选择资产类型')
+        return
+
+    mf = main_window.pm.get_master_file(main_window.current_asset_type, main_window.selected_asset,
+                                        main_window.selected_subtype)
+    if not mf or not os.path.exists(mf):
+        main_window.show_warning('错误', 'Master 文件不存在')
+        return
+
+    if IN_MAYA:
+        try:
+            if namespace:
+                fname = mf.split("master")[-1]
+                cmds.file(mf, i=True, namespace=fname.split(".ma")[0], options="v=0;")
+            else:
+                cmds.file(mf, i=True, options="v=0;")
+
+            main_window.show_info('成功', 'Import Master 完成')
+        except Exception as e:
+            main_window.show_warning('失败', str(e))
+    else:
+        main_window.show_info('路径', mf)
 
 
 def reference_master(main_window, namespace=False):
@@ -300,8 +343,9 @@ def export_fbx_for_version(main_window, version_filename):
         return
 
     if is_scene_strictly_empty() == False:
-        QtWidgets.QMessageBox.warning(main_window, '错误', '当前场景不是空场景！')
-        return
+        mel.eval("file -f -new;")
+        # QtWidgets.QMessageBox.warning(main_window, '错误', '当前场景不是空场景！')
+        # return
 
     asset_dir = main_window.pm.get_asset_dir(main_window.current_asset_type, main_window.selected_asset)
     version_path = os.path.join(asset_dir, 'components', main_window.selected_subtype, 'workshop', version_filename)
@@ -324,6 +368,16 @@ def export_fbx_for_version(main_window, version_filename):
         export_success = export_fbx_with_objects(main_window, fbx_path)
         if export_success:
             mel.eval("file -f -new;")
+
+            # try:
+            #     from work_patch.project_asset_browser.info import UnrealEditor, UE_PROJECT
+            #     import work_patch.project_asset_browser.fbx_to_unreal as fbx_to_unreal
+            #     reload(fbx_to_unreal)
+            #     ue_content_path = "/Game/Characters"
+            #     fbx_to_unreal.export_to_unreal(fbx_path, UnrealEditor, UE_PROJECT, ue_content_path, main_window.selected_asset)
+            # except:
+            #     pass
+
             QtWidgets.QMessageBox.information(main_window, '导出成功',
                                               u'FBX导出完成:\n\n导出对象: {} 和 {}\n导出路径: {}'.format(
                                                   main_window.fbx_config[0], main_window.fbx_config[1], fbx_path))

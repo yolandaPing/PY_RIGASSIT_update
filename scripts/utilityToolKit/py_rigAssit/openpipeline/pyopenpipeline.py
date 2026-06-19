@@ -83,13 +83,13 @@ class PYPenpipelineDialog(PyouPersistentWindow):
     def show_critical(self, title, message):
         QtWidgets.QMessageBox.critical(self, title, message)
 
-    def show_info_delayed(self, title, message, delay=2000):
+    def show_info_delayed(self, title, message, delay=500):
         QtCore.QTimer.singleShot(delay, lambda: QtWidgets.QMessageBox.information(self, title, message))
 
-    def show_warning_delayed(self, title, message, delay=2000):
+    def show_warning_delayed(self, title, message, delay=500):
         QtCore.QTimer.singleShot(delay, lambda: QtWidgets.QMessageBox.warning(self, title, message))
 
-    def show_critical_delayed(self, title, message, delay=2000):
+    def show_critical_delayed(self, title, message, delay=500):
         QtCore.QTimer.singleShot(delay, lambda: QtWidgets.QMessageBox.critical(self, title, message))
 
     def init_ui(self):
