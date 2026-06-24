@@ -50,6 +50,38 @@ def copy_to_clipboard(text, msg=None):
         print(msg or "Copied: {}".format(text))
 
 
+class PYAboutDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(PYAboutDialog, self).__init__(parent)
+        self.setWindowTitle("About")
+        self.resize(200, 220)
+        layout = QtWidgets.QVBoxLayout(self)
+        text = QtWidgets.QTextEdit()
+        text.setReadOnly(True)
+        text.setText(
+            "PY_RIGASSIT\n\n"
+            "Supported Maya Versions:\n"
+            "2018 - 2026\n\n"
+            "Features:\n"
+            "- Joint\n"
+            "- IKFK\n"
+            "- Copy Weight/BlendShape/FFD/UV/SDK/Deform\n"
+            "- Copy Attribute\n"
+            "- Mirror Attribute/SDK/Deform Weight\n"
+            "- Editor BlendShape/SDK\n"
+            "- Dirver Pose system\n"
+            "- Openpipeline\n"
+            "- Rivet Follice Tool\n"
+            "- Combine SDK Driven\n"
+            "- Transfer uv shader Tool\n"
+            "- Animation Tool\n"
+            "- Hotbox Designer\n"
+            "- ......\n"
+            "Rebuilt for production pipeline."
+        )
+        layout.addWidget(text)
+
+
 class PYRiggingDialogManager(PyouPersistentWindow):
 
     WINDOW_NAME = "PYRiggingDialogManager"
@@ -150,26 +182,18 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
             return act
 
-
         # ---------------- ABOUT ----------------
         about = self.menu_bar.addMenu("About")
 
         add(about, "bilibili: 我有一只猛犬",
             callback=lambda: webbrowser.open("https://space.bilibili.com/3493142019967757"))
-
         add(about, "pyrigassit@gmail.com", callback=self._copy_email)
-
         sep = about.addAction("PY_RIGASSIT")
         sep.setEnabled(False)
-
         about.addSeparator()
-
-        add(about, "Update",
-            callback=lambda: webbrowser.open(self._info[-2] if self._info else ""))
-
-        add(about, u"Quark 夸克网盘",
-            callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
-
+        add(about, "Update", callback=lambda: webbrowser.open(self._info[-2] if self._info else ""))
+        add(about, u"Quark 夸克网盘", callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
+        add(about, "About", callback=self.show_about)
 
         # ---------------- CLEAR ----------------
         clear = self.menu_bar.addMenu("Clear")
@@ -395,6 +419,9 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         ], self)
 
+    def show_about(self):
+        dlg = PYAboutDialog(self)
+        dlg.show()
 
     def reload_theme(self):
         try:

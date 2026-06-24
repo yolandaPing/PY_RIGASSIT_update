@@ -135,15 +135,12 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.joint_size.setValue(0.25)
         self.joint_size.setRange(0.01, 10.0)
 
-        # self.joint_size = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        # self.joint_size.setRange(1, 1000)  # 映射 0.1~10.0 => 1~100
         self.joint_spinbox = QtWidgets.QDoubleSpinBox()
         self.joint_spinbox.setRange(0.01, 10.0)
         self.joint_spinbox.setSingleStep(0.01)
         self.joint_spinbox.setDecimals(2)
         self.joint_reset_btn = QtWidgets.QPushButton("reset 1.0")
-        # joint_size_layout.addWidget(_widgest.create_text("Joint Size:"), 1)
-        # joint_size_layout.addWidget(self.joint_spinbox, 1)
+
         joint_size_layout.addWidget(self.joint_size, 1)
         joint_size_layout.addWidget(self.joint_reset_btn)
 

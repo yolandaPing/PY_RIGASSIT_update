@@ -16,7 +16,7 @@ from py_rigAssit.common.command_dispatcher import CommandDispatcher
 import py_rigAssit.common.img_commands
 import maya.cmds as mc
 import maya.mel as mel
-import maya.OpenMaya as om
+
 
 PY_WIDGEAT = Widgets()
 
@@ -129,7 +129,7 @@ class PYScriptManagerCore(object):
         name = self.clean_name(name)
 
         if not name:
-            om.MGlobal.displayError("Invalid Name")
+            mayaPrint.error("Invalid Name")
             return
 
         path = os.path.join(
@@ -142,23 +142,26 @@ class PYScriptManagerCore(object):
         except:
             open(path, "w").write(content)
 
-    def run_script(self, name):
+    def run_script(self, full_path, script_type):
         """原运行方法，保留兼容"""
-        path = os.path.join(
-            self.current_dir(),
-            name + self.current_ext()
-        )
-
-        if not os.path.exists(path):
-            om.MGlobal.displayError("Script not found")
-            return
-
-        self.run_script_file(path, self.script_type)
+        # path = os.path.join(
+        #     self.current_dir(),
+        #     name + self.current_ext()
+        # )
+        #
+        # if not os.path.exists(path):
+        #     mayaPrint.error("Script not found")
+        #     return
+        mc.undoInfo(openChunk=True)
+        try:
+            self.run_script_file(full_path, script_type)
+        finally:
+            mc.undoInfo(closeChunk=True)
 
     def run_script_file(self, full_path, script_type):
         """通用脚本执行方法，根据类型执行 mel 或 python 脚本"""
         if not os.path.exists(full_path):
-            om.MGlobal.displayError("Script not found: {}".format(full_path))
+            mayaPrint.error("Script not found: {}".format(full_path))
             return
 
         if script_type == "mel":
@@ -170,7 +173,7 @@ class PYScriptManagerCore(object):
             except:
                 with open(full_path, "r") as f:
                     code = f.read()
-            exec (compile(code, full_path, "exec"), {})
+            exec(compile(code, full_path, "exec"), {})
 
             # try:
             #     code = codecs.open(full_path, "r", "utf-8").read()
@@ -428,7 +431,8 @@ class PYScriptButtonsPanel(object):
             btn = QtWidgets.QPushButton(display)
             btn.setFixedHeight(28)
             btn.setProperty("cld_custom", True)
-            btn.clicked.connect(partial(self.core.run_script_file, path, stype))
+            # btn.clicked.connect(partial(self.core.run_script_file, path, stype))
+            btn.clicked.connect(partial(self.core.run_script, path, stype))
             self.layout.addWidget(btn, row, col)
             col += 1
             if col >= max_col:
@@ -644,7 +648,7 @@ class PYCustomDiadlg(PyouPersistentWindow):
 
         widget = PYCustomLayout(parent=self)
         scroll_layout.addWidget(widget.init_ui())
-        # main.addWidget(widget.init_ui())
+
 
 def main():
 

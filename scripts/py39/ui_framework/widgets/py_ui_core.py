@@ -722,16 +722,16 @@ class RadioSelector(QtWidgets.QWidget):
         for i, text in enumerate(labels):
             radio = QtWidgets.QRadioButton(text)
             self.button_group.addButton(radio, i)
-
             self.layout.addWidget(radio, i // columns, i % columns)
 
-        self.button_group.buttonClicked[int].connect(self._on_changed)
+        # 改这里
+        self.button_group.buttonClicked.connect(self._on_changed)
 
         if self.button_group.buttons():
             self.button_group.button(0).setChecked(True)
 
-    def _on_changed(self, index):
-        btn = self.button_group.button(index)
+    def _on_changed(self, btn):
+        index = self.button_group.id(btn)
         if btn:
             self.valueChanged.emit(index, btn.text())
 

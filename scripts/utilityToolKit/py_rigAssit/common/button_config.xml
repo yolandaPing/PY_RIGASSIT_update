@@ -119,8 +119,8 @@
 
     <category name="joint_skin">
         <button>
-            <label>Split skin</label>
-            <tooltip><![CDATA[权重拆分工具]]></tooltip>
+            <label>Tubes pro</label>
+            <tooltip><![CDATA[curves from tubes管道生成曲线/关节]]></tooltip>
             <color><![CDATA[cld]]></color>
         </button>
         <button>

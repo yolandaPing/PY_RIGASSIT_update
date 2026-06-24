@@ -20,7 +20,6 @@ except ImportError:
     mel = None
     IN_MAYA = False
 
-from py_rigAssit.openpipeline.fbx_dialog import FBXExportDialog
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
 from py_rigAssit.openpipeline.asset_info import PROJECTS_XML
@@ -91,6 +90,10 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
     def show_critical_delayed(self, title, message, delay=500):
         QtCore.QTimer.singleShot(delay, lambda: QtWidgets.QMessageBox.critical(self, title, message))
+
+    def show_info_inview(self, title="Finished", color='yellow'):
+        import HelpImageUI as help
+        help.inView_Message(color, u"{}".format(title))
 
     def init_ui(self):
 
@@ -458,6 +461,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
     def set_fbx_export_objects(self):
         """设置FBX导出对象对话框（使用独立的非模态对话框类）"""
+        from py_rigAssit.openpipeline.fbx_dialog import FBXExportDialog
+
         if hasattr(self, '_fbx_dialog') and self._fbx_dialog:
             self._fbx_dialog.raise_()
             self._fbx_dialog.activateWindow()
@@ -592,7 +597,6 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                     if normalized_item_data == normalized_last_path:
                         self.project_combo.setCurrentIndex(i)
                         print(u"已自动选择上次的项目: {}".format(self.project_combo.itemText(i)))
-
                         QtCore.QTimer.singleShot(100,
                                                  lambda: self._select_last_type_and_asset(last_assetType, last_asset))
                         break
@@ -1226,7 +1230,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             if IN_MAYA:
                 try:
                     cmds.file(latest, open=True, force=True, options="v=0;")
-                    self.show_info_delayed('成功', '已在 Maya 中打开最新版本')
+                    self.show_info_inview('The latest version has been opened in maya', 'yellow')
                 except Exception as e:
                     self.show_warning('错误', str(e))
             else:
@@ -1245,7 +1249,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         if IN_MAYA:
             try:
                 cmds.file(mf, open=True, force=True, options="v=0;")
-                self.show_info_delayed('成功', 'Master 已打开')
+                self.show_info_inview('Master has been opened', 'yellow')
             except Exception as e:
                 self.show_warning('失败', str(e))
         else:
@@ -1271,7 +1275,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             if IN_MAYA:
                 try:
                     cmds.file(fpath, open=True, force=True, options="v=0;")
-                    self.show_info_delayed('成功', '版本已打开')
+                    self.show_info_inview('The version has been opened', 'yellow')
                 except Exception as e:
                     self.show_warning('失败', str(e))
             else:
@@ -1287,7 +1291,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         fname = item.text()
         ok = self.pm.set_master(self.current_asset_type, self.selected_asset, self.selected_subtype, fname)
         if ok:
-            self.show_info('成功', '已设为 Master')
+            self.show_info_inview('Master has been set', 'green')
         else:
             self.show_warning('失败', '设 Master 失败')
 
@@ -1308,7 +1312,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             return
 
         if self.pm.save_master(self.current_asset_type, self.selected_asset, self.selected_subtype):
-            self.show_info_delayed('成功', 'Master已保存')
+            self.show_info_inview('Master has been saved', 'green')
         else:
             self.show_warning('失败', 'Master保存失败')
 
@@ -1323,7 +1327,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             return
 
         if self.pm.save_version(self.current_asset_type, self.selected_asset, self.selected_subtype, notes=notes):
-            self.show_info_delayed('成功', '新版本已保存')
+            self.show_info_inview('The new version has been saved', 'green')
             versions = self.pm.get_workshop_versions(self.current_asset_type, self.selected_asset,
                                                      self.selected_subtype)
             self.version_list.clear()
@@ -1350,7 +1354,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         if IN_MAYA:
             try:
                 cmds.file(fpath, i=True, options="v=0;")
-                self.show_info('成功', 'Import 完成')
+                self.show_info_inview('Import Finished')
             except Exception as e:
                 self.show_warning('失败', str(e))
         else:
@@ -1375,7 +1379,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             try:
                 cmds.file(fpath, ignoreVersion=1, namespace=fname.split(".")[0], r=1, gl=1,
                           mergeNamespacesOnClash=False, options="v=0;")
-                self.show_info('成功', 'Reference 完成')
+                self.show_info_inview('Reference Finished')
             except Exception as e:
                 self.show_warning('失败', str(e))
         else:
@@ -1400,8 +1404,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                     cmds.file(mf, r=1,
                             type="mayaAscii", ignoreVersion=1, gl=1, mergeNamespacesOnClash=True, namespace=":",
                             options="v=0;")
-
-                self.show_info('成功', 'Reference Master 完成')
+                self.show_info_inview('Reference Master Finished')
             except Exception as e:
                 self.show_warning('失败', str(e))
         else:

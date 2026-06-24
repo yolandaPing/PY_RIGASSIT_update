@@ -37,7 +37,7 @@ except ImportError as e:
 try:
     import maya.cmds as cmds
     import maya.mel as mel
-
+    import maya.OpenMaya as om
     IN_MAYA = True
 except Exception:
     IN_MAYA = False
@@ -90,7 +90,7 @@ def add_menu_label(menu, text):
     widget = QtWidgets.QWidget()
     layout = QtWidgets.QHBoxLayout(widget)
     label = QtWidgets.QLabel(text)
-    label.setStyleSheet("color: yellow; font-weight: bold;")
+    label.setStyleSheet("color: yellow;")
     layout.addWidget(label)
     layout.setContentsMargins(20, 2, 5, 2)
     widget.setLayout(layout)
@@ -153,11 +153,14 @@ def show_version_context_menu(main_window, position):
     export_fbx_action = menu.addAction(u'📤 导出FBX ({} + {})'.format(
         main_window.fbx_config[0], main_window.fbx_config[1]
     ))
+    export_fbx_UE_action = menu.addAction(u'📤 导出FBX to UE')
     export_fbx_action.setProperty('yellow', True)
-    export_fbx_action.triggered.connect(lambda: export_fbx_for_version(main_window, version_filename))
+    export_fbx_action.triggered.connect(lambda: export_fbx_for_version(main_window, version_filename, False))
+    menu.addSeparator()
+    export_fbx_UE_action.setProperty('yellow', True)
+    export_fbx_UE_action.triggered.connect(lambda: export_fbx_for_version(main_window, version_filename, True))
     menu.addSeparator()
 
-    # 菜单项：文件信息（不可点击）
     file_info = get_file_info(main_window, version_filename)
     info_action = menu.addAction(u'📋 版本信息: {}'.format(version_filename))
     info_action.setEnabled(False)
@@ -191,13 +194,11 @@ def import_master(main_window, namespace=False):
     if not main_window.pm or not main_window.current_asset_type:
         QtWidgets.QMessageBox.warning(main_window, u'错误', u'请先选择资产类型')
         return
-
     mf = main_window.pm.get_master_file(main_window.current_asset_type, main_window.selected_asset,
                                         main_window.selected_subtype)
     if not mf or not os.path.exists(mf):
         main_window.show_warning('错误', 'Master 文件不存在')
         return
-
     if IN_MAYA:
         try:
             if namespace:
@@ -205,8 +206,7 @@ def import_master(main_window, namespace=False):
                 cmds.file(mf, i=True, namespace=fname.split(".ma")[0], options="v=0;")
             else:
                 cmds.file(mf, i=True, options="v=0;")
-
-            main_window.show_info('成功', 'Import Master 完成')
+            main_window.show_info_inview('Import Master Finished', "yellow")
         except Exception as e:
             main_window.show_warning('失败', str(e))
     else:
@@ -236,7 +236,6 @@ def open_subtype_path(main_window, subtype_name):
 
 def open_version_path(main_window, version_name):
     """打开版本文件路径"""
-    # from py_rigAssit.pyopenpipeline.pipeline_utils import open_file_in_explorer
     if not main_window.pm or not main_window.current_asset_type or not main_window.selected_asset or not main_window.selected_subtype:
         QtWidgets.QMessageBox.warning(main_window, u'错误', u'请先选择资产和任务')
         return
@@ -336,7 +335,7 @@ def refresh_version_list(main_window):
         main_window.version_list.addItem(v)
 
 
-def export_fbx_for_version(main_window, version_filename):
+def export_fbx_for_version(main_window, version_filename, to_ue=False):
     """为选中的版本执行FBX导出操作"""
     if not IN_MAYA:
         QtWidgets.QMessageBox.warning(main_window, '错误', '此功能只能在Maya中运行')
@@ -344,17 +343,16 @@ def export_fbx_for_version(main_window, version_filename):
 
     if is_scene_strictly_empty() == False:
         mel.eval("file -f -new;")
-        # QtWidgets.QMessageBox.warning(main_window, '错误', '当前场景不是空场景！')
-        # return
 
     asset_dir = main_window.pm.get_asset_dir(main_window.current_asset_type, main_window.selected_asset)
     version_path = os.path.join(asset_dir, 'components', main_window.selected_subtype, 'workshop', version_filename)
+
+    type_name = main_window.current_asset_type
 
     if not os.path.exists(version_path):
         QtWidgets.QMessageBox.warning(main_window, '错误', '版本文件不存在:\n{}'.format(version_path))
         return
 
-    # 准备FBX导出路径
     fbx_dir = os.path.join(asset_dir, 'components', main_window.selected_subtype, 'fbx')
     if not os.path.exists(fbx_dir):
         os.makedirs(fbx_dir)
@@ -362,23 +360,42 @@ def export_fbx_for_version(main_window, version_filename):
     fbx_path = os.path.join(fbx_dir, fbx_filename).replace("\\", "/")
 
     try:
-        # 导入版本文件到当前场景
         cmds.file(version_path, i=True)
-        # 执行FBX导出
         export_success = export_fbx_with_objects(main_window, fbx_path)
         if export_success:
             mel.eval("file -f -new;")
+            obj_fold = {"chr": "Chr",
+                            "Chr": "Chr",
+                            "char": "Chr",
+                            "prp": "Prp",
+                            "Prp": "Prp"}
+            base_name = main_window.selected_asset
+            try:
+                from work_patch.project_asset_browser.info import UnrealEditor, UE_PROJECT, CONTENT
+                import work_patch.project_asset_browser.fbx_to_unreal as fbx_to_unreal
+                reload(fbx_to_unreal)
+                ue_content_path = "/Game/{}/{}".format(CONTENT, obj_fold[type_name])
+                enable_to_ue = True
+            except:
+                enable_to_ue = False
 
-            # try:
-            #     from work_patch.project_asset_browser.info import UnrealEditor, UE_PROJECT
-            #     import work_patch.project_asset_browser.fbx_to_unreal as fbx_to_unreal
-            #     reload(fbx_to_unreal)
-            #     ue_content_path = "/Game/Characters"
-            #     fbx_to_unreal.export_to_unreal(fbx_path, UnrealEditor, UE_PROJECT, ue_content_path, main_window.selected_asset)
-            # except:
-            #     pass
+            if to_ue and enable_to_ue:
+                try:
+                    om.MGlobal.displayInfo("run fbx to ue ......")
+                    om.MGlobal.displayInfo(ue_content_path)
+                    fbx_to_unreal.export_to_unreal(fbx_path, UnrealEditor, UE_PROJECT, ue_content_path, base_name)
 
-            QtWidgets.QMessageBox.information(main_window, '导出成功',
+                    QtWidgets.QMessageBox.information(main_window, 'FBX导入UE成功',
+                                    u'FBX导入UE成功:\n\n导出对象: {}\n路径: {}\nUE项目: {}'.format(
+                                        base_name, fbx_path, UE_PROJECT))
+
+                except Exception as e:
+                    QtWidgets.QMessageBox.warning(main_window,'导出UE失败', '{}\n前往ue手动运行ue_importer.py即可'.format(e))
+    
+            else:
+                if enable_to_ue:
+                    fbx_to_unreal.save_json(fbx_path, ue_content_path, base_name)
+                QtWidgets.QMessageBox.information(main_window, '导出成功',
                                               u'FBX导出完成:\n\n导出对象: {} 和 {}\n导出路径: {}'.format(
                                                   main_window.fbx_config[0], main_window.fbx_config[1], fbx_path))
         else:
@@ -386,6 +403,42 @@ def export_fbx_for_version(main_window, version_filename):
     except Exception as e:
         QtWidgets.QMessageBox.critical(main_window, u'错误', u'导出过程中发生错误:\n{}'.format(str(e)))
 
+def delete_Matrix(Geo_grp="Geo_grp"):
+    import pymel.core as pm
+    get_mesh = pm.listRelatives(Geo_grp, s=1, ad=1, ni=1)
+    get_mxs = []
+
+    for m in get_mesh:
+        skin_nodes = pm.ls(pm.listHistory(m, type='skinCluster'))
+        if skin_nodes:
+            skin_node = skin_nodes[0]
+            matrixs = pm.listAttr(skin_node + '.matrix', m=1)
+            for mx in matrixs:
+                get_mx = pm.listConnections(skin_node + '.' + mx, d=1)[0]
+                if pm.nodeType(get_mx) == 'multMatrix':
+                    get_j = pm.listConnections(get_mx + '.matrixIn[0]', d=1, p=1)[0]
+                    pm.connectAttr(get_j, skin_node + '.' + mx, f=1)
+                    get_mxs.append(get_mx)
+
+    if get_mxs:
+        pm.delete(get_mxs)
+
+def delete_bs_node(Geo_grp="Geo_grp"):
+    import pymel.core as pm
+    if Geo_grp:
+        objs = []
+        if pm.listRelatives(Geo_grp, ad=1, type='mesh'):
+            objs.extend([pm.listRelatives(x, p=1)[0] for x in pm.listRelatives(Geo_grp, ad=1, type='mesh')])
+        objs = list(set(objs))
+
+    if not objs:
+        return
+    for i in objs:
+        bsNode = i.history(type='blendShape')
+        if bsNode:
+            pm.delete(bsNode)
+
+        pm.displayInfo(u"delete {}".format(bsNode))
 
 def export_fbx_with_objects(main_window, fbx_path):
     """根据配置的对象名称导出FBX"""
@@ -406,7 +459,6 @@ def export_fbx_with_objects(main_window, fbx_path):
                 export_objects.append(obj)
                 break
 
-    # 查找根关节
     if cmds.objExists(root_joint):
         export_objects.append(root_joint)
     else:
@@ -420,6 +472,12 @@ def export_fbx_with_objects(main_window, fbx_path):
         QtWidgets.QMessageBox.warning(main_window, '错误',
                                       u'未找到要导出的对象:\n几何体组: {}\n根关节: {}'.format(geo_group, root_joint))
         return False
+
+    try:
+        delete_Matrix(geo_group)  # 去除蒙皮逆矩阵
+    except:
+        pass
+    delete_bs_node(geo_group)
 
     try:
         print(u"导出的对象: {}".format(fbx_path))

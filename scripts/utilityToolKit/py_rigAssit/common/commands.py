@@ -138,6 +138,13 @@ def split_skin_ui(ui):
     split_skin_dlg.main()
 
 
+@CommandDispatcher.register("Tubes pro")
+@decorator.undo
+def tubes_create_joints(ui):
+    from py_rigAssit.dialogs import curves_from_tubesPro as curves_from_tubes
+    curves_from_tubes.show()
+
+
 @CommandDispatcher.register("Soft add ctrl")
 @decorator.undo
 def soft_add_ctrl(ui):
