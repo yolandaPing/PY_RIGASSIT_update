@@ -6,6 +6,7 @@
 # .Date....: 2026/4/11 18:13
 # .Finish time:
 from functools import partial
+
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import Help, decorator, mayaPrint
 from ControllerTool.ikfk_ribbon_mod import IKFKRIGGING
@@ -201,8 +202,8 @@ class IKFKWidget(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout(group)
         name_layout, self.name_field = _widgest.create_QLineEdit_grp("Name:")
 
-        self.system_type_block = _widgest.create_radiogroup(
-            "system node:",
+        self.node_type_block = _widgest.create_radiogroup(
+            "node:",
             [
                 ("Matrix", 1, None),
                 ("UVPin ", 2, None),
@@ -258,7 +259,7 @@ class IKFKWidget(QtWidgets.QWidget):
         self.ikfk_count_lay(main_layout)
         main_layout.addLayout(axis_layout)
         _widgest.separator(main_layout)
-        main_layout.addWidget(self.system_type_block)
+        main_layout.addWidget(self.node_type_block)
         main_layout.addWidget(self.rig_type_block)
 
         main_layout.addWidget(self.constrain_type_block)
@@ -275,7 +276,7 @@ class IKFKWidget(QtWidgets.QWidget):
 
         self.ik_field = QtWidgets.QSpinBox()
         self.ik_field.setValue(7)
-        self.ik_field.setFixedWidth(80)
+        self.ik_field.setFixedWidth(50)
         ik_field_layout = QtWidgets.QFormLayout()
 
         label = _widgest.create_bold_label('IK / Joint : ')
@@ -290,7 +291,7 @@ class IKFKWidget(QtWidgets.QWidget):
 
         self.fk_field = QtWidgets.QSpinBox()
         self.fk_field.setValue(1)
-        self.fk_field.setFixedWidth(75)
+        self.fk_field.setFixedWidth(50)
 
         fk_field_layout = QtWidgets.QFormLayout()
         label = _widgest.create_text('FK Interval: ')
@@ -308,7 +309,6 @@ class IKFKWidget(QtWidgets.QWidget):
         main_layout.addLayout(checkbox_layout)
         parent.addLayout(main_layout)
 
-
     def add_ik_box(self):
         checkbox_layout = QtWidgets.QHBoxLayout()
         pri_ik_cbx = _widgest.add_checkbox('Enable pri IK ?')
@@ -316,7 +316,7 @@ class IKFKWidget(QtWidgets.QWidget):
 
         over_ik_field = QtWidgets.QSpinBox()
         over_ik_field.setValue(2)
-        over_ik_field.setFixedWidth(80)
+        over_ik_field.setFixedWidth(50)
 
         ik_count_layout = QtWidgets.QFormLayout()
         label = _widgest.create_text('Over IK : ')
@@ -331,13 +331,13 @@ class IKFKWidget(QtWidgets.QWidget):
 
     def create_connection(self):
         dispatcher = CommandDispatcher()
-
         self.base_apply_btn.clicked.connect(self.basa_build)
         self.fk_field.valueChanged.connect(self._calculate_number_ik)
         self.enable_over_cbx.stateChanged.connect(self._on_over_ik_Toggled)
         self.chain_over_cbx.stateChanged.connect(self._chain_over_ik_Toggled)
         self.chain_builda_btn.clicked.connect(self.chain_build)
         self.chain_buildb_btn.clicked.connect(partial(self.chain_build, True))
+        self.rig_type_block.idClicked.connect(self._on_type_toggled)
         self.guide_btn.clicked.connect(self.create_guide)
         self.build_btn.clicked.connect(self.build_system)
         self.base_help_btn.clicked.connect(partial(self._show_img, 1))
@@ -365,7 +365,13 @@ class IKFKWidget(QtWidgets.QWidget):
 
     def _show_img(self, id, *args):
         self.dispatcher.execute("Show Help", id)
-
+        
+    def _on_type_toggled(self, btn_id):
+        if btn_id == 1:
+            self.node_type_block.setEnabledByIds([1, 2], True)
+        else:
+            self.node_type_block.setEnabledByIds([2], False)
+            
     def get_adv_values(self):
         """获取界面上的所有设置值"""
         filed_name = self.name_field.text()
@@ -411,14 +417,14 @@ class IKFKWidget(QtWidgets.QWidget):
         pri_ik_en = self.chain_pri_ik_cbx.isChecked()
         over_ik_en = self.chain_over_cbx.isChecked()
         over_ik_value = self.chain_over_ik_field.value() if over_ik_en else 0
-        add_spineik = self.chain_splineikrig_cbx.isChecked()
+        if self.chain_splineikrig_cbx.isChecked():
+            add_spineik = 2
+        else:
+            add_spineik = 1
+
         rigType = self.chain_constrain_type.checkedId()
 
-        if crooked:
-            _RIGGING_MOD.crooked_joints_chain_rigging_build(pri_ik_en, over_ik_en, add_spineik, over_ik_value, rigType=rigType - 1)
-        else:
-            _RIGGING_MOD.joints_chain_rigging_build(pri_ik_en, over_ik_en, add_spineik, over_ik_value, rigType=rigType - 1)
-
+        _RIGGING_MOD.joints_chain_rigging_build(pri_ik_en, over_ik_en, add_spineik, over_ik_value, rigType=rigType - 1,  uvpin=self.uv_pin_en, crooked=crooked)
 
     def create_guide(self):
         """创建引导定位器"""
@@ -468,7 +474,7 @@ class IKFKWidget(QtWidgets.QWidget):
         filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, add_spineik, rigType = self.get_adv_values()
 
         uvpin = False
-        if self.system_type_block.checkedId() == 2:
+        if self.node_type_block.checkedId() == 2:
             uvpin = True
 
         if not filed_name:
@@ -477,12 +483,8 @@ class IKFKWidget(QtWidgets.QWidget):
 
         if self.is_aixsExists(filed_name):
             trans_locs = [i.replace("_aixs", "_guide") for i in self.joint_aixs]
-            if _util.is_aixsCrooked(objects=trans_locs, aim_vector=axis_value):
-                _RIGGING_MOD.crooked_complex_rigging_build(filed_name, self.joint_aixs, fk_value, pri_ik_en,
-                                                           over_ik_value, spineik=add_spineik, rigType=rigType - 1, uvpin=uvpin)
-            else:
-                _RIGGING_MOD.complex_rigging_build(filed_name, self.joint_aixs, fk_value, pri_ik_en,
-                                                   over_ik_value, spineik=add_spineik, rigType=rigType - 1, uvpin=uvpin)
+            crooked =  _util.is_aixsCrooked(objects=trans_locs, aim_vector=axis_value)
+            _RIGGING_MOD.complex_rigging_build(filed_name, self.joint_aixs, fk_value, pri_ik_en, over_ik_value, spineik=add_spineik, rigType=rigType - 1, uvpin=uvpin, crooked=crooked)
 
 
 class PYIKFKLayout(PyouPersistentWindow):
