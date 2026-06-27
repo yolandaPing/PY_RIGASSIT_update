@@ -6,6 +6,12 @@
 # .Date....: 2026/4/11 18:13
 # .Finish time:
 from functools import partial
+try:
+    from importlib import reload
+except ImportError:
+    pass
+import ControllerTool.ikfk_ribbon_mod
+reload(ControllerTool.ikfk_ribbon_mod)
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import Help, decorator, mayaPrint

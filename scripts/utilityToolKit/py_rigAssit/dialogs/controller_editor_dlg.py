@@ -143,15 +143,17 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         self.custom_color_button = PYCustomColorButton(QtCore.Qt.white)
 
         type_layout = QtWidgets.QHBoxLayout()
-        self.type_group = QtWidgets.QButtonGroup(self)
-        rb1 = QtWidgets.QRadioButton("Default")
-        rb2 = QtWidgets.QRadioButton("Outliner")
-        rb1.setChecked(True)
-        self.type_group.addButton(rb1, 1)
-        self.type_group.addButton(rb2, 2)
+        self.type_group = PY_WIDGEAT.create_radiogroup(
+            "",
+            [
+                ("Default ", 1, "对象shape overrideColor"),
+                ("Outliner ", 2, "大纲对象显示颜色")
+            ],
+            default_id=2
+        )
+
         type_layout.addWidget(PY_WIDGEAT.create_text("Custom Type:"), 1)
-        type_layout.addWidget(rb1,1)
-        type_layout.addWidget(rb2,1)
+        type_layout.addWidget(self.type_group, 1)
         type_layout.addWidget(PY_WIDGEAT.create_text(" Color:"),1)
         type_layout.addWidget(self.custom_color_button,2)
         layout.addLayout(type_layout)
@@ -166,18 +168,22 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         scale_layout = QtWidgets.QHBoxLayout()
         rotate_layout = QtWidgets.QVBoxLayout()
         aixs_layout = QtWidgets.QHBoxLayout()
+        rot_type_layout = QtWidgets.QHBoxLayout()
+
         scale_layout.setContentsMargins(0, 0, 0, 0)
         curve_edit_grid = GridButtons("curve_edit", 4)
         curve_edit_grid.clicked.connect(self.run_action)
 
         self.rot_type_block = PY_WIDGEAT.create_radiogroup(
-            u"调整方式:",
+            "",
             [
-                ("center ", 1, "中心"),
-                ("piovt ", 2, "轴心")
+                ("Center ", 1, "中心"),
+                ("Piovt ", 2, "轴心")
             ],
             default_id=1
         )
+        rot_type_layout.addWidget(PY_WIDGEAT.create_text("调整方式:  "))
+        rot_type_layout.addWidget(self.rot_type_block, 1)
         self.scale_slider = PY_WIDGEAT.create_floatSlider()
         self.scale_slider.setRange(0.01, 5.0)
         self.scale_slider.setValue(0.25)
@@ -215,7 +221,7 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         rotate_layout.addLayout(aixs_layout)
         layout.addWidget(curve_edit_grid)
         PY_WIDGEAT.separator(layout, True)
-        layout.addWidget(self.rot_type_block)
+        layout.addLayout(rot_type_layout)
         layout.addLayout(scale_layout)
         layout.addLayout(rotate_layout)
 
@@ -234,9 +240,9 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         self.cons_block = PY_WIDGEAT.create_radiogroup(
             u"约束方式:",
             [
-                ("none", 1, None),
-                ("parent", 2, "parent"),
-                ("parentCons", 3, u"父子约束"),
+                ("none", 1, "只创建控制器，不做任何约束"),
+                ("child", 2, "子级"),
+                ("parent", 3, u"父子约束"),
                 ("point", 4, u"点约束"),
                 ("orient", 5, u"旋转约束")
             ],
