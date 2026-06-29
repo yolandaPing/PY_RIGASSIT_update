@@ -590,13 +590,13 @@ def follicle_rivet_constrain(ui, datas):
     constrain_block = datas["constrain_block"]
 
     if rivet_cons == 1:
-        TypeALL = "{},{}".format(rig_block, constrain_block)
-        mel_cmd = 'source ' + json.dumps(base_dir + "scripts/mel/RivetandFollicle_Func.mel") + ";CreateobjFollicles(" + TypeALL + ");"
+        run_ages = "{},{}".format(rig_block, constrain_block)
+        mel_cmd = 'source ' + json.dumps(base_dir + "scripts/mel/RivetandFollicle_Func.mel") + ";CreateobjFollicles(" + run_ages + ");"
         mel.eval(mel_cmd)
         mayaPrint.log("Follice constrain successfully.")
     elif rivet_cons == 2:
-        TypeALL = "{},{},{}".format(rig_block, constrain_block, str(1))
-        mel_cmd = 'source ' + json.dumps(base_dir + "scripts/mel/RivetandFollicle_Func.mel") + ";CreateRivet(" + TypeALL + ");"
+        run_ages = "{},{},{}".format(rig_block, constrain_block, str(1))
+        mel_cmd = 'source ' + json.dumps(base_dir + "scripts/mel/RivetandFollicle_Func.mel") + ";CreateRivet(" + run_ages + ");"
         mel.eval(mel_cmd)
         mayaPrint.log("Rivets constrain successfully.")
     elif rivet_cons == 3:
@@ -608,13 +608,30 @@ def follicle_rivet_constrain(ui, datas):
             return
         objs = sels[:-1]
         driver = sels[-1]
-
         uv_pin.apply_uvPin(objs=objs, driver=driver, cons_type=rig_block, cons=constrain_block)
     else:
         import GeneralTools.point_skinWeight_constrant as pointsc
         pointsc.create_point_skin_constrant()
 
     return True
+
+
+@CommandDispatcher.register("mirror constraints")
+@decorator.undo
+def mirror_constraints(ui, datas):
+
+    mapping = datas["mapping"]
+    replace_type = datas["replace_type"]
+
+    selected = cmds.ls(sl=True)
+
+    if not selected:
+        cmds.warning("Please select constraint nodes.")
+        return
+
+    import ConstrainEdit.mirror_constraints as mirror_con
+    mirror_con.mirror_constraints(selected, mapping, replace_type)
+    mayaPrint.log('constraint mirror successfully!')
 
 
 @CommandDispatcher.register("create separator")

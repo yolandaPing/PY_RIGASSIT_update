@@ -38,6 +38,10 @@ class PYJointEditLayout(PyouPersistentWindow):
                      3: u'变形器转权重，先添权重模型加DeltaMush/Tension变形器,设置好内部值',
                      4: u'选择拷贝源+需要拷贝的对象,此功能会直接将拷贝源提高细分来优化权重'}
 
+    MAP = {1: [("Search Prefix:", "L_"), ("Replace Prefix:", "R_")],
+           2: [("Search Middle:", "_L_"), ("Replace Middle:", "_R_")],
+           3: [("Search Suffix:", "_L"), ("Replace Suffix:", "_R")]
+           }
 
     def __init__(self, parent=None):
         super(PYJointEditLayout, self).__init__("PYJointEditLayout", "PYJointEditDialog", parent)
@@ -169,8 +173,9 @@ class PYJointEditLayout(PyouPersistentWindow):
         sec2.addWidget(grid2b)
 
         # Mirror
-        sec3 = _widgest.create_section("Mirror Joint")
-        sec3.addLayout(self.mirror_joint_lay())
+        sec3 = _widgest.create_section("Mirror Joints/ Constraints")
+        sec3.addWidget(self.mirror_joint_lay())
+        sec3.addWidget(self.mirror_constraints())
         _widgest.separator(lay, True)
         lay.addLayout(joint_size_layout)
         lay.addWidget(sec1)
@@ -224,7 +229,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         return self.py_rigging_page
 
     def mirror_joint_lay(self):
-
+        frame = _widgest.create_collapsible_frame(" Mirror Joints")
         main_layout = QtWidgets.QVBoxLayout()
         search_replace_layout = QtWidgets.QHBoxLayout()
         self.across_block = _widgest.create_radiogroup(
@@ -245,21 +250,78 @@ class PYJointEditLayout(PyouPersistentWindow):
             ],
             default_id=1
         )
-
+        self.search_joint_group = _widgest.create_radiogroup(
+            "",
+            [
+                ("prefix", 1, None),
+                ("middle", 2, None),
+                ("suffix", 3, None),
+            ],
+            default_id=1
+        )
+        
         search_layout, self.mir_jnt_search_filed = self._QLineEdit_row("Search:", "L_")
         replace_layout, self.mir_jnt_replace_filed = self._QLineEdit_row("Replace:", "R_")
-
+        self.search_joint_group.idClicked.connect(self._optional_joint_Toggled)
         self.mir_jnt_apple_btn = QtWidgets.QPushButton(" Apply ")
         self.mir_jnt_apple_btn.setProperty("main", True)
         main_layout.addWidget(self.across_block)
         main_layout.addWidget(self.function_block)
+        main_layout.addWidget(self.search_joint_group)
         search_replace_layout.addLayout(search_layout)
         search_replace_layout.addLayout(replace_layout)
         main_layout.addLayout(search_replace_layout)
         main_layout.addWidget(self.mir_jnt_apple_btn)
         main_layout.addStretch()
+        frame.addLayout(main_layout)
+        return frame
 
-        return main_layout
+    def mirror_constraints(self):
+        frame = _widgest.create_collapsible_frame(" Mirror Constraints")
+        main_layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
+        search_layout = QtWidgets.QHBoxLayout()
+
+        self.search_type_group = _widgest.create_radiogroup(
+            "",
+            [
+                ("prefix", 1, None),
+                ("middle", 2, None),
+                ("suffix", 3, None),
+            ],
+            default_id=1
+        )
+        search_layout.addWidget(self.search_type_group)
+
+        layout.addLayout(search_layout)
+        self.search_type_group.idClicked.connect(self._optional_cons_Toggled)
+
+        prefix_layout = QtWidgets.QHBoxLayout()
+        self.search_label = QtWidgets.QLabel("Search prefix:")
+        self.search_le = QtWidgets.QLineEdit("L_")
+        prefix_layout.addWidget(self.search_label)
+        prefix_layout.addWidget(self.search_le)
+        self.replace_label = QtWidgets.QLabel("Replace prefix:")
+        self.replace_le = QtWidgets.QLineEdit("R_")
+        prefix_layout.addWidget(self.replace_label)
+        prefix_layout.addWidget(self.replace_le)
+
+        button_layout = QtWidgets.QHBoxLayout()
+        self.mirror_constraint_btn = QtWidgets.QPushButton("Apply")
+        help_btn = QtWidgets.QPushButton()
+        help_btn.setIcon(QtGui.QIcon(":/help.png"))
+        self.mirror_constraint_btn.setProperty("main", True)
+        help_btn.setProperty("help", True)
+        button_layout.addWidget(self.mirror_constraint_btn, 9)
+        button_layout.addWidget(help_btn)
+        help_btn.clicked.connect(partial(Help.HelpImage, "", "mirror_constraints"))
+
+        main_layout.addLayout(layout)
+        layout.addLayout(prefix_layout)
+        layout.addWidget(_widgest.create_text("选择需要创建镜像的约束节点"))
+        layout.addLayout(button_layout)
+        frame.addLayout(main_layout)
+        return frame
 
     def mirror_skin_lay(self):
         frame = _widgest.create_collapsible_frame(" Mirror Skin")
@@ -485,6 +547,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.joint_reset_btn.clicked.connect(self.reset_joint_to_default)
         # self.joint_spinbox.valueChanged.connect(self.on_spinbox_joint_changed)
         self.mir_jnt_apple_btn.clicked.connect(self.mirror_build)
+        self.mirror_constraint_btn.clicked.connect(self.apply_mirror_constraints)
         self.sk_mirror_btn.clicked.connect(self.mirror_skin_build)
         self.skin_other_select_btn.clicked.connect(self._select_no_stand_joint)
         self.exp_btn.clicked.connect(exp_inp_skinClusterIO.devSave_json)
@@ -560,6 +623,16 @@ class PYJointEditLayout(PyouPersistentWindow):
 
     def _on_copy_type_toggled(self, btn_id):
         self.sk_optimize_hint.setText(self.OPTIMIZE_HINT[btn_id])
+        
+    def _optional_cons_Toggled(self, btn_id):
+        self.search_label.setText(self.MAP[btn_id][0][0])
+        self.search_le.setText(self.MAP[btn_id][0][1])
+        self.replace_label.setText(self.MAP[btn_id][1][0])
+        self.replace_le.setText(self.MAP[btn_id][1][1])
+
+    def _optional_joint_Toggled(self, btn_id):
+        self.mir_jnt_search_filed.setText(self.MAP[btn_id][0][1])
+        self.mir_jnt_replace_filed.setText(self.MAP[btn_id][1][1])
 
     def load_field(self, field, list=False):
         objs = cmds.ls(sl=1)
@@ -576,6 +649,27 @@ class PYJointEditLayout(PyouPersistentWindow):
         EditJnt = EditJnt()
 
         EditJnt.mirror_joints_build(self.mir_jnt_search_filed.text(), self.mir_jnt_replace_filed.text(), self.across_block.checkedId(), self.function_block.checkedId())
+
+    def apply_mirror_constraints(self):
+
+        search = self.search_le.text().strip()
+        replace = self.replace_le.text().strip()
+
+        if not search or not replace:
+            cmds.warning("Search / Replace cannot be empty.")
+            return
+
+        replace_type = self.search_type_group.checkedId()
+        mapping = {
+            search: replace
+        }
+
+        datas = {
+            "mapping": mapping,
+            "replace_type": replace_type
+        }
+
+        self.dispatcher.execute("mirror constraints", datas)
 
     def _select_no_stand_joint(self):
         if self.no_stand_joint:

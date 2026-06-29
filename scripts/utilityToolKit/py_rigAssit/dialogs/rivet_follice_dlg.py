@@ -31,7 +31,6 @@ class PYRivetFolliceLayout(QtWidgets.QWidget):
         return container
 
     def rivet_layout(self):
-        # frame = PY_WIDGEAT.create_collapsible_frame(u" Follicle/Rivet 钉子", True)
         group = QtWidgets.QGroupBox(u"Follicle/Rivet:")
         main_layout = QtWidgets.QVBoxLayout(group)
 
@@ -45,10 +44,13 @@ class PYRivetFolliceLayout(QtWidgets.QWidget):
         self.rivet_rig_block = PY_WIDGEAT.create_radiogroup(
             "",
             [
-                ("Parent", 1, None),
+                ("Parent", 1, ""),
                 ("Contrain", 2, u"约束"),
+                ("Input", 3, u"(无transform创建) uvpin矩阵直接输出给对象的offsetParentMatrix"),
+                ("connect", 4, u"(无transform创建) 拆解uvpin的矩阵,链接给对象位移旋转,且保持当前对象的数值")
             ],
-            default_id=1
+            default_id=1,
+            enabled_map={3: False, 4: False}
         )
         self.rivet_constrain_block = PY_WIDGEAT.create_radiogroup(
             "约束:",
@@ -62,16 +64,17 @@ class PYRivetFolliceLayout(QtWidgets.QWidget):
         )
 
         self.rivet_cons_block = PY_WIDGEAT.create_radiogroup(
-            "Type:",
+            "",
             [
                 ("Follicle", 1, u"毛囊"),
-                ("Matrix", 2, u"locator"),
+                ("Rivet", 2, u"Rivet"),
                 ("UV Pin", 3, u"Maya2020+ UV Pin"),
-                ("Constrain", 4, u"获取最近的权重关节创建约束"),
+                ("Skin con", 4, u"获取对象到mesh最近的点权重关节创建约束"),
             ],
             default_id=1,
             enabled_map={3: self.uv_pin_en}
         )
+
         self.rivet_hint = PY_WIDGEAT.create_text("select objects and then Surface/Mesh\n选择需要钉的对象+Surface/Mesh")
         btn_layout, self.rivet_apple_btn, self.rivet_help_btn = PY_WIDGEAT.create_Qbuttons(" Apply ")
 
@@ -91,10 +94,15 @@ class PYRivetFolliceLayout(QtWidgets.QWidget):
 
 
     def _rivet_cons_toggled(self, btn_id):
-        if btn_id in [4]:
+
+        if btn_id == 4:
             self.rivet_rig_wtg.setEnabled(False)
         else:
             self.rivet_rig_wtg.setEnabled(True)
+            if btn_id in [3]:
+                self.rivet_rig_block.setEnabledByIds([1, 2, 3, 4], True)
+            else:
+                self.rivet_rig_block.setEnabledByIds([3, 4], False)
 
 
     def _rivet_rig_toggled(self, btn_id):
