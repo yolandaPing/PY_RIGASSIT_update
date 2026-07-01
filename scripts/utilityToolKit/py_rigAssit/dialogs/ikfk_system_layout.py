@@ -158,10 +158,17 @@ class IKFKWidget(QtWidgets.QWidget):
 
     def chain_ikfk_lay(self):
         frame = _widgest.create_collapsible_frame("Joints Chain Quick Rigging")
-        main_layout = _widgest.create_section("ribbon")
+        main_layout = _widgest.create_section("chains")
+        fk_field_layout_main = QtWidgets.QHBoxLayout()
+        fk_field_layout, self.chain_fk_field = self.fk_count_layout()
+        count_layout, self.jnt_count_label = self.ik_joints_counts_hint()
+        fk_field_layout_main.addLayout(fk_field_layout)
+        fk_field_layout_main.addLayout(count_layout)
 
+        label = _widgest.create_text(u" > 设置间隔多少个ik生成一个fk， 默认间隔一个 ", 12, "left")
         checkbox_layout, self.chain_pri_ik_cbx, self.chain_over_cbx, self.chain_over_ik_field, = self.add_ik_box()
         self.chain_splineikrig_cbx = _widgest.add_checkbox('add splineik rig?')
+        self.chain_uvpin_cbx = _widgest.add_checkbox('uvpin?')
         btn_layout = QtWidgets.QHBoxLayout()
 
         self.chain_builda_btn = QtWidgets.QPushButton('Build A')
@@ -192,8 +199,11 @@ class IKFKWidget(QtWidgets.QWidget):
             _widgest.create_text(u"确定好关节轴向\n选择关节链的第一节Build"))
 
         _widgest.separator(main_layout, True)
+        main_layout.addLayout(fk_field_layout_main)
         main_layout.addLayout(checkbox_layout)
-        main_layout.addWidget(self.chain_splineikrig_cbx )
+        _widgest.separator(main_layout)
+        main_layout.addWidget(self.chain_splineikrig_cbx)
+        main_layout.addWidget(self.chain_uvpin_cbx )
         main_layout.addWidget(self.chain_constrain_type)
         main_layout.addWidget(_widgest.create_text(u" >>> 如果关节不是直的，请选择build B"))
 
@@ -282,30 +292,19 @@ class IKFKWidget(QtWidgets.QWidget):
 
         self.ik_field = QtWidgets.QSpinBox()
         self.ik_field.setValue(7)
-        self.ik_field.setFixedWidth(50)
+        self.ik_field.setFixedWidth(40)
         ik_field_layout = QtWidgets.QFormLayout()
 
         label = _widgest.create_bold_label('IK / Joint : ')
         ik_field_layout.addRow(label, self.ik_field)
 
-        self.ik_count_label = _widgest.create_text(u" > 设置 ik 的数量: 2n+1 ")
-
+        count_layout, self.ik_count_label = self.ik_joints_counts_hint()
         ik_field_layout_main.addLayout(ik_field_layout)
-        ik_field_layout_main.addWidget(self.ik_count_label)
+        ik_field_layout_main.addLayout(count_layout)
 
-        fk_field_layout_main = QtWidgets.QHBoxLayout()
-
-        self.fk_field = QtWidgets.QSpinBox()
-        self.fk_field.setValue(1)
-        self.fk_field.setFixedWidth(50)
-
-        fk_field_layout = QtWidgets.QFormLayout()
-        label = _widgest.create_text('FK Interval: ')
-        fk_field_layout.addRow(label, self.fk_field)
-
+        fk_field_layout_main, self.fk_field = self.fk_count_layout()
         label = _widgest.create_text(u" > 设置间隔多少个ik生成一个fk， 默认间隔一个 ", 12, "left")
 
-        fk_field_layout_main.addLayout(fk_field_layout)
         main_layout.addLayout(ik_field_layout_main)
         main_layout.addWidget(label)
         main_layout.addLayout(fk_field_layout_main)
@@ -315,8 +314,29 @@ class IKFKWidget(QtWidgets.QWidget):
         main_layout.addLayout(checkbox_layout)
         parent.addLayout(main_layout)
 
+    def ik_joints_counts_hint(self):
+        layout = QtWidgets.QHBoxLayout()
+        label = QtWidgets.QLabel('2n+1')
+        label.setStyleSheet(' color:yellow; ')
+        layout.addWidget(_widgest.create_text(u" > 关节的数量: "))
+        layout.addWidget(label)
+        return layout, label
+
+    def fk_count_layout(self):
+        fk_field_layout_main = QtWidgets.QHBoxLayout()
+        fk_field = QtWidgets.QSpinBox()
+        fk_field.setValue(1)
+        fk_field.setFixedWidth(40)
+        fk_field_layout = QtWidgets.QFormLayout()
+        label = _widgest.create_text('FK Interval: ')
+        fk_field_layout.addRow(label, fk_field)
+        fk_field_layout_main.addLayout(fk_field_layout)
+
+        return fk_field_layout_main, fk_field
+
     def add_ik_box(self):
-        checkbox_layout = QtWidgets.QHBoxLayout()
+        checkbox_layout = QtWidgets.QVBoxLayout()
+        over_ik_layout = QtWidgets.QHBoxLayout()
         pri_ik_cbx = _widgest.add_checkbox('Enable pri IK ?')
         over_cbx = _widgest.add_checkbox('Enable over IK ?')
 
@@ -330,17 +350,19 @@ class IKFKWidget(QtWidgets.QWidget):
         over_ik_field.setEnabled(False)
 
         checkbox_layout.addWidget(pri_ik_cbx)
-        checkbox_layout.addWidget(over_cbx)
-        checkbox_layout.addLayout(ik_count_layout)
+        over_ik_layout.addWidget(over_cbx)
+        over_ik_layout.addLayout(ik_count_layout)
+        checkbox_layout.addLayout(over_ik_layout)
 
         return checkbox_layout, pri_ik_cbx, over_cbx, over_ik_field
 
     def create_connection(self):
-        dispatcher = CommandDispatcher()
-        self.base_apply_btn.clicked.connect(self.basa_build)
-        self.fk_field.valueChanged.connect(self._calculate_number_ik)
+        self.base_apply_btn.clicked.connect(partial(self.basa_build))
+        self.chain_fk_field.valueChanged.connect(partial(self._calculate_number_ik, self.chain_fk_field, True))
+        self.fk_field.valueChanged.connect(partial(self._calculate_number_ik, self.fk_field, False))
         self.enable_over_cbx.stateChanged.connect(self._on_over_ik_Toggled)
         self.chain_over_cbx.stateChanged.connect(self._chain_over_ik_Toggled)
+        self.chain_splineikrig_cbx.stateChanged.connect(self._chain_splineik_Toggled)
         self.chain_builda_btn.clicked.connect(self.chain_build)
         self.chain_buildb_btn.clicked.connect(partial(self.chain_build, True))
         self.rig_type_block.idClicked.connect(self._on_type_toggled)
@@ -350,13 +372,22 @@ class IKFKWidget(QtWidgets.QWidget):
         self.chain_help_btn.clicked.connect(partial(self._show_img, 2))
         self.adv_help_btn.clicked.connect(partial(self._show_img, 3))
 
-    def _calculate_number_ik(self):
-        num = self.fk_field.value()
-        # print(num)
+    def _calculate_number_ik(self, object, chain=False, *args):
+        num = object.value()
+        var = {True: self.jnt_count_label,
+               False: self.ik_count_label}
+
         if num == 0:
-            self.ik_count_label.setText(u"无需计算")
+            var[chain].setText(u"无需计算")
         else:
-            self.ik_count_label.setText(u" > 设置 ik 的数量: {}n+1 ".format(num + 1))
+            var[chain].setText("{}n+1 ".format(num + 1))
+
+    def _chain_splineik_Toggled(self, enabled):
+        if enabled:
+            self.chain_uvpin_cbx.setChecked(False)
+            self.chain_uvpin_cbx.setEnabled(False)
+        else:
+            self.chain_uvpin_cbx.setEnabled(True)
 
     def _chain_over_ik_Toggled(self, enabled):
         # print(enabled)
@@ -428,9 +459,12 @@ class IKFKWidget(QtWidgets.QWidget):
         else:
             add_spineik = 1
 
+        uvpin = False
         rigType = self.chain_constrain_type.checkedId()
+        if self.chain_uvpin_cbx.isChecked() and self.uv_pin_en:
+            uvpin = True
 
-        _RIGGING_MOD.joints_chain_rigging_build(pri_ik_en, over_ik_en, add_spineik, over_ik_value, rigType=rigType - 1,  uvpin=self.uv_pin_en, crooked=crooked)
+        _RIGGING_MOD.joints_chain_rigging_build(pri_ik_en, over_ik_en, add_spineik, over_ik_value, rigType=rigType - 1,  uvpin=uvpin, crooked=crooked, fk_interval=self.chain_fk_field.value())
 
     def create_guide(self):
         """创建引导定位器"""
