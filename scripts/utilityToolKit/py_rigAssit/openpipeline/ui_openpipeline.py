@@ -61,18 +61,23 @@ def build_openpipeline_ui(main_window):
     btn_new = QtWidgets.QPushButton(u' [新建] ')
     btn_new.setStyleSheet("{} color: black;".format(_widgets.button_bgc))
     btn_new.clicked.connect(self.create_project_dialog)
-    btn_open = QtWidgets.QPushButton(u' [打开项目] ')
+    btn_open = QtWidgets.QPushButton(u' [打开项目位置] ')
     btn_open.clicked.connect(self.open_existing_project)
     btn_refresh = QtWidgets.QPushButton('')
     btn_refresh.setIcon(QtGui.QIcon(":refresh.png"))
     btn_refresh.setToolTip(u"刷新")
+    btn_about = QtWidgets.QPushButton('')
+    btn_about.setIcon(QtGui.QIcon(":help.png"))
+    btn_about.setToolTip(u"帮助")
     btn_refresh.clicked.connect(self.load_projects)
+    btn_about.clicked.connect(about)
 
     prow.addWidget(lbl)
     prow.addWidget(self.project_combo)
     prow.addWidget(btn_new)
     prow.addWidget(btn_open)
     prow.addWidget(btn_refresh)
+    prow.addWidget(btn_about)
     prow.addStretch()
     main.addLayout(prow)
 
@@ -80,7 +85,7 @@ def build_openpipeline_ui(main_window):
 
     splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-    # ---------- 左：资产类型 + 资产列表 ----------
+    #资产类型 + 资产列表
     leftw = QtWidgets.QWidget()
     leftl = QtWidgets.QVBoxLayout()
     leftl.setContentsMargins(0, 0, 0, 0)
@@ -125,14 +130,14 @@ def build_openpipeline_ui(main_window):
     asset_layout.addWidget(self.asset_list)
 
     asset_btn_row = QtWidgets.QHBoxLayout()
-    self.btn_create_asset = QtWidgets.QPushButton('New')
+    self.btn_create_asset = QtWidgets.QPushButton('Add New')
     self.btn_create_asset.clicked.connect(self.create_asset_dialog)
     self.btn_create_asset.setEnabled(False)
     self.btn_delete_asset = QtWidgets.QPushButton('Delete!!!')
     self.btn_delete_asset.clicked.connect(self.delete_asset_dialog)
-    self.btn_create_asset.setProperty("main", True)
-    self.btn_delete_asset.setProperty("main", True)
-    self.btn_delete_asset.setStyleSheet("color: red;")
+
+    self.btn_create_asset.setStyleSheet("font: bold 12px;{} color: black;".format(_widgets.button_bgc))
+    self.btn_delete_asset.setStyleSheet("font: bold 12px;{} color: red;".format(_widgets.button_bgc))
     self.btn_delete_asset.setEnabled(False)
     self.btn_delete_asset.setVisible(False)
     asset_btn_row.addWidget(self.btn_create_asset)
@@ -143,7 +148,7 @@ def build_openpipeline_ui(main_window):
     leftw.setLayout(leftl)
     leftw.setMinimumWidth(100)
 
-    # ---------- 中：子类型 + 版本 ----------
+    #子类型 + 版本
     centerw = QtWidgets.QWidget()
     center_layout = QtWidgets.QVBoxLayout(centerw)
     center_layout.setContentsMargins(0, 0, 0, 0)
@@ -167,19 +172,21 @@ def build_openpipeline_ui(main_window):
     subtype_layout.addWidget(self.subtype_list)
 
     sub_btns = QtWidgets.QHBoxLayout()
-    self.btn_add_sub = QtWidgets.QPushButton(u'New')
-    self.btn_add_sub.setEnabled(False)
+    self.btn_add_sub = QtWidgets.QPushButton(u'Add New')
     self.btn_del_sub = QtWidgets.QPushButton(u'Delete')
-    self.btn_del_sub.setEnabled(False)
     self.btn_rename_sub = QtWidgets.QPushButton(u'Rename')
-    self.btn_add_sub.setProperty("main", True)
-    self.btn_add_sub.setStyleSheet("color: green;")
-    self.btn_del_sub.setProperty("main", True)
-    self.btn_rename_sub.setProperty("main", True)
+    self.btn_add_sub.setEnabled(False)
     self.btn_rename_sub.setEnabled(False)
+    self.btn_del_sub.setEnabled(False)
+
+    self.btn_add_sub.setStyleSheet('font: bold 12px;')
+    self.btn_del_sub.setStyleSheet('font: bold 12px;')
+    self.btn_rename_sub.setStyleSheet('font: bold 12px;')
+
     sub_btns.addWidget(self.btn_add_sub)
-    sub_btns.addWidget(self.btn_del_sub)
     sub_btns.addWidget(self.btn_rename_sub)
+    sub_btns.addWidget(self.btn_del_sub)
+
     subtype_layout.addLayout(sub_btns)
 
     self.btn_add_sub.clicked.connect(self.add_subtype_dialog)
@@ -208,15 +215,15 @@ def build_openpipeline_ui(main_window):
     self.btn_save_new_version = QtWidgets.QPushButton('Save Workshop')
     self.btn_save_new_version.clicked.connect(self.save_new_version)
     self.btn_save_new_version.setProperty("main", True)
-    self.btn_save_new_version.setStyleSheet("color: red;")
+    self.btn_save_new_version.setStyleSheet("color: gray;")
     self.btn_save_new_version.setEnabled(False)
     vbtn_row1.addWidget(self.btn_save_new_version)
 
     vbtn_row2 = QtWidgets.QHBoxLayout()
     self.btn_set_master = QtWidgets.QPushButton('Save Master')
     self.btn_set_master.clicked.connect(self.save_new_master)
-    self.btn_set_master.setProperty("main", True)
-    self.btn_set_master.setStyleSheet("color: green;")
+    # self.btn_set_master.setProperty("main", True)
+    # self.btn_set_master.setStyleSheet("color: green;")
     self.btn_set_master.setEnabled(False)
     self.btn_open_master = QtWidgets.QPushButton('Open Master')
     self.btn_open_master.clicked.connect(self.open_master)
@@ -241,7 +248,7 @@ def build_openpipeline_ui(main_window):
     center_layout.addWidget(vsplitter)
     centerw.setMinimumWidth(150)
 
-    # ---------- 右：预览 + Notes ----------
+    # 预览 + Notes
     rightw = QtWidgets.QWidget()
     rightw.setMinimumWidth(150)
     right_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
@@ -298,3 +305,8 @@ def build_openpipeline_ui(main_window):
     main_layout.setStretch(0, 1)
     main_layout.setStretch(1, 0)
     main_layout.setStretch(2, 0)
+
+
+def about():
+    import HelpImageUI as help
+    help.HelpImage("", "pypenpipeline")

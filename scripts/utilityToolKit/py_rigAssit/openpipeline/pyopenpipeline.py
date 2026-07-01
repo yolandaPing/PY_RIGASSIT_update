@@ -25,8 +25,8 @@ try:
     from importlib import reload
 except ImportError:
     pass
-from py_rigAssit.openpipeline import version_context
-reload(version_context)
+from py_rigAssit.openpipeline import ui_openpipeline
+reload(ui_openpipeline)
 
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
@@ -428,7 +428,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         dlg.setWindowTitle('创建项目')
         dlg.setFixedSize(420, 180)
         lay = QtWidgets.QVBoxLayout()
-
+        lay.addWidget(_widgets.create_text(u'输入项目名称'))
         row1 = QtWidgets.QHBoxLayout()
         row1.addWidget(QtWidgets.QLabel(u'项目名称:'))
         self.new_proj_name = QtWidgets.QLineEdit()
@@ -437,8 +437,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         row2 = QtWidgets.QHBoxLayout()
         row2.addWidget(QtWidgets.QLabel(u'项目根路径:'))
         self.new_proj_path = QtWidgets.QLabel(root_path)
-        self.new_proj_path.setStyleSheet('background: gray; padding:4px; border:1px solid #ccc;')
-        row2.addWidget(self.new_proj_path)
+        self.new_proj_path.setStyleSheet('background: gray; padding:4px; color: black; border:1px solid #ccc;')
+        row2.addWidget(self.new_proj_path, 1)
 
         row3 = QtWidgets.QHBoxLayout()
         row3.addWidget(QtWidgets.QLabel(u'库文件夹:'))
@@ -879,6 +879,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
         has_versions = bool(versions)
         self.btn_save_new_version.setEnabled(True)
+        self.btn_save_new_version.setStyleSheet("color: green;")
         self.btn_set_master.setEnabled(has_versions)
         self.btn_snapshot.setEnabled(True)
         self.btn_open_master.setEnabled(True)
@@ -1108,6 +1109,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.version_list.clear()
         self.notes_text.clear()
         self.btn_save_new_version.setEnabled(False)
+        self.btn_save_new_version.setStyleSheet("color: gray;")
         self.btn_set_master.setEnabled(False)
         self.btn_open_master.setEnabled(False)
         self.btn_reference_master.setEnabled(False)

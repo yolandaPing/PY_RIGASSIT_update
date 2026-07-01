@@ -140,6 +140,7 @@ class TransferModelUI(PyouPersistentWindow):
 
         self.extra_list = QtWidgets.QLabel(u"")
         self.extra_list.setHidden(True)
+        self.extra_list.setWordWrap(True)
 
         self.cls_layout = QtWidgets.QHBoxLayout()
         cls_rigging_vis_layout = QtWidgets.QVBoxLayout()
@@ -269,7 +270,7 @@ class TransferModelUI(PyouPersistentWindow):
         matched_mod = [item for item in outputObjs if item.split(":")[-1] in inputObjs]
         matched_rig = [item.split(":")[-1] for item in outputObjs if item.split(":")[-1] in inputObjs]
 
-        extra_in_outputObjs = [item for item in outputObjs if item.split(":")[-1] not in inputObjs]
+        extra_in_outputObjs = [item for item in matched_mod if item.split(":")[-1] not in matched_rig]
 
         self.model_scroll_list.clear()
         self.model_scroll_list.addItems(matched_mod)
