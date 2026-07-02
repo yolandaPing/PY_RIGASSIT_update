@@ -7,6 +7,9 @@
 # .Finish time:
 from functools import partial
 
+import re
+from collections import deque
+
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from AttrNameUtils import PyAttrUtils
 import GeneralTools.pyRenameFun as pyRename
@@ -53,9 +56,8 @@ class PYRenameBox(PyouPersistentWindow):
 
     def create_check_scene_rename_section(self, parent_layout):
         self.frame_button_op = PY_WIDGEAT.create_collapsible_frame(u"Check Scene Name 检查场景重名")
-        # group = QtWidgets.QGroupBox(u"Check Scene Name 检查场景重名:")
         layout = QtWidgets.QVBoxLayout()
-        # layout.setContentsMargins(2, 2, 2, 2)
+        layout.setContentsMargins(2, 0, 2, 0)
         layout.addWidget(PY_WIDGEAT.create_text(u">>> Check all renamed objects in the scene\n检查场景是否存在重命名的对象"))
 
         button_layout = QtWidgets.QHBoxLayout()
@@ -72,23 +74,19 @@ class PYRenameBox(PyouPersistentWindow):
         parent_layout.addWidget(self.frame_button_op)
 
     def create_rename_tool_section(self, parent_layout):
-        group = QtWidgets.QGroupBox(u"Rename Tool 命名:")
+        group = QtWidgets.QGroupBox(u"Rename :")
         layout = QtWidgets.QVBoxLayout(group)
-        layout.addWidget(PY_WIDGEAT.create_text(u"Rename type 重命名的方式"))
+        type_layout = QtWidgets.QHBoxLayout(group)
+        type_layout.addWidget(PY_WIDGEAT.create_text("Type: "))
+        self.type_radio_group = PY_WIDGEAT.create_radiogroup(
+            "",
+            [("Selected ", 1, u"选择的"),
+             ("Heirarchy ", 2, u"层级")],
+            default_id=1
+        )
 
-        self.type_radio_group = QtWidgets.QButtonGroup()
-        self.selected_radio = QtWidgets.QRadioButton(u"Selected 选择的")
-        self.hierarchy_radio = QtWidgets.QRadioButton(u"Heirarchy 层级")
-        self.selected_radio.setChecked(True)
-
-        self.type_radio_group.addButton(self.selected_radio, 1)
-        self.type_radio_group.addButton(self.hierarchy_radio, 2)
-
-        radio_layout = QtWidgets.QHBoxLayout()
-        radio_layout.addWidget(QtWidgets.QLabel("Type :"))
-        radio_layout.addWidget(self.selected_radio)
-        radio_layout.addWidget(self.hierarchy_radio)
-        layout.addLayout(radio_layout)
+        layout.addLayout(type_layout)
+        type_layout.addWidget(self.type_radio_group, 1)
 
         PY_WIDGEAT.separator(layout, True)
         layout.addWidget(QtWidgets.QLabel("> Quick replacement:"))
@@ -110,16 +108,22 @@ class PYRenameBox(PyouPersistentWindow):
         quick_btn_layout2.addWidget(self.remove_last_btn)
         layout.addLayout(quick_btn_layout1)
         layout.addLayout(quick_btn_layout2)
-        PY_WIDGEAT.separator(layout, True)
-        layout.addWidget(PY_WIDGEAT.create_text("Renaming"))
 
+        PY_WIDGEAT.separator(layout, True)
+        hash_rename_layout, self.hash_name_filed, self.hash_rename_btn = PY_WIDGEAT.create_QLineEdit_row("Hash Rename:", label_width=78)
+        self.hash_rename_btn.setText("Apply")
+        self.hash_name_filed.setToolTip('name_###1_bind > name_001_bind')
+        layout.addLayout(hash_rename_layout)
+
+        PY_WIDGEAT.separator(layout, True)
+        layout.addWidget(PY_WIDGEAT.create_text("renaming"))
         # Form layout for rename fields
         form_layout = QtWidgets.QGridLayout()
-        form_layout.setVerticalSpacing(5)
-        form_layout.setHorizontalSpacing(5)
+        form_layout.setVerticalSpacing(1)
+        form_layout.setHorizontalSpacing(1)
 
         # Prefix
-        form_layout.addWidget(QtWidgets.QLabel("Prefix:"), 0, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Prefix:"), 0, 0)
         self.prefix_field = QtWidgets.QLineEdit()
         # self.prefix_field.textEdited.connect(self.add_prefix)
         form_layout.addWidget(self.prefix_field, 0, 1)
@@ -128,7 +132,7 @@ class PYRenameBox(PyouPersistentWindow):
         form_layout.addWidget(self.prefix_btn, 0, 2)
 
         # Increment
-        form_layout.addWidget(QtWidgets.QLabel("Inc:"), 1, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Inc:"), 1, 0)
         self.start_number_field = QtWidgets.QSpinBox()
         self.start_number_field.setMinimum(0)
         self.start_number_field.setMaximum(999)
@@ -139,7 +143,7 @@ class PYRenameBox(PyouPersistentWindow):
         form_layout.addWidget(self.inc_btn, 1, 2)
 
         # Suffix
-        form_layout.addWidget(QtWidgets.QLabel("Suffix:"), 2, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Suffix:"), 2, 0)
         self.suffix_field = QtWidgets.QLineEdit(_user.suffix)
         form_layout.addWidget(self.suffix_field, 2, 1)
 
@@ -147,7 +151,7 @@ class PYRenameBox(PyouPersistentWindow):
         form_layout.addWidget(self.suffix_btn, 2, 2)
 
         # Name
-        form_layout.addWidget(QtWidgets.QLabel("Name:"), 3, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Name:"), 3, 0)
         self.full_name_field = QtWidgets.QLineEdit()
         form_layout.addWidget(self.full_name_field, 3, 1)
 
@@ -163,14 +167,14 @@ class PYRenameBox(PyouPersistentWindow):
         layout = QtWidgets.QVBoxLayout(group)
 
         form_layout = QtWidgets.QGridLayout()
-        form_layout.setVerticalSpacing(5)
-        form_layout.setHorizontalSpacing(5)
+        form_layout.setVerticalSpacing(1)
+        form_layout.setHorizontalSpacing(1)
 
-        form_layout.addWidget(QtWidgets.QLabel("Search:"), 0, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Search:"), 0, 0)
         self.search_field = QtWidgets.QLineEdit()
         form_layout.addWidget(self.search_field, 0, 1)
 
-        form_layout.addWidget(QtWidgets.QLabel("Replace:"), 1, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Replace:"), 1, 0)
         self.replace_field = QtWidgets.QLineEdit()
         form_layout.addWidget(self.replace_field, 1, 1)
 
@@ -180,7 +184,7 @@ class PYRenameBox(PyouPersistentWindow):
         self.search_replace_btn = QtWidgets.QPushButton("Apply")
         self.search_replace_btn.setProperty("main", True)
 
-        apply_layout.addWidget(QtWidgets.QLabel("Type:"), 1)
+        apply_layout.addWidget(PY_WIDGEAT.create_text("Type:"), 1)
         apply_layout.addWidget(self.hierarchy_option, 1)
         apply_layout.addWidget(self.search_replace_btn, 5)
 
@@ -192,13 +196,12 @@ class PYRenameBox(PyouPersistentWindow):
     def create_connections(self):
         self.check_scene_btn.clicked.connect(partial(pyRename.check_scene_name))
         self.help_btn.clicked.connect(partial(_help.HelpImage, "", "rename_Tool"))
-
         self.remove_prefix_btn.clicked.connect(partial(self.remove_prefix_or_suffix, True))
         self.remove_suffix_btn.clicked.connect(partial(self.remove_prefix_or_suffix, False))
-
         self.remove_first_btn.clicked.connect(partial(pyRename.py_remove_FirstChr))
         self.remove_last_btn.clicked.connect(partial(pyRename.py_remove_LastChr))
-
+        self.hash_name_filed.returnPressed.connect(self.hash_rename)
+        self.hash_rename_btn.clicked.connect(self.hash_rename)
         self.prefix_field.returnPressed.connect(self._add_prefix)
         self.suffix_field.returnPressed.connect(self._add_suffix)
         # self.full_name_field.textEdited.connect(self._rename)
@@ -224,7 +227,7 @@ class PYRenameBox(PyouPersistentWindow):
             return ret
 
     def _run_rename(self, mode):
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
         try:
             pyRename.rename(
                 Mode=mode,
@@ -234,10 +237,10 @@ class PYRenameBox(PyouPersistentWindow):
                 suffix=self.suffix_field.text()
             )
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
     def _rename_apply(self):
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
         try:
             pyRename.rename(
                 Mode=4,
@@ -248,84 +251,122 @@ class PYRenameBox(PyouPersistentWindow):
                 fullName=self.full_name_field.text()
             )
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
     def _add_prefix(self):
         selection = pm.ls(sl=True)
         prefix = self.prefix_field.text()
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
         try:
             for each in selection:
                 new_name = prefix + '_' + each
                 pm.rename(each, new_name)
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
     def _rename(self):
-        selection = pm.ls(sl=True)
+
         prefix = self.prefix_field.text()
         name = self.full_name_field.text()
         increment = self.start_number_field.value()
         suffix = self.suffix_field.text()
-
         if prefix != '':
             prefix = prefix + '_'
-
         if suffix != '':
             suffix = '_' + suffix
-        cmds.undoInfo(openChunk=True)
+
+        sel = pm.ls(sl=True)
+        pm.undoInfo(openChunk=True)
         try:
+            if self.type_radio_group.checkedId() == 1:
+                selection = sel
+            else:
+                selection = self._get_heirarchy(sel)
+
             for individual_object in selection:
                 if increment is not None:
                     number = str(increment)
                     increment += 1
-
                 new_name = (prefix + name + number + suffix)
                 pm.rename(individual_object, new_name)
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
+
+    def hash_rename(self):
+        """
+        name: e.g. "aaa_test_###1_bind"
+        """
+        name = self.hash_name_filed.text()
+
+        sel = pm.ls(sl=True, l=True) or []
+        if not sel:
+            return []
+        m = re.search(r"(#+)(\d+)", name)
+        if not m:
+            raise RuntimeError("Format error: name_###1_bind > name_001_bind")
+
+        token = m.group(1)
+        pad = len(token)
+        idx = int(m.group(2))
+        fmt = "%0{}d".format(pad)
+        pattern = name.replace(token + m.group(2), fmt)
+
+        targets = []
+        if self.type_radio_group.checkedId() == 1:
+            targets = sel
+        else:
+            targets = self._get_heirarchy(sel)
+
+        pm.undoInfo(openChunk=True)
+        try:
+            result = []
+            for obj in targets:
+                new_name = pattern % idx
+                result.append(pm.rename(obj, new_name))
+                idx += 1
+        finally:
+            pm.undoInfo(closeChunk=True)
+        return result
 
     def _add_suffix(self):
         selection = pm.ls(sl=True)
         suffix = self.suffix_field.text()
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
         try:
             for individual_object in selection:
                 new_name = individual_object + '_' + suffix
                 pm.rename(individual_object, new_name)
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
     def search_fieldReplace(self):
         replace_method = self.hierarchy_option.currentIndex() + 1  # Convert to 1-based index
         search_text = self.search_field.text()
         replace_text = self.replace_field.text()
 
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
         try:
+            sel = pm.ls(sl=True)
             if replace_method == 1:
-                selection = pm.ls(sl=True)
+                selection = sel
             else:
-                pm.select(hi=True)
-                selection = pm.ls(sl=True)
+                selection = self._get_heirarchy(sel)
 
             for individual_object in selection:
                 new_name = individual_object.replace(search_text, replace_text)
                 pm.rename(individual_object, new_name)
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
     def remove_prefix_or_suffix(self, is_prefix=True):
         replace_method = 1 if self.selected_radio.isChecked() else 2
+        selection = pm.ls(sl=True)
 
-        selection = cmds.ls(sl=True)
-
-        cmds.undoInfo(openChunk=True)
-
+        pm.undoInfo(openChunk=True)
         try:
             for individual_object in selection:
                 if replace_method == 2:
-                    children = cmds.listRelatives(individual_object.strip(), ad=True, type='transform')
+                    children = pm.listRelatives(individual_object.strip(), ad=True, type='transform')
                     if children:
                         for child in children:
                             if is_prefix:
@@ -337,12 +378,12 @@ class PYRenameBox(PyouPersistentWindow):
                 else:
                     self.remove_suffix_from_object(individual_object)
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
         return
 
     def remove_prefix_from_object(self, obj="", prefix=""):
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
 
         try:
             if prefix == "":
@@ -356,9 +397,9 @@ class PYRenameBox(PyouPersistentWindow):
 
             if obj.startswith(prefix):
                 new_name = obj[len(prefix):]
-                cmds.rename(obj.strip(), new_name.strip())
+                pm.rename(obj.strip(), new_name.strip())
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
     def remove_suffix_from_object(self, obj="", suffix=""):
         if suffix == "":
@@ -370,25 +411,39 @@ class PYRenameBox(PyouPersistentWindow):
 
         if suffix == "" or suffix is None or suffix == []:
             return
-        cmds.undoInfo(openChunk=True)
+        pm.undoInfo(openChunk=True)
 
         try:
             if obj.endswith(suffix):
                 new_name = obj[:-len(suffix)]
-                cmds.rename(obj.strip(), new_name.strip())
+                pm.rename(obj.strip(), new_name.strip())
         finally:
-            cmds.undoInfo(closeChunk=True)
+            pm.undoInfo(closeChunk=True)
 
+    def _get_heirarchy(self, sel):
+        roots = pm.ls(sel, l=True)
+        visited = set()
+        queue = deque(roots)
+        ordered = []
+        while queue:
+            node = queue.popleft()
+            if node in visited:
+                continue
+            visited.add(node)
+            if pm.nodeType(node) == "transform":
+                ordered.append(node)
+            children = pm.listRelatives(node, c=True, f=True) or []
+            for c in children:
+                queue.append(c)
+        return ordered
 
 def main():
     global pyRenameBox_ui
-
     try:
         pyRenameBox_ui.close()  # pylint: disable=E0601
         pyRenameBox_ui.deleteLater()
     except:
         pass
-
     pyRenameBox_ui = PYRenameBox()
     pyRenameBox_ui.show()
 
