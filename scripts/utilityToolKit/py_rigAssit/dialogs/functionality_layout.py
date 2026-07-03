@@ -98,7 +98,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         frame = _widgest.create_collapsible_frame("Dynamic Coexist Rig ")
         group = QtWidgets.QGroupBox(u"Dynamic:")
         main_layout = QtWidgets.QVBoxLayout(group)
-        layout, self.dyn_attr_filed, self.dyn_attr_btn = _widgest.create_QLineEdit_row("Attribute Ctrl:" , label_width=78)
+        layout, self.dyn_attr_filed, self.dyn_attr_btn = _widgest.create_QLineEdit_row("Attribute Ctrl:", label_width=78)
         self.dny_type_block = _widgest.create_radiogroup(
             "Type:",
             [
@@ -269,7 +269,6 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         )
         ikfk_select_main_layout.addLayout(ikfk_count_layout)
         ikfk_select_main_layout.addWidget(self.ikfk_type_block)
-        # =====================================================
 
         layout2.addWidget(self.add_strech_widget)
         layout2.addWidget(self.ikfk_switch_widget)
@@ -293,19 +292,20 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         frame = _widgest.create_collapsible_frame(" Variable FK")
         group = QtWidgets.QGroupBox(u"滑动的fk:")
         main_layout = QtWidgets.QVBoxLayout(group)
-        layout, self.variable_name_field = _widgest.create_QLineEdit_grp("Prefix:")
+        layout, self.variable_name_field = _widgest.create_QLineEdit_grp("Prefix name:")
         count_layout = QtWidgets.QHBoxLayout()
         self.variable_count = QtWidgets.QSpinBox()
         self.variable_count.setRange(4, 100)
         self.variable_count.setValue(5)
-        self.variable_count.setMinimumWidth(60)
+        self.variable_count.setMinimumWidth(30)
+
+        count_layout.addLayout(layout)
         count_layout.addWidget(QtWidgets.QLabel("Ctrl count:"))
         count_layout.addWidget(self.variable_count)
         count_layout.addStretch()
 
         btn_layout, self.variable_rigging_btn, self.variable_help_btn = _widgest.create_Qbuttons(" Apply")
 
-        main_layout.addLayout(layout)
         main_layout.addLayout(count_layout)
         main_layout.addWidget(_widgest.create_text("Generate joints based on the number of curve points.根据曲线点数生成关节"))
         main_layout.addWidget(_widgest.create_text("Select curve to Apply 选择曲线运行"))
@@ -320,22 +320,30 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         frame.addWidget(rivet_group)
         return frame
 
-
     def ribbon_animation_layout(self):
         frame = _widgest.create_collapsible_frame(" Ribbon Animation Rigging")
         group = QtWidgets.QGroupBox(u"Ribbon Animation:")
         main_layout = QtWidgets.QVBoxLayout(group)
-        name_count_layout = QtWidgets.QHBoxLayout()
-        block_layout = QtWidgets.QHBoxLayout()
+        name_count_layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
 
         ribbon_name_layout, self.ribbon_name_filed = _widgest.create_QLineEdit_grp("Name:", "")
         self.ribbon_joint_filed = QtWidgets.QSpinBox()
         self.ribbon_joint_filed.setValue(7)
-        self.ribbon_joint_filed.setFixedWidth(40)
-        ribbon_joint_layout = QtWidgets.QFormLayout()
+        self.ribbon_joint_filed.setFixedWidth(30)
 
-        label = _widgest.create_bold_label('counts : ')
-        ribbon_joint_layout.addRow(label, self.ribbon_joint_filed)
+        ribbon_joint_layout = QtWidgets.QFormLayout()
+        direction_layout = QtWidgets.QFormLayout()
+        ribbon_joint_layout.addRow(_widgest.create_text('counts : '), self.ribbon_joint_filed)
+        self.ribbon_direction_block = _widgest.create_radiogroup(
+            "",
+            [
+                ("U", 1, None),
+                ("V", 2, None),
+            ],
+            default_id=1
+        )
+        direction_layout.addRow(_widgest.create_text('Direction : '), self.ribbon_direction_block)
 
         self.ribbon_rig_block = _widgest.create_radiogroup(
             "Rig Type:",
@@ -347,23 +355,14 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
             default_id=1
         )
 
-        self.ribbon_direction_block = _widgest.create_radiogroup(
-            "Direction:",
-            [
-                ("U", 1, None),
-                ("V", 2, None),
-            ],
-            default_id=1
-        )
-
         self.ribbon_animation_block = _widgest.create_radiogroup(
             "Animation",
             [
-                ("none", 1, u""),
-                ("Slide", 2, u"滑动"),
-                ("Spread", 3, u""),
-                ("Slide+Spread", 4, u""),
-                ("Tract", 5, u""),
+                ("No", 1, u""),
+                ("Slide", 2, u"滑动(生长动画)"),
+                ("Spread", 3, u"逐个运动"),
+                ("Both", 4, u"Slide+Spread"),
+                ("Tract", 5, u"圆环运动（履带绑定, 确保loft是有效的）"),
             ],
             default_id=1,
             enabled_map={5: False}
@@ -382,21 +381,21 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
         self.ribbon_hint = _widgest.create_text("Ribbon Animation Rigging")
 
-        frame_button = _widgest.create_collapsible_frame("Comtroller ?")
+        frame_button = _widgest.create_collapsible_frame("Controller ?")
         CTRL_layout = QtWidgets.QVBoxLayout()
         CTRL_type_layout = QtWidgets.QHBoxLayout()
         CTRL_layout.addWidget(_widgest.create_text("如需要更高级IKFK绑定前往Joint>Rigging>IKFK System"))
 
         self.ribbon_ctrl_filed = QtWidgets.QSpinBox()
         self.ribbon_ctrl_filed.setValue(3)
-        self.ribbon_ctrl_filed.setFixedWidth(40)
+        self.ribbon_ctrl_filed.setFixedWidth(30)
         ribbon_ctrl_layout = QtWidgets.QFormLayout()
         label = _widgest.create_bold_label('counts : ')
         ribbon_ctrl_layout.addRow(label, self.ribbon_ctrl_filed)
 
         self.ribbon_ctrl_block = _widgest.create_radiogroup(
-            "Ctrl Type:",
-            [("None", 1, None),
+            "",
+            [("No", 1, None),
                 ("IK", 2, None),
                 ("FK", 3, None),
                 ("IKFK", 4, None),
@@ -411,18 +410,16 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
         btn_layout, self.ribbon_apple_btn, self.ribbon_help_btn = _widgest.create_Qbuttons(" Apply ")
 
-        name_count_layout.addLayout(ribbon_name_layout, 3)
-        name_count_layout.addLayout(ribbon_joint_layout, 1)
+        name_count_layout.addLayout(ribbon_name_layout)
+        layout.addLayout(ribbon_joint_layout)
+        layout.addLayout(direction_layout)
+        name_count_layout.addLayout(layout)
 
         main_layout.addWidget(self.ribbon_hint)
         main_layout.addWidget(_widgest.create_text("写入需要创建关节的名字，和数量"))
         main_layout.addLayout(name_count_layout)
 
-        block_layout.addWidget(self.ribbon_rig_block, 2)
-        block_layout.addWidget(self.ribbon_direction_block, 1)
-
-        main_layout.addLayout(block_layout)
-
+        main_layout.addWidget(self.ribbon_rig_block)
         main_layout.addWidget(self.ribbon_animation_block)
         main_layout.addWidget(frame_button)
         apply_layout.addLayout(type_menu_layout)

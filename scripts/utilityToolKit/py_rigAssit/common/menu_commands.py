@@ -252,10 +252,9 @@ def py_rigassit_gui(ui):
 
 @CommandDispatcher.register("Rename")
 def rename_tool(ui):
-    __import__(
-        'GeneralTools.RenameTool',
-        fromlist=['RenameBox']
-    ).RenameBox().window_creation()
+    from py_rigAssit.dialogs import rename_dialog as rename_dialog
+    rename_dialog.main()
+
 
 
 @CommandDispatcher.register("Joint Orient")

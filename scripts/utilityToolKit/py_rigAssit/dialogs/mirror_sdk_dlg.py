@@ -8,13 +8,12 @@
 from functools import partial
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
-from py_rigAssit.dialogs import base_dir, Help, decorator , mayaPrint
+from py_rigAssit.dialogs import Help, mayaPrint
 from Utils import sdk_info
-from Utils.attr_name import PyAttrUtils
+
 import maya.cmds as cmds
 
 PY_WIDGEAT = Widgets()
-_attr_name = PyAttrUtils()
 
 
 class AxisRow(QtWidgets.QWidget):
@@ -56,7 +55,7 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         super(PYMirrorSDKMainUI, self).__init__("MirrorSDKMainApp", "MirrorSDKMainUI",parent=parent)
         self.window_name = "Mirror SDK Tool"
         self.setWindowTitle(self.window_name)
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(280)
         self.init_ui(True)
         self.loadWindowSettings()
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -64,10 +63,15 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
 
     def init_ui(self, copyright=False):
         main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(8, 0, 8, 8)
+        main_layout.setSpacing(0)
         main_layout.addWidget(PY_WIDGEAT.create_title(self.window_name, 16, None))
+
+        frame_button_op = PY_WIDGEAT.create_collapsible_frame(u"Export/Import Node")
         group_node = QtWidgets.QGroupBox(u"Export/Import Node:")
         btn_layout = QtWidgets.QHBoxLayout(group_node)
-
+        frame_button_op.addWidget(group_node)
+  
         self.export_node_btn = QtWidgets.QPushButton('Export Node')
         self.import_node_btn = QtWidgets.QPushButton('Import/Create Node')
         self.node_help_btn = QtWidgets.QPushButton()
@@ -112,11 +116,11 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         prefix_layout.addWidget(self.replace_label )
         prefix_layout.addWidget(self.replace_le)
 
-        main_layout.addWidget(group_node)
+        main_layout.addWidget(frame_button_op)
         layout.addLayout(prefix_layout)
         layout.addWidget(PY_WIDGEAT.create_text("* 请确保驱动者和被驱动者查询的字符串一致"))
         main_layout.addWidget(PY_WIDGEAT.create_text("Mirror SDK Tool"))
-        main_layout.addWidget(group)
+        main_layout.addWidget(group, 1)
         PY_WIDGEAT.separator(main_layout, True)
 
         main_layout.addWidget(PY_WIDGEAT.create_text(">> same 是相同的值; reverse 是相反的值"))
@@ -183,6 +187,9 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         sels = cmds.ls(sl=1)
 
         if sels:
+            from Utils.attr_name import PyAttrUtils
+            _attr_name = PyAttrUtils()
+
             for i in sels:
                 name = i.split(".")[0]
                 map = {search_field: replace_field}

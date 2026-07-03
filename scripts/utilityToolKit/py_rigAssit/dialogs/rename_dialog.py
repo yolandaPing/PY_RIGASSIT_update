@@ -8,14 +8,13 @@
 from functools import partial
 
 import re
-from collections import deque
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from AttrNameUtils import PyAttrUtils
 import GeneralTools.pyRenameFun as pyRename
 import user_defined as _user
 import HelpImageUI as _help
-import maya.cmds as cmds
+
 import pymel.core as pm
 
 
@@ -39,8 +38,8 @@ class PYRenameBox(PyouPersistentWindow):
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.addWidget(PY_WIDGEAT.create_title(self.window_name, 16, 30))
-        main_layout.setContentsMargins(8, 8, 8, 8)
-        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(8, 0, 8, 8)
+        main_layout.setSpacing(0)
 
         self.create_check_scene_rename_section(main_layout)
         self.create_rename_tool_section(main_layout)
@@ -76,11 +75,11 @@ class PYRenameBox(PyouPersistentWindow):
     def create_rename_tool_section(self, parent_layout):
         group = QtWidgets.QGroupBox(u"Rename :")
         layout = QtWidgets.QVBoxLayout(group)
-        type_layout = QtWidgets.QHBoxLayout(group)
+        type_layout = QtWidgets.QHBoxLayout()
         type_layout.addWidget(PY_WIDGEAT.create_text("Type: "))
         self.type_radio_group = PY_WIDGEAT.create_radiogroup(
             "",
-            [("Selected ", 1, u"选择的"),
+            [("Selected ", 1, u"选择"),
              ("Heirarchy ", 2, u"层级")],
             default_id=1
         )
@@ -111,8 +110,9 @@ class PYRenameBox(PyouPersistentWindow):
 
         PY_WIDGEAT.separator(layout, True)
         hash_rename_layout, self.hash_name_filed, self.hash_rename_btn = PY_WIDGEAT.create_QLineEdit_row("Hash Rename:", label_width=78)
+        self.hash_name_filed.setPlaceholderText("name_###1_bind")
         self.hash_rename_btn.setText("Apply")
-        self.hash_name_filed.setToolTip('name_###1_bind > name_001_bind')
+        self.hash_name_filed.setToolTip(u'name_###1_bind > name_001_bind\n(###代表Padding， 1代表Start数值，开始值也可为0）')
         layout.addLayout(hash_rename_layout)
 
         PY_WIDGEAT.separator(layout, True)
@@ -174,22 +174,15 @@ class PYRenameBox(PyouPersistentWindow):
         self.search_field = QtWidgets.QLineEdit()
         form_layout.addWidget(self.search_field, 0, 1)
 
-        form_layout.addWidget(PY_WIDGEAT.create_text("Replace:"), 1, 0)
+        form_layout.addWidget(PY_WIDGEAT.create_text("Replace:"), 0, 2)
         self.replace_field = QtWidgets.QLineEdit()
-        form_layout.addWidget(self.replace_field, 1, 1)
+        form_layout.addWidget(self.replace_field, 0, 3)
 
-        apply_layout = QtWidgets.QHBoxLayout()
-        self.hierarchy_option = QtWidgets.QComboBox()
-        self.hierarchy_option.addItems(["Selected", "Heirarchy"])
         self.search_replace_btn = QtWidgets.QPushButton("Apply")
         self.search_replace_btn.setProperty("main", True)
 
-        apply_layout.addWidget(PY_WIDGEAT.create_text("Type:"), 1)
-        apply_layout.addWidget(self.hierarchy_option, 1)
-        apply_layout.addWidget(self.search_replace_btn, 5)
-
         layout.addLayout(form_layout)
-        layout.addLayout(apply_layout)
+        layout.addWidget(self.search_replace_btn)
         parent_layout.addWidget(group)
 
 
@@ -210,7 +203,6 @@ class PYRenameBox(PyouPersistentWindow):
         self.inc_btn.clicked.connect(partial(self._run_rename, 2))
         self.suffix_btn.clicked.connect(partial(self._run_rename, 3))
         self.rename_btn.clicked.connect(self._rename_apply)
-
         self.search_replace_btn.clicked.connect(self.search_fieldReplace)
 
     def getShortName(self, obj):
@@ -265,7 +257,6 @@ class PYRenameBox(PyouPersistentWindow):
             pm.undoInfo(closeChunk=True)
 
     def _rename(self):
-
         prefix = self.prefix_field.text()
         name = self.full_name_field.text()
         increment = self.start_number_field.value()
@@ -282,7 +273,6 @@ class PYRenameBox(PyouPersistentWindow):
                 selection = sel
             else:
                 selection = self._get_heirarchy(sel)
-
             for individual_object in selection:
                 if increment is not None:
                     number = str(increment)
@@ -297,7 +287,6 @@ class PYRenameBox(PyouPersistentWindow):
         name: e.g. "aaa_test_###1_bind"
         """
         name = self.hash_name_filed.text()
-
         sel = pm.ls(sl=True, l=True) or []
         if not sel:
             return []
@@ -321,6 +310,8 @@ class PYRenameBox(PyouPersistentWindow):
         try:
             result = []
             for obj in targets:
+                if not pm.objExists(obj):
+                    continue
                 new_name = pattern % idx
                 result.append(pm.rename(obj, new_name))
                 idx += 1
@@ -340,7 +331,7 @@ class PYRenameBox(PyouPersistentWindow):
             pm.undoInfo(closeChunk=True)
 
     def search_fieldReplace(self):
-        replace_method = self.hierarchy_option.currentIndex() + 1  # Convert to 1-based index
+        replace_method = self.type_radio_group.checkedId()
         search_text = self.search_field.text()
         replace_text = self.replace_field.text()
 
@@ -359,7 +350,7 @@ class PYRenameBox(PyouPersistentWindow):
             pm.undoInfo(closeChunk=True)
 
     def remove_prefix_or_suffix(self, is_prefix=True):
-        replace_method = 1 if self.selected_radio.isChecked() else 2
+        replace_method = self.type_radio_group.checkedId()
         selection = pm.ls(sl=True)
 
         pm.undoInfo(openChunk=True)
@@ -421,21 +412,9 @@ class PYRenameBox(PyouPersistentWindow):
             pm.undoInfo(closeChunk=True)
 
     def _get_heirarchy(self, sel):
-        roots = pm.ls(sel, l=True)
-        visited = set()
-        queue = deque(roots)
-        ordered = []
-        while queue:
-            node = queue.popleft()
-            if node in visited:
-                continue
-            visited.add(node)
-            if pm.nodeType(node) == "transform":
-                ordered.append(node)
-            children = pm.listRelatives(node, c=True, f=True) or []
-            for c in children:
-                queue.append(c)
-        return ordered
+        from Utils import Util as _utils
+        return _utils.get_hierarchy_outliner(sel)
+
 
 def main():
     global pyRenameBox_ui
