@@ -321,7 +321,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         return frame
 
     def ribbon_animation_layout(self):
-        frame = _widgest.create_collapsible_frame(" Ribbon Animation Rigging")
+        frame = _widgest.create_collapsible_frame(" Ribbon(Surface) Animation Rigging")
         group = QtWidgets.QGroupBox(u"Ribbon Animation:")
         main_layout = QtWidgets.QVBoxLayout(group)
         name_count_layout = QtWidgets.QVBoxLayout()
@@ -330,7 +330,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         ribbon_name_layout, self.ribbon_name_filed = _widgest.create_QLineEdit_grp("Name:", "")
         self.ribbon_joint_filed = QtWidgets.QSpinBox()
         self.ribbon_joint_filed.setValue(7)
-        self.ribbon_joint_filed.setFixedWidth(30)
+        self.ribbon_joint_filed.setFixedWidth(35)
 
         ribbon_joint_layout = QtWidgets.QFormLayout()
         direction_layout = QtWidgets.QFormLayout()
@@ -344,6 +344,9 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
             default_id=1
         )
         direction_layout.addRow(_widgest.create_text('Direction : '), self.ribbon_direction_block)
+        show_direction_btn = QtWidgets.QPushButton("help")
+        show_direction_btn.setFixedHeight(25)
+        show_direction_btn.clicked.connect(self.showSurfaceUV)
 
         self.ribbon_rig_block = _widgest.create_radiogroup(
             "Rig Type:",
@@ -364,8 +367,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
                 ("Both", 4, u"Slide+Spread"),
                 ("Tract", 5, u"圆环运动（履带绑定, 确保loft是有效的）"),
             ],
-            default_id=1,
-            enabled_map={5: False}
+            default_id=1
         )
 
         apply_layout = QtWidgets.QHBoxLayout()
@@ -374,7 +376,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         self.type_menu.addItem('Follicle', 2)
         self.type_menu.setFixedWidth(80)
         self.type_menu.setFixedHeight(28)
-        self.type_menu.setCurrentIndex(1)
+        # self.type_menu.setCurrentIndex(1)
         self.type_menu.currentIndexChanged.connect(self._on_type_toggled)
         type_menu_layout = QtWidgets.QFormLayout()
         type_menu_layout.addRow('Type:', self.type_menu)
@@ -412,7 +414,8 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
         name_count_layout.addLayout(ribbon_name_layout)
         layout.addLayout(ribbon_joint_layout)
-        layout.addLayout(direction_layout)
+        layout.addLayout(direction_layout, 1)
+        layout.addWidget(show_direction_btn)
         name_count_layout.addLayout(layout)
 
         main_layout.addWidget(self.ribbon_hint)
@@ -564,10 +567,9 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
     def _on_type_toggled(self, id):
         custom_id = self.type_menu.currentData()
-        # print(id, custom_id)
         if custom_id == 1:
-            self.ribbon_animation_block.setEnabledByIds([1, 2, 5], True)
-            self.ribbon_animation_block.setEnabledByIds([3, 4], False)
+            self.ribbon_animation_block.setEnabledByIds([1, 2, 3, 4, 5], True)
+            # self.ribbon_animation_block.setEnabledByIds([3, 4], False)
         else:
             self.ribbon_animation_block.setEnabledByIds([1, 2, 3, 4], True)
             self.ribbon_animation_block.setEnabledByIds([5], False)
@@ -670,6 +672,12 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         }
 
         self.dispatcher.execute("follicle rivet Rig", datas)
+
+
+    def showSurfaceUV(self):
+        if not mc.ls(sl=1):
+            mayaPrint.warning("you have select a surface!")
+        mc.ToggleSurfaceOrigin()
 
 
     def ribbon_rig_build(self):
