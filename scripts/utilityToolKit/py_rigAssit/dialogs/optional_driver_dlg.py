@@ -290,6 +290,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
 
         # ===== 左 =====
         l_layout = QtWidgets.QVBoxLayout(frame1)
+        l_layout.setContentsMargins(8, 0, 4, 4)
         # self.driver_list = QtWidgets.QListWidget()
         self.driver_list = SafeListWidget()
         self.driver_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -303,7 +304,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         l_layout.addWidget(self.load_driver_btn)
         # ===== 右 =====
         r_layout = QtWidgets.QVBoxLayout(frame2)
-
+        r_layout.setContentsMargins(4, 0, 8, 4)
         # self.driven_list = QtWidgets.QListWidget()
         self.driven_list = SafeListWidget()
         self.driven_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)

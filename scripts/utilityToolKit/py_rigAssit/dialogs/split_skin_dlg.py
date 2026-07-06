@@ -49,7 +49,12 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         selected_field_layout = QtWidgets.QHBoxLayout()
 
         self.bezier = PY_WIDGEST.create_Bezier()
+        gird_layout = QtWidgets.QHBoxLayout()
         self.show_grid_mode = QtWidgets.QCheckBox('show gird')
+        gird_key = QtWidgets.QLabel(u"shift: 镜像, x:吸附栅格, shift+x:镜像吸附")
+        gird_key.setStyleSheet("color: #888;")
+        gird_layout.addWidget(self.show_grid_mode)
+        gird_layout.addWidget(gird_key, 1)
         self.interpolation_menu = QtWidgets.QComboBox()
         self.interpolation_menu.addItems(['Default', 'Linear', 'Smooth', 'Spline'])
         self.interpolation_menu.currentTextChanged.connect(self.on_interpolation_changed)
@@ -80,7 +85,7 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         vector.valueChanged.connect(self.on_vector_map_changed)
         self.hit_txt = PY_WIDGEST.create_text('{}'.format(self.txts[0]))
         self.falloff_radius = PY_WIDGEST.create_floatSlider("Falloff radius")
-        self.falloff_radius.setRange(.001, 10)
+        self.falloff_radius.setRange(.001, 50)
         self.falloff_radius.setValue(1)
 
         radius_layout = QtWidgets.QHBoxLayout()
@@ -100,7 +105,7 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         sec.addLayout(option_form)
         layout.addWidget(PY_WIDGEST.create_text('Weight Falloff Curve'))
         layout.addWidget(self.bezier, 1)
-        layout.addWidget(self.show_grid_mode)
+        layout.addLayout(gird_layout)
         layout.addLayout(selected_field_layout)
         layout.addWidget(sec)
 

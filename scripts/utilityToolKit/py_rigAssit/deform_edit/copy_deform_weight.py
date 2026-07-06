@@ -62,6 +62,7 @@ class DeformersWeightsEditorWidget(QtWidgets.QWidget):
 
         left_widget = QtWidgets.QWidget()
         left_layout = QtWidgets.QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 4, 0)
 
         mesh_group = QtWidgets.QGroupBox("Mesh:")
         mesh_layout = QtWidgets.QVBoxLayout(mesh_group)
@@ -89,11 +90,12 @@ class DeformersWeightsEditorWidget(QtWidgets.QWidget):
 
         right_widget = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(4, 0, 0, 0)
 
         self.create_import_export_section(right_layout)
         self.create_mirror_section(right_layout)
         self.create_copy_section(right_layout)
-
+        splitter.setHandleWidth(1)
         splitter.addWidget(left_widget)
         splitter.addWidget(right_widget)
         splitter.setSizes([200, 400])

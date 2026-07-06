@@ -83,6 +83,7 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
 
     def source_widgets(self, frame):
         self.main_layout_source = QtWidgets.QVBoxLayout(frame)
+        self.main_layout_source.setContentsMargins(8, 0, 4, 4)
         self.main_layout_source.setSpacing(0)
 
         btn_layout_source = QtWidgets.QHBoxLayout()
@@ -106,6 +107,7 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
 
     def target_widgets(self, frame):
         self.main_layout_target = QtWidgets.QVBoxLayout(frame)
+        self.main_layout_target .setContentsMargins(4, 0, 8, 4)
         self.main_layout_target.setSpacing(0)
         btn_layout_target = QtWidgets.QHBoxLayout()
         target_label = QtWidgets.QLabel("target:")
@@ -126,7 +128,7 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
 
     def create_textScrollList_lay(self, parent_layout):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        splitter.setHandleWidth(3)
+        splitter.setHandleWidth(1)
         splitter.setChildrenCollapsible(True)
         frame1 = QtWidgets.QFrame()
         frame2 = QtWidgets.QFrame()
@@ -151,9 +153,9 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         self.copy_block = _widgest.create_radiogroup(
             "Copy Mode",
             [
-                ("one > one/multis", 1, self.txts[1]),
+                ("one/multis", 1, self.txts[1]),
                 ("skin grp name", 2, self.txts[2]),
-                ("skin grp Combine", 3, self.txts[3]),
+                ("skin grp com", 3, self.txts[3]),
             ],
             default_id=1
         )

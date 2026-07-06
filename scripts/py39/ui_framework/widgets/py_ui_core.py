@@ -700,7 +700,7 @@ class Bezier(QtWidgets.QWidget):
         QtWidgets.QWidget.keyPressEvent(self, event)
         if event.key() == QtCore.Qt.Key_X:
             self.__adsorb = True
-        if event.modifiers() == QtCore.Qt.ControlModifier:
+        if event.modifiers() == QtCore.Qt.ShiftModifier:
             self.__mirror = True
 
     def keyReleaseEvent(self, event):

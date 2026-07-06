@@ -143,13 +143,10 @@ class PYGeneralLayout(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
         scroll_layout = QtWidgets.QVBoxLayout(container)
-
+        scroll_layout.setContentsMargins(6, 0, 6, 0)
         scroll.setWidget(container)
         main.addWidget(scroll)
-
-        text_widget = py_widgets.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它")
-        text_widget.setContentsMargins(0, 0, 0, 0)
-        scroll_layout.addWidget(text_widget)
+        scroll_layout.addWidget(py_widgets.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它"))
         scroll_layout.addWidget(self.build_tabs())
 
         scroll_layout.addStretch()
@@ -166,7 +163,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
             "",
             [
                 (" Attribute / Data ", 1, None),
-                (" Mesh Module", 2, None),
+                (" Mesh ", 2, None),
                 (" All Module", 3, None),
             ],
             default_id=1
@@ -185,7 +182,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
         self.attribute_page = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(self.attribute_page)
         lay.setSpacing(2)
-        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setContentsMargins(0, 0, 4, 0)
         sec0 = py_widgets.create_section("Quick")
         node_grid = GridButtons("node_edit", 3)
         global_grid = GridButtons("global_vis", 3)
@@ -272,6 +269,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
     def add_attribute_lay(self):
         frame = py_widgets.create_collapsible_frame(u"Add Attribute 添加属性")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 0, 4, 0)
         cbx_layout = QtWidgets.QVBoxLayout()
         self._attr_value_page = QtWidgets.QWidget()
         value_layout = QtWidgets.QHBoxLayout(self._attr_value_page)
@@ -326,8 +324,8 @@ class PYGeneralLayout(QtWidgets.QDialog):
 
         self.page_widget = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(self.page_widget)
+        lay.setContentsMargins(4, 0, 4, 0)
         lay.setSpacing(6)
-        lay.setContentsMargins(0, 0, 0, 0)
 
         sec0 = py_widgets.create_section("Mesh Edit")
         grid0 = GridButtons("mesh_edit", 3)
@@ -367,6 +365,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
     def split_target_lay(self):
         sec0 = py_widgets.create_section("Split blendShape Target")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 0, 4, 0)
         sec0.addLayout(main_layout)
         main_layout.addWidget(py_widgets.create_text(u" 拆分blendShape目标体 "))
         base_layout, self.base_shape_field, self.assign_base_btn = py_widgets.create_QLineEdit_row("Shape:")

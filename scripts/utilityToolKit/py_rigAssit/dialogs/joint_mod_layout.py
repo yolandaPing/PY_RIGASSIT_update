@@ -65,14 +65,12 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         cld_widget = QtWidgets.QWidget()
         scroll_layout = QtWidgets.QVBoxLayout(cld_widget)
-        scroll_layout.setContentsMargins(2, 2, 2, 2)
+        scroll_layout.setContentsMargins(6, 0, 6, 0)
         scroll_layout.setSpacing(4)
 
         scroll.setWidget(cld_widget)
         main.addWidget(scroll)
-        text_widget =_widgest.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它")
-        text_widget.setContentsMargins(0, 0, 0, 0)
-        scroll_layout.addWidget(text_widget)
+        scroll_layout.addWidget(_widgest.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它"))
         scroll_layout.addWidget(self.build_tabs())
 
         scroll_layout.addStretch()
@@ -135,9 +133,10 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         # Quick
         joint_size_layout = QtWidgets.QHBoxLayout(self)
+        joint_size_layout.setContentsMargins(4, 0, 8, 0)
         self.joint_size = _widgest.create_floatSlider("Joint Size:")
         self.joint_size.setValue(0.25)
-        self.joint_size.setRange(0.01, 10.0)
+        self.joint_size.setRange(0.01, 100.0)
 
         self.joint_spinbox = QtWidgets.QDoubleSpinBox()
         self.joint_spinbox.setRange(0.01, 10.0)

@@ -402,10 +402,6 @@ class PYScriptButtonsPanel(object):
         if not scripts_info:
             return
 
-        # start = (0.25, 0.35, 0.55)
-        # end = (0.55, 0.65, 0.85)
-        # count = max(len(scripts_info) - 1, 1)
-
         row = 0
         col = 0
         max_col = 4
@@ -418,16 +414,7 @@ class PYScriptButtonsPanel(object):
                 path = info['path']
             else:
                 display, stype, path = info
-            #
-            # t = 1.0 - float(i) / count
-            # color = (
-            #     start[0] + (end[0] - start[0]) * t,
-            #     start[1] + (end[1] - start[1]) * t,
-            #     start[2] + (end[2] - start[2]) * t
-            # )
-            # r = int(color[0] * 255)
-            # g = int(color[1] * 255)
-            # b = int(color[2] * 255)
+
             btn = QtWidgets.QPushButton(display)
             btn.setFixedHeight(28)
             btn.setProperty("cld_custom", True)
@@ -463,6 +450,7 @@ class PYCustomLayout(QtWidgets.QWidget):
 
         cld_widget = QtWidgets.QWidget()
         scroll_layout = QtWidgets.QVBoxLayout(cld_widget)
+        scroll_layout.setContentsMargins(6, 0, 6, 0)
         scroll_layout.setSpacing(6)
 
         scroll.setWidget(cld_widget)
@@ -479,16 +467,18 @@ class PYCustomLayout(QtWidgets.QWidget):
 
         page = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(page)
-        lay.setSpacing(6)
-        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setContentsMargins(0, 0, 4, 0)
+        lay.setSpacing(4)
 
         sec1 = PY_WIDGEAT.create_section("Artist:")
+        sec1.setContentsMargins(0, 0, 4, 0)
         grid1 = GridButtons("artist_tool", 3)
         grid1.clicked.connect(self.run_action)
         sec1.addWidget(grid1)
 
         # Custom 区域
         sec2 = PY_WIDGEAT.create_section("Custom:")
+        sec2.setContentsMargins(0, 0, 4, 0)
         sec2.addWidget(PY_WIDGEAT.create_text(u"> 下面是用户自定义脚本管理 <"))
         wrapper = QtWidgets.QVBoxLayout()
         self.core = PYScriptManagerCore()
@@ -502,7 +492,7 @@ class PYCustomLayout(QtWidgets.QWidget):
         wrapper.addLayout(sc_bth_layout)
         filter_group = QtWidgets.QWidget()
         filter_layout = QtWidgets.QHBoxLayout(filter_group)
-        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_layout.setContentsMargins(4, 0, 4, 0)
 
         self.filter_buttons = QtWidgets.QButtonGroup()
         self.radio_mel = QtWidgets.QRadioButton(" MEL ")
@@ -519,7 +509,8 @@ class PYCustomLayout(QtWidgets.QWidget):
         wrapper.addWidget(filter_group)
         PY_WIDGEAT.separator(wrapper, True)
         self.grid_layout = QtWidgets.QGridLayout()
-        self.grid_layout.setSpacing(4)
+        self.grid_layout.setContentsMargins(0, 0, 4, 0)
+        self.grid_layout.setSpacing(2)
         wrapper.addLayout(self.grid_layout)
         sec2.addLayout(wrapper)
         self.panel = PYScriptButtonsPanel(self.grid_layout, self.core)

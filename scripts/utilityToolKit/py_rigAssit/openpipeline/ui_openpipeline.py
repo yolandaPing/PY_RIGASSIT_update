@@ -282,6 +282,7 @@ def build_openpipeline_ui(main_window):
 
     self.notes_text = QtWidgets.QTextEdit()
     self.notes_text.setReadOnly(True)
+    self.notes_text.setProperty("isNotes", True)
     self.notes_text.setMinimumHeight(150)
     bottom_layout.addWidget(self.notes_text)
 

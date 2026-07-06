@@ -119,6 +119,7 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
 
         container = QtWidgets.QWidget()
         self.scroll_layout = QtWidgets.QVBoxLayout(container)
+        self.scroll_layout.setContentsMargins(6, 0, 6, 0)
         self.scroll_layout.setSpacing(6)
 
         scroll.setWidget(container)
@@ -138,11 +139,13 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
     # ---------------------- CURVE EDIT ----------------------
     def build_curve_edit(self):
         layout =PY_WIDGEAT.create_section("Color")
+        layout.setContentsMargins(0, 0, 8, 0)
         self.color_grid = PYColorGrid()
         layout.addWidget(self.color_grid)
         self.custom_color_button = PYCustomColorButton(QtCore.Qt.white)
 
         type_layout = QtWidgets.QHBoxLayout()
+        type_layout.setContentsMargins(0, 0, 8, 0)
         self.type_group = PY_WIDGEAT.create_radiogroup(
             "",
             [
@@ -163,14 +166,16 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
     # ---------------------- RESIZE / ROTATE ----------------------
     def build_resize_block(self):
         layout = PY_WIDGEAT.create_section("Curve Editor")
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 12, 0)
 
         scale_layout = QtWidgets.QHBoxLayout()
+        size_layout = QtWidgets.QHBoxLayout()
         rotate_layout = QtWidgets.QVBoxLayout()
         aixs_layout = QtWidgets.QHBoxLayout()
         rot_type_layout = QtWidgets.QHBoxLayout()
-
         scale_layout.setContentsMargins(0, 0, 0, 0)
+        scale_layout.setContentsMargins(10, 0, 35, 0)
+        aixs_layout.setContentsMargins(10, 0, 35, 0)
         curve_edit_grid = GridButtons("curve_edit", 4)
         curve_edit_grid.clicked.connect(self.run_action)
 
@@ -200,9 +205,10 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         self.add_btn.setFixedSize(35, 25)
         self.subtract_btn.setFixedSize(35, 25)
 
-        scale_layout.addWidget(self.subtract_btn, 3)
-        scale_layout.addWidget(self.scale_slider, 1)
-        scale_layout.addWidget(self.add_btn, 3)
+        size_layout.addWidget(self.subtract_btn)
+        size_layout.addWidget(self.scale_slider)
+        size_layout.addWidget(self.add_btn)
+        scale_layout.addLayout(size_layout)
         self.rotate_spin = QtWidgets.QDoubleSpinBox()
         self.rotate_spin.setValue(90)
         self.btn_x = QtWidgets.QPushButton()
@@ -229,13 +235,11 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
 
     # ---------------------- SHAPE ICONS ----------------------
     def build_curve_shape(self):
-        layout = PY_WIDGEAT.create_section("Shape")
-        text_layout = QtWidgets.QHBoxLayout()
-        self.text_edit = QtWidgets.QLineEdit()
-        self.create_btn = QtWidgets.QPushButton("Create Text")
-        text_layout.addWidget(QtWidgets.QLabel("Text:"))
-        text_layout.addWidget(self.text_edit)
-        text_layout.addWidget(self.create_btn)
+        layout = PY_WIDGEAT.create_section("Custom Shape")
+        layout.setContentsMargins(0, 0, 4, 0)
+        text_layout, self.text_edit, self.create_btn = PY_WIDGEAT.create_QLineEdit_row("Text:")
+        self.create_btn.setText("Create")
+        text_layout.setContentsMargins(8, 0, 20, 0)
 
         self.cons_block = PY_WIDGEAT.create_radiogroup(
             u"约束方式:",
