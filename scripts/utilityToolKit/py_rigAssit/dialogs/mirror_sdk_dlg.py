@@ -53,7 +53,7 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
 
     def __init__(self, parent=PY_WIDGEAT.maya_main_window()):
         super(PYMirrorSDKMainUI, self).__init__("MirrorSDKMainApp", "MirrorSDKMainUI",parent=parent)
-        self.window_name = "Mirror SDK Tool"
+        self.window_name = "SDK Manager"
         self.setWindowTitle(self.window_name)
         self.setMinimumWidth(280)
         self.init_ui(True)
@@ -67,11 +67,15 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         main_layout.setSpacing(0)
         main_layout.addWidget(PY_WIDGEAT.create_title(self.window_name, 16, None))
 
-        frame_button_op = PY_WIDGEAT.create_collapsible_frame(u"Export/Import Node")
+        frame_button_op = PY_WIDGEAT.create_collapsible_frame(u"Export/Import Node", True)
         group_node = QtWidgets.QGroupBox(u"Export/Import Node:")
+        _layout = QtWidgets.QVBoxLayout(group_node)
         btn_layout = QtWidgets.QHBoxLayout(group_node)
         frame_button_op.addWidget(group_node)
-  
+
+        self.time_ignore_chx = QtWidgets.QCheckBox(u' 忽略时间关键帧')
+        self.time_ignore_chx.setChecked(True)
+
         self.export_node_btn = QtWidgets.QPushButton('Export Node')
         self.import_node_btn = QtWidgets.QPushButton('Import/Create Node')
         self.node_help_btn = QtWidgets.QPushButton()
@@ -85,7 +89,11 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         btn_layout.addWidget(self.import_node_btn, 5)
         btn_layout.addWidget(self.node_help_btn)
 
-        self.export_node_btn.clicked.connect(sdk_info.save_create_sdk_node)
+        _layout.addWidget(PY_WIDGEAT.create_text(u'文件路径 "C:/Users/Administrator/Documents/maya/Data_py/create_sdk_info_py.json"'))
+        _layout.addWidget(self.time_ignore_chx)
+        _layout.addLayout(btn_layout)
+
+        self.export_node_btn.clicked.connect(self.export_node_data)
         self.import_node_btn.clicked.connect(sdk_info.create_sdk_node)
 
         group = QtWidgets.QGroupBox(u"Search Name:")
@@ -113,7 +121,7 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         prefix_layout.addWidget(self.search_le)
         self.replace_label = QtWidgets.QLabel("Replace prefix:")
         self.replace_le = QtWidgets.QLineEdit("R_")
-        prefix_layout.addWidget(self.replace_label )
+        prefix_layout.addWidget(self.replace_label)
         prefix_layout.addWidget(self.replace_le)
 
         main_layout.addWidget(frame_button_op)
@@ -177,6 +185,9 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
 
         return result
 
+    def export_node_data(self):
+        ignore = self.time_ignore_chx.isChecked()
+        sdk_info.save_create_sdk_node(ignore)
 
     def apply_mirror_sdk(self):
         data = self.get_flat_values()
