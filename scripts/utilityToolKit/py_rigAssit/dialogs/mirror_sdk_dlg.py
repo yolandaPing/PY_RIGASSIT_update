@@ -10,6 +10,7 @@ from functools import partial
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import Help, mayaPrint
 from Utils import sdk_info
+from Utils.undo import undo
 
 import maya.cmds as cmds
 
@@ -189,6 +190,7 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
         ignore = self.time_ignore_chx.isChecked()
         sdk_info.save_create_sdk_node(ignore)
 
+    @undo
     def apply_mirror_sdk(self):
         data = self.get_flat_values()
         checked_type = self.search_type_group.checkedId()
@@ -214,7 +216,7 @@ class PYMirrorSDKMainUI(PyouPersistentWindow):
                     mayaPrint.warning("{} > The object does not exist, skip.".format(mirror_obj))
                     continue
 
-                for  attr, value in data.items():
+                for attr, value in data.items():
                     object_attr = "{}.{}".format(name, attr)
                     mirror_obj_attr = "{}.{}".format(mirror_obj, attr)
                     sdk_info.mirror_sdk(object_attr, mirror_obj_attr, value, search=search_field,replace=replace_field, replace_type=checked_type)
