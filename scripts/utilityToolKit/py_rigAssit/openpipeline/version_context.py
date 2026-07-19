@@ -608,12 +608,16 @@ class FileOperationService(PathService):
 
     def set_master(self, version_name):
         return file_ops.set_master_from_version(
-            self.pm,
-            self.asset_type,
-            self.asset,
-            self.subtype,
-            version_name
+            self.pm, self.asset_type, self.asset, self.subtype, version_name
         )
+
+    def write_note_info(self, subtype_name, version_filename, info="", workshop=True):
+        task_dir = os.path.join(
+            self.asset_dir(),
+            'components',
+            subtype_name
+        )
+        self.pm.write_note_info(task_dir, version_filename, info, workshop)
 
 
 class VersionContextMenu(PipelineContext):
@@ -762,7 +766,8 @@ class VersionContextMenu(PipelineContext):
 
         def _delete():
             ok = self.version_service.delete_selected_version(version_name)
-
+            if ok:
+                safe_run(lambda: self.file_ops.write_note_info(self.subtype, version_name, "Delete", True))
             if ok and hasattr(self.ui, "refresh_all"):
                 self.ui.refresh_all()
 

@@ -21,13 +21,6 @@ except ImportError:
     mel = None
     IN_MAYA = False
 
-try:
-    from importlib import reload
-except ImportError:
-    pass
-from py_rigAssit.openpipeline import ui_openpipeline
-reload(ui_openpipeline)
-
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
 from py_rigAssit.openpipeline.asset_info import PROJECTS_XML
@@ -923,7 +916,6 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 self.show_info(u'打开', u'最新版本路径:\n' + latest)
         else:
             self.show_warning(u'提示', u'未找到任何版本')
-
 
     def safe_run(self, func):
         try:
