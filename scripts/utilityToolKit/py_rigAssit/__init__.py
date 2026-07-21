@@ -15,8 +15,9 @@ QtCore = qtCompat.QtCore
 QtGui = qtCompat.QtGui
 wrapInstance = qtCompat.wrapInstance
 QAction = qtCompat.QAction
+Qt = qtCompat.Qt
 
 __all__ = [
-    "QtWidgets", "QtCore", "QtGui", "wrapInstance", "QAction",
+    "QtWidgets", "Qt", "QtCore", "QtGui", "wrapInstance", "QAction",
     "Widgets", "PyouPersistentWindow", "GridButtons"
 ]
