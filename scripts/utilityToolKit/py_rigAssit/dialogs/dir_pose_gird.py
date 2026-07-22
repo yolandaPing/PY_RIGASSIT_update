@@ -589,7 +589,7 @@ class DIRPoseGridWindow(PyouPersistentWindow):
         cmds.setAttr(ctrl + ".rotate", rotate[0], rotate[1], rotate[2], type="double3")
         self.grid.temp_poses[(angle, direction)] = rotate
         self.grid.update()
-        mayaPrint.log("DIR Temp Rotate:", angle, direction, rotate)
+        mayaPrint.log("DIR Temp Rotate: {}".format(rotate))
 
     def reset_to_origin(self):
         """重置网格点并归零控制器旋转"""
