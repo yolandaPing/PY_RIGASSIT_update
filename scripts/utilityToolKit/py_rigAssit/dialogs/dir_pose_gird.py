@@ -3,20 +3,25 @@
 # .FileName:dir_pose_gird.py
 # .@Author : Yolanda Ping (You P)
 # .@Email : yolandaping1224@gmail.com
-# .Date....: 2026/7/14 23:57
+# .Date....: 2026/7/18 23:57
 # .Finish time:
 """
 DIR Pose Grid / Direction / Angle Pose Editor
-规则: direction: 0,90,180,270; radius: 0-180°; 每圈15°; 总共12圈
+direction: 0,90,180,270; radius: 0-180°; 每圈15°; 总共12圈
 """
 from functools import partial
 
 import math
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Qt, Widgets, PyouPersistentWindow
-from py_rigAssit.dialogs import Help
+from py_rigAssit.dialogs import Help, mayaPrint
+from py_rigAssit.common.dir_pose_solver import DIRPoseTempSolver
+from DrivePose.direction_dirve_pose import driver_core
+
 import maya.cmds as cmds
 import pymel.core as pm
+
+system = driver_core.DIRDrivePoseSystem()
 
 
 class PoseData(object):
@@ -28,122 +33,22 @@ class PoseData(object):
         rad = math.radians(self.direction)
         self.x = math.sin(rad) * radius
         self.y = -math.cos(rad) * radius
+
     def data(self):
         return {"angle": self.angle, "direction": self.direction, "x": self.x, "y": self.y}
+
     def get_node(self):
         return self.node
 
 
-class DIRPoseTempSolver(object):
-    def __init__(self):
-        self.info_node = None
-        self.input_pose = None
-        self.drive_joint = None
-        self.drive_ctrl = None
-        self.temp_joint = None
-        self.temp_info = None
-        self.system = None
-
-    def load_driver(self, info_node, input_pose):
-        self.clear()
-        self.info_node = info_node
-        self.input_pose = input_pose
-        if not cmds.objExists(input_pose):
-            return False
-        if cmds.objExists(input_pose + ".drive_joint"):
-            self.drive_joint = cmds.getAttr(input_pose + ".drive_joint")
-        self.drive_ctrl = cmds.getAttr(input_pose + ".drive_ctrl")
-        if isinstance(self.drive_ctrl, list):
-            self.drive_ctrl = self.drive_ctrl[0]
-        if not self.drive_joint:
-            cmds.warning("No drive_joint")
-            return False
-        return True
-
-    def create_temp_joint(self):
-        self.clear_temp()
-        self.temp_joint = cmds.createNode("joint", n="DIRPose_temp_joint")
-        pat = cmds.listRelatives(self.info_node, parent=True)[0]
-        self.temp_info = cmds.createNode("joint", n="DIRPose_temp_PoseInfo", parent=pat)
-        cmds.matchTransform(self.temp_info, self.info_node)
-        cmds.parent(self.temp_joint, self.temp_info)
-        matrix = cmds.xform(self.input_pose, q=True, ws=True, matrix=True)
-        cmds.xform(self.temp_joint, ws=True, matrix=matrix)
-        cmds.setAttr(self.temp_joint + ".rotate", 0,0,0, type="double3")
-        cmds.setAttr(self.temp_joint + ".jointOrient", 0,0,0, type="double3")
-        cmds.setAttr(self.temp_info + ".visibility", 0)
-        return self.temp_joint
-
-    def build_driver_network(self):
-        if not self.temp_joint:
-            return False
-        try:
-            from DrivePose.direction_dirve_pose import driver_core
-            self.system = driver_core.DIRDrivePoseSystem()
-            self.system.aixs = cmds.getAttr(self.info_node + ".init_axis")
-            if isinstance(self.system.aixs, tuple):
-                self.system.aixs = self.system.aixs[0]
-            self.system.update_angle_direction(self.temp_joint)
-            cmds.select(cl=1)
-            return True
-        except Exception as e:
-            print("Temp DIR network error:", e)
-            return False
-
-    def set_pose(self, angle, direction):
-        if not self.temp_joint:
-            return
-        d = math.radians(direction)
-        a = math.radians(angle)
-        direction_matrix = pm.datatypes.Matrix([
-            [1,0,0,0],
-            [0,math.cos(d),math.sin(d),0],
-            [0,-math.sin(d),math.cos(d),0],
-            [0,0,0,1]
-        ])
-        angle_matrix = pm.datatypes.Matrix([
-            [math.cos(a),math.sin(a),0,0],
-            [-math.sin(a),math.cos(a),0,0],
-            [0,0,1,0],
-            [0,0,0,1]
-        ])
-        result = direction_matrix.inverse() * angle_matrix * direction_matrix
-        euler = pm.datatypes.EulerRotation(result)
-        cmds.setAttr(self.temp_joint + ".rotate",
-                     math.degrees(euler.x), math.degrees(euler.y), math.degrees(euler.z), type="double3")
-        cmds.dgdirty(self.temp_joint)
-
-    def get_rotate(self):
-        if not self.temp_joint or not cmds.objExists(self.temp_joint):
-            return None
-        cmds.matchTransform(self.drive_ctrl, self.temp_joint, pos=False, rot=True)
-        return cmds.getAttr(self.drive_ctrl+".rotate")[0]
-
-    def clear_temp(self):
-        for node in [self.temp_joint, self.temp_info]:
-            if node and cmds.objExists(node):
-                cmds.delete(node)
-        self.temp_joint = None
-        self.temp_info = None
-        self.system = None
-
-    def clear(self):
-        self.clear_temp()
-        self.info_node = None
-        self.input_pose = None
-        self.drive_joint = None
-        self.drive_ctrl = None
-
-
 class GridWidget(QtWidgets.QWidget):
-
     positionChanged = QtCore.Signal(float, float)
     controlChanged = QtCore.Signal(float, float)
     poseSelected = QtCore.Signal(float, float, str)
     poseDoubleClicked = QtCore.Signal(float, float, str)
     poseAdded = QtCore.Signal(float, float)
     calculatePressed = QtCore.Signal()
-    resetPressed = QtCore.Signal()  # 新增重置信号，用于通知主窗口
+    resetPressed = QtCore.Signal()
 
     def __init__(self, parent=None):
         super(GridWidget, self).__init__(parent)
@@ -171,6 +76,11 @@ class GridWidget(QtWidgets.QWidget):
         self.font = QtGui.QFont("Arial", 9)
         self.drag_line_color = QtGui.QColor(0, 255, 200, 180)
         self.last_mouse_pos = None
+
+        try:
+            self.device_ratio = self.devicePixelRatioF()
+        except:
+            self.device_ratio = 1.0
 
     def set_driver_pose(self, poses):
         self.poses = []
@@ -210,7 +120,7 @@ class GridWidget(QtWidgets.QWidget):
         direction = self.current_direction
         if angle <= 0:
             return
-        self.temp_solver.set_pose(angle, direction)
+        self.temp_solver.matrix_set_position(angle, direction)
         rotate = self.temp_solver.get_rotate()
         if not rotate:
             return
@@ -250,17 +160,22 @@ class GridWidget(QtWidgets.QWidget):
         y = -math.cos(rad) * radius
         return x, y
 
+    def get_mouse_xy(self, pos):
+        ratio = getattr(self, "device_ratio", 1.0)
+        return (pos.x() / ratio, pos.y() / ratio)
+
     def hit_test_pose(self, pos):
         rect = self.rect()
         size = min(rect.width(), rect.height())
         radius = size / 2 - self.margin
         cx = rect.width() / 2
         cy = rect.height() / 2
-        x = (pos.x() - cx) / radius
-        y = (pos.y() - cy) / radius
+        mx, my = self.get_mouse_xy(pos)
+        x = (mx - cx) / radius
+        y = (my - cy) / radius
         for pose in self.poses:
             d = math.sqrt((pose.x - x) ** 2 + (pose.y - y) ** 2)
-            if d < 0.04:
+            if d < 0.08:
                 return pose
         return None
 
@@ -280,6 +195,7 @@ class GridWidget(QtWidgets.QWidget):
             self.update_position(event.pos())
 
     def mouseMoveEvent(self, event):
+        self.last_mouse_pos = event.pos()
         if self.dragging:
             self.update_position(event.pos())
 
@@ -293,7 +209,7 @@ class GridWidget(QtWidgets.QWidget):
             self.poseDoubleClicked.emit(pose.angle, pose.direction, pose.node)
             self.update()
         else:
-            # 双击空白区域 → 重置原点，并发射信号通知主窗口
+            # 双击空白区域重置原点
             self.reset_to_origin()
             self.resetPressed.emit()
 
@@ -303,8 +219,9 @@ class GridWidget(QtWidgets.QWidget):
         radius = size / 2 - self.margin
         cx = rect.width() / 2
         cy = rect.height() / 2
-        x = (pos.x() - cx) / radius
-        y = (pos.y() - cy) / radius
+        mx, my = self.get_mouse_xy(pos)
+        x = (mx - cx) / radius
+        y = (my - cy) / radius
         angle, direction = self.position_to_pose(x, y)
         self.current_x, self.current_y = self.pose_to_position(angle, direction)
         self.current_angle = angle
@@ -359,8 +276,9 @@ class GridWidget(QtWidgets.QWidget):
         radius = size / 2 - self.margin
         cx = rect.width() / 2
         cy = rect.height() / 2
-        x = (self.last_mouse_pos.x() - cx) / radius
-        y = (self.last_mouse_pos.y() - cy) / radius
+        mx, my = self.get_mouse_xy(self.last_mouse_pos)
+        x = (mx - cx) / radius
+        y = (my - cy) / radius
         if math.sqrt(x * x + y * y) > 1:
             return
         angle, direction = self.position_to_pose(x, y)
@@ -385,9 +303,8 @@ class GridWidget(QtWidgets.QWidget):
             self.snap_to_grid()
         elif event.key() == Qt.Key_V:
             self.snap_nearest_pose()
-        elif event.key() == Qt.Key_S:
+        elif event.key() == Qt.Key_R:
             self.calculatePressed.emit()
-        # 移除了 R 键处理，符合要求
         else:
             super(GridWidget, self).keyPressEvent(event)
 
@@ -395,7 +312,8 @@ class GridWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         rect = self.rect()
-        w, h = rect.width(), rect.height()
+        w = self.width()
+        h = self.height()
         size = min(w, h)
         radius = size / 2 - self.margin
         cx, cy = w / 2, h / 2
@@ -512,7 +430,7 @@ class DIRPoseGridWindow(PyouPersistentWindow):
         self.load_btn = QtWidgets.QPushButton("Load Driver System")
         self.clear_btn = QtWidgets.QPushButton(" [Clear temp] ")
         self.reset_btn = QtWidgets.QPushButton(" [Reset] ")  # 新增 Reset 按钮
-        gird_key = QtWidgets.QLabel(u"x:吸附栅格, v:吸附pose, s:计算角度, 双击空白处重置原点")
+        gird_key = QtWidgets.QLabel(u"网格快捷键： x:吸附栅格, v:吸附pose, R:计算角度, 双击空白处回到原点")
         gird_key.setStyleSheet("color: #888;")
         self.load_btn.setProperty("green", True)
         self.clear_btn.setProperty("danger", True)
@@ -553,24 +471,26 @@ class DIRPoseGridWindow(PyouPersistentWindow):
         self.grid.poseAdded.connect(self.on_pose_added)
         self.rotate_btn.clicked.connect(self.rotate_mode_state)
         self.grid.calculatePressed.connect(self.calculate_temp_rotate)
-        self.grid.resetPressed.connect(self.reset_to_origin)          # 双击空白触发重置
+        self.grid.resetPressed.connect(self.reset_to_origin)
 
     def rotate_mode_state(self, *args):
         try:
             if not self.info_node:
-                cmds.warning("Please load driver first")
+                mayaPrint.warning("Please load driver first")
                 return
         except:
-            cmds.warning("Please load driver first")
+            mayaPrint.warning("Please load driver first")
             return
         if self.rotate_mode:
             self.disable_rotate_mode()
             self.show_heads(False)
             self.rotate_btn.setText("Entered rotate mode")
+            self.rotate_btn.setStyleSheet("color: black;")
         else:
             self.enable_rotate_mode()
             self.show_heads(True)
             self.rotate_btn.setText("Exited rotate mode")
+            self.rotate_btn.setStyleSheet("color: red;")
 
     def show_heads(self, enable):
         if cmds.headsUpDisplay(self.header, ex=1):
@@ -582,7 +502,7 @@ class DIRPoseGridWindow(PyouPersistentWindow):
                 s=2,
                 b=0,
                 bs="medium",
-                l="Soft Weight Real-time",
+                l="DIR Pose Calculate Ctrl Rotate",
                 lfs="large"
             )
             Help.inView_Message("red", "Entered calculate rotate mode")
@@ -590,8 +510,7 @@ class DIRPoseGridWindow(PyouPersistentWindow):
             Help.inView_Message("yellow", "Exited calculate rotate mode")
 
     def load_existing_pose(self):
-        from DrivePose.direction_dirve_pose import driver_core
-        system = driver_core.DIRDrivePoseSystem()
+
         poses = system.get_poses(self.driver_node)
         self.pose_map = {}
         grid_poses = []
@@ -609,15 +528,15 @@ class DIRPoseGridWindow(PyouPersistentWindow):
             self.temp_solver.clear()
         sel = cmds.ls(sl=True)
         if not sel:
-            cmds.warning("Select DIRpose Info")
+            mayaPrint.warning("Select DIRpose Info")
             return
         info = sel[0]
         if not cmds.objExists(info + ".input_pose"):
-            cmds.warning("No input pose")
+            mayaPrint.warning("No input pose")
             return
         input_pose = cmds.getAttr(info + ".input_pose")
         if not input_pose:
-            cmds.warning("Invalid input pose")
+            mayaPrint.warning("Invalid input pose")
             return
         self.info_node = info
         self.input_pose = input_pose
@@ -644,11 +563,9 @@ class DIRPoseGridWindow(PyouPersistentWindow):
     def return_pose_position(self, angle, direction, node):
         pose = self.pose_map.get((float(angle), float(direction)))
         if not pose:
-            cmds.warning("Pose not found: {} {}".format(angle, direction))
+            mayaPrint.warning("Pose not found: {} {}".format(angle, direction))
             return
         cmds.select(pose, r=True)
-        from DrivePose.direction_dirve_pose import driver_core
-        system = driver_core.DIRDrivePoseSystem()
         system.return_pose_position()
 
     def convert_grid_direction(self, direction):
@@ -664,7 +581,7 @@ class DIRPoseGridWindow(PyouPersistentWindow):
         direction = self.grid.current_direction
         if angle <= 0:
             return
-        self.temp_solver.set_pose(angle, direction)
+        self.temp_solver.matrix_set_position(angle, direction)
         rotate = self.temp_solver.get_rotate()
         if not rotate:
             return
@@ -672,15 +589,13 @@ class DIRPoseGridWindow(PyouPersistentWindow):
         cmds.setAttr(ctrl + ".rotate", rotate[0], rotate[1], rotate[2], type="double3")
         self.grid.temp_poses[(angle, direction)] = rotate
         self.grid.update()
-        print("DIR Temp Rotate:", angle, direction, rotate)
+        mayaPrint.log("DIR Temp Rotate:", angle, direction, rotate)
 
     def reset_to_origin(self):
         """重置网格点并归零控制器旋转"""
-        self.grid.reset_to_origin()  # 更新界面状态
+        self.grid.reset_to_origin()
         if self.temp_solver.drive_ctrl:
-            # 直接设置控制器旋转为0
             cmds.setAttr(self.temp_solver.drive_ctrl + ".rotate", 0, 0, 0, type="double3")
-
 
     def on_pose_added(self, angle, direction):
         print("New pose added: angle={}, direction={}".format(angle, direction))
@@ -688,10 +603,10 @@ class DIRPoseGridWindow(PyouPersistentWindow):
     def enable_rotate_mode(self):
         try:
             if not self.info_node:
-                cmds.warning("Please load driver first")
+                mayaPrint.warning("Please load driver first")
                 return
         except:
-            cmds.warning("Please load driver first")
+            mayaPrint.warning("Please load driver first")
             return
         self.rotate_mode = True
         self.temp_solver.create_temp_joint()
@@ -733,6 +648,7 @@ def show():
     _window = DIRPoseGridWindow()
     _window.show()
     return _window
+
 
 if __name__ == "__main__":
     show()

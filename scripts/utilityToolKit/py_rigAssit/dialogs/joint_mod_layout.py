@@ -15,6 +15,7 @@ import os
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import base_dir, Help, mayaPrint
+
 try:
     from ui_framework.widgets.button import GridButtons
 except:
@@ -51,7 +52,6 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         self.init_ui(True)
 
-
     def init_ui(self, copyright=False):
         self.dispatcher = CommandDispatcher()
         main = QtWidgets.QVBoxLayout(self)
@@ -83,7 +83,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.create_connection()
         return main
 
-
     # def build_tabs(self):
     #
     #     self.tabs = QtWidgets.QTabWidget()
@@ -97,7 +96,6 @@ class PYJointEditLayout(PyouPersistentWindow):
     #     self.tabs.addTab(self.build_rig_tab(), "Rigging")
     #
     #     return self.tabs
-
 
     def build_tabs(self):
         frame = QtWidgets.QFrame()
@@ -123,7 +121,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.rigging_tab_block.idClicked.connect(self._on_rigging_tab_block_toggled)
         return frame
 
-
     def build_joint_tab(self):
 
         self.py_joint_page = QtWidgets.QWidget()
@@ -148,7 +145,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         joint_size_layout.addWidget(self.joint_reset_btn)
 
         sec1 = _widgest.create_section("Quick Actions")
-
         grid = GridButtons("joint_quick", 3)
         gridb = GridButtons("joint_edit", 2)
         gridc = GridButtons("joint_skin", 3)
@@ -160,7 +156,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         sec1.addWidget(gridc)
         # Create
         sec2 = _widgest.create_section("Create / Edit")
-
         grid1 = GridButtons("center_create", 3)
         grid2 = GridButtons("joint_create", 3)
         grid2b = GridButtons("joint_Make", 3)
@@ -170,16 +165,18 @@ class PYJointEditLayout(PyouPersistentWindow):
         sec2.addWidget(grid1)
         sec2.addWidget(grid2)
         sec2.addWidget(grid2b)
-
         # Mirror
         sec3 = _widgest.create_section("Mirror Joints/ Constraints")
         sec3.addWidget(self.mirror_joint_lay())
         sec3.addWidget(self.mirror_constraints())
+        sec4 = _widgest.create_section("Driver system")
+        sec4.addWidget(self.vector_driver_system())
         _widgest.separator(lay, True)
         lay.addLayout(joint_size_layout)
         lay.addWidget(sec1)
         lay.addWidget(sec2)
         lay.addWidget(sec3)
+        lay.addWidget(sec4)
         lay.addStretch()
 
         return self.py_joint_page
@@ -258,7 +255,7 @@ class PYJointEditLayout(PyouPersistentWindow):
             ],
             default_id=1
         )
-        
+
         search_layout, self.mir_jnt_search_filed = self._QLineEdit_row("Search:", "L_")
         replace_layout, self.mir_jnt_replace_filed = self._QLineEdit_row("Replace:", "R_")
         self.search_joint_group.idClicked.connect(self._optional_joint_Toggled)
@@ -305,14 +302,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         prefix_layout.addWidget(self.replace_label)
         prefix_layout.addWidget(self.replace_le)
 
-        button_layout = QtWidgets.QHBoxLayout()
-        self.mirror_constraint_btn = QtWidgets.QPushButton("Apply")
-        help_btn = QtWidgets.QPushButton()
-        help_btn.setIcon(QtGui.QIcon(":/help.png"))
-        self.mirror_constraint_btn.setProperty("main", True)
-        help_btn.setProperty("help", True)
-        button_layout.addWidget(self.mirror_constraint_btn, 9)
-        button_layout.addWidget(help_btn)
+        button_layout, self.mirror_constraint_btn, help_btn = _widgest.create_Qbuttons(" Apply ")
         help_btn.clicked.connect(partial(Help.HelpImage, "", "mirror_constraints"))
 
         main_layout.addLayout(layout)
@@ -320,6 +310,25 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout.addWidget(_widgest.create_text("选择需要创建镜像的约束节点"))
         layout.addLayout(button_layout)
         frame.addLayout(main_layout)
+        return frame
+
+    def vector_driver_system(self):
+        frame = _widgest.create_collapsible_frame(" Create vector system")
+        layout = QtWidgets.QVBoxLayout()
+
+        self.vector_axis_menu = QtWidgets.QComboBox()
+        self.vector_axis_menu.addItems(['x', 'y', 'z', '-x', 'y', 'z'])
+        self.vector_axis_menu.setFixedWidth(60)
+        self.vector_vol_joint = QtWidgets.QCheckBox(' add Volume Joint')
+        axis_layout = QtWidgets.QFormLayout()
+        axis_layout.addRow('Axis:', self.vector_axis_menu)
+        axis_layout.addRow('Vol:', self.vector_vol_joint)
+        button_layout, self.vector_system_btn, help_btn = _widgest.create_Qbuttons(" Apply ")
+        layout.addWidget(_widgest.create_text("select driver object and parent object"))
+        layout.addLayout(axis_layout)
+        layout.addLayout(button_layout)
+        frame.addLayout(layout)
+        help_btn.clicked.connect(partial(Help.HelpImage, "", "vector_driver_system"))
         return frame
 
     def mirror_skin_lay(self):
@@ -339,7 +348,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         other_layout.addWidget(self.skin_other_select_btn)
         self.skin_other_select_btn.setEnabled(False)
 
-        other_middle_layout, self.skin_other_middle_filed, self.skin_other_middle_btn = _widgest.create_QLineEdit_row("  Other Mid:" )
+        other_middle_layout, self.skin_other_middle_filed, self.skin_other_middle_btn = _widgest.create_QLineEdit_row(
+            "  Other Mid:")
         self.skin_other_middle_filed.setEnabled(False)
         self.skin_other_middle_btn.setEnabled(False)
         self.skin_other_middle_filed.setPlaceholderText("Unavailable")
@@ -371,7 +381,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         frame = _widgest.create_collapsible_frame(" Copy Skin Weight Options")
         main_layout = QtWidgets.QVBoxLayout()
 
-        layout, self.sk_source_filed, self.sk_source_btn = _widgest.create_QLineEdit_row("Source:" )
+        layout, self.sk_source_filed, self.sk_source_btn = _widgest.create_QLineEdit_row("Source:")
 
         self.sk_copy_block = _widgest.create_radiogroup(
             "Type:",
@@ -385,7 +395,8 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         btn_layout, self.sk_copy_btn, sk_copy_help_btn = _widgest.create_Qbuttons(" Copy ")
         sk_copy_help_btn.clicked.connect(lambda: Help.HelpImage("", "special_copy_tool"))
-        main_layout.addWidget(_widgest.create_text(u"载入拷贝源Source, 选择copy方式, 选择需要拷贝的对象或点\n>>>如需要大量组需要拷贝，前往Copy模块里的copy skinWeight"))
+        main_layout.addWidget(
+            _widgest.create_text(u"载入拷贝源Source, 选择copy方式, 选择需要拷贝的对象或点\n>>>如需要大量组需要拷贝，前往Copy模块里的copy skinWeight"))
 
         main_layout.addLayout(layout)
         main_layout.addWidget(self.sk_copy_block)
@@ -417,7 +428,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_optimize_hint = _widgest.create_text(self.OPTIMIZE_HINT[1])
         btn_layout, self.sk_optimize_btn, sk_optimize_help_btn = _widgest.create_Qbuttons(" Apply ")
         sk_optimize_help_btn.clicked.connect(lambda: Help.HelpImage("", "optimize_skin_tool"))
-        group2= QtWidgets.QGroupBox(u"Curve计算权重(Maya 2022 and above):")
+        group2 = QtWidgets.QGroupBox(u"Curve计算权重(Maya 2022 and above):")
         layout2 = QtWidgets.QVBoxLayout(group2)
         btn_layout2 = QtWidgets.QHBoxLayout()
         self.sk_mesh_block = _widgest.create_radiogroup(
@@ -478,7 +489,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout1 = QtWidgets.QVBoxLayout(group1)
 
         group2 = QtWidgets.QGroupBox(u"mesh (numpy版):")
-        layout2= QtWidgets.QVBoxLayout(group2)
+        layout2 = QtWidgets.QVBoxLayout(group2)
 
         api_btn_layout1 = QtWidgets.QHBoxLayout()
         api_btn_layout2 = QtWidgets.QHBoxLayout()
@@ -547,6 +558,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         # self.joint_spinbox.valueChanged.connect(self.on_spinbox_joint_changed)
         self.mir_jnt_apple_btn.clicked.connect(self.mirror_build)
         self.mirror_constraint_btn.clicked.connect(self.apply_mirror_constraints)
+        self.vector_system_btn.clicked.connect(self.create_vector_driver)
         self.sk_mirror_btn.clicked.connect(self.mirror_skin_build)
         self.skin_other_select_btn.clicked.connect(self._select_no_stand_joint)
         self.exp_btn.clicked.connect(exp_inp_skinClusterIO.devSave_json)
@@ -560,13 +572,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_optimize_btn.clicked.connect(self.execute_optimize_weight)
         self.sk_curve_convert_btn.clicked.connect(self.execute_optimize_weight)
         self.sk_copy_btn.clicked.connect(self.run_batch_copy_skin)
-        self.sk_source_btn.clicked.connect(
-            partial(SelectionLoader.load_lineedit, self, self.sk_source_filed, "mesh")
-        )
-        self.skin_other_middle_btn.clicked.connect(
-            partial(SelectionLoader.load_lineedit, self, self.skin_other_middle_filed, "joint")
-        )
-
+        self.sk_source_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.sk_source_filed, "mesh"))
+        self.skin_other_middle_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.skin_other_middle_filed, "joint"))
 
     def _on_rigging_tab_block_toggled(self, btn_id):
 
@@ -587,7 +594,6 @@ class PYJointEditLayout(PyouPersistentWindow):
             self.py_joint_page.show()
             self.py_skin_page.show()
             self.py_rigging_page.show()
-
 
     def load_current_scale(self):
         try:
@@ -622,7 +628,7 @@ class PYJointEditLayout(PyouPersistentWindow):
 
     def _on_copy_type_toggled(self, btn_id):
         self.sk_optimize_hint.setText(self.OPTIMIZE_HINT[btn_id])
-        
+
     def _optional_cons_Toggled(self, btn_id):
         self.search_label.setText(self.MAP[btn_id][0][0])
         self.search_le.setText(self.MAP[btn_id][0][1])
@@ -647,28 +653,27 @@ class PYJointEditLayout(PyouPersistentWindow):
         from JointEdit.JointEditFun import EditJnt
         EditJnt = EditJnt()
 
-        EditJnt.mirror_joints_build(self.mir_jnt_search_filed.text(), self.mir_jnt_replace_filed.text(), self.across_block.checkedId(), self.function_block.checkedId())
+        EditJnt.mirror_joints_build(self.mir_jnt_search_filed.text(), self.mir_jnt_replace_filed.text(),
+                                    self.across_block.checkedId(), self.function_block.checkedId())
 
     def apply_mirror_constraints(self):
-
         search = self.search_le.text().strip()
         replace = self.replace_le.text().strip()
-
         if not search or not replace:
             cmds.warning("Search / Replace cannot be empty.")
             return
-
         replace_type = self.search_type_group.checkedId()
         mapping = {
             search: replace
         }
-
         datas = {
             "mapping": mapping,
             "replace_type": replace_type
         }
-
         self.dispatcher.execute("mirror constraints", datas)
+
+    def create_vector_driver(self,):
+        self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked()])
 
     def _select_no_stand_joint(self):
         if self.no_stand_joint:
@@ -676,7 +681,6 @@ class PYJointEditLayout(PyouPersistentWindow):
             cmds.select(self.no_stand_joint, r=1)
 
     def mirror_skin_build(self):
-
         chunk_opened = False
 
         try:
@@ -714,7 +718,6 @@ class PYJointEditLayout(PyouPersistentWindow):
 
                 try:
                     cmds.select(obj, r=True)
-
                     result = mel.eval(mel_cmd)
 
                     if result == "PoseMirrorSkin completed successfully.":
@@ -729,20 +732,15 @@ class PYJointEditLayout(PyouPersistentWindow):
                         failed_objects.append(obj)
 
                     else:
-
                         result_list = result.split('\n')
-
                         self.no_stand_joint = result_list
-
                         self.skin_other_select_btn.setEnabled(True)
                         self.skin_other_middle_filed.setEnabled(True)
                         self.skin_other_middle_btn.setEnabled(False)
 
                         print("# Error: ----------------------------------------------------------------")
-
                         for msg in result_list:
                             mayaPrint.warning(msg)
-
                         print("# Error: ----------------------------------------------------------------")
 
                         mayaPrint.error(
@@ -769,18 +767,17 @@ class PYJointEditLayout(PyouPersistentWindow):
                     "\n".join(failed_objects)
                 )
             )
-    
+
     def execute_optimize_weight(self):
-        map={1:"IK Weight", 2:"Split Weight", 3:"DeltaMush Weight", 4:"Divisions Weight"}
+        map = {1: "IK Weight", 2: "Split Weight", 3: "DeltaMush Weight", 4: "Divisions Weight"}
         if hasattr(self, "dispatcher"):
             self.dispatcher.execute(map[self.sk_optimize_block.checkedId()])
 
-    
     def curve_split_weight(self):
         if hasattr(self, "dispatcher"):
-            self.dispatcher.execute("Curve Split", [self.sk_mesh_block.checkedId(), self.sk_curve_type_block.checkedId()])
+            self.dispatcher.execute("Curve Split",
+                                    [self.sk_mesh_block.checkedId(), self.sk_curve_type_block.checkedId()])
 
-    
     def run_action(self, text):
         print("Run:", text)
         if hasattr(self, "status"):
@@ -788,7 +785,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         if hasattr(self, "dispatcher"):
             self.dispatcher.execute(text)
 
-    
     def run_batch_copy_skin(self):
         from JointEdit.JointEditFun import EditJnt
         EditJnt = EditJnt()
@@ -815,7 +811,6 @@ class PYJointEditLayout(PyouPersistentWindow):
 
 
 def main():
-
     global py_joint_mod_dialog
     try:
         py_joint_mod_dialog.close()  # pylint: disable=E0601
@@ -826,6 +821,6 @@ def main():
     py_joint_mod_dialog = PYJointEditLayout()
     py_joint_mod_dialog.show()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     main()

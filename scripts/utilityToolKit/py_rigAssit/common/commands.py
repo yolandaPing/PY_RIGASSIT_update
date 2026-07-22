@@ -725,9 +725,16 @@ def apply_attr_vis_lock(ui, datas):
                     cmds.setAttr("{}.{}".format(obj, attr), keyable=key, lock=lock)
     mayaPrint.log("Applied attribute changes to {} object(s).".format(len(objs)))
 
+@CommandDispatcher.register("Vector Driver System")
+@decorator.undo
+def vector_driver_system(ui, info):
+    try:
+        from ConstrainEdit.vector_system import create_angle_system
+        create_angle_system(info[0], info[1])
+    except Exception as e:
+        mayaPrint.warning(e)
 
 # ========== 以下为独立的外部工具导入 ==========
-
 @CommandDispatcher.register("QuadRemesher")
 def QuadRemesher(ui):
     try:
@@ -804,3 +811,4 @@ def abSymMesh(ui):
 def quick_rename(ui):
     mel_file = os.path.join(base_dir, "scripts", "mel", "Quick_rename_tool.mel")
     mel.eval('source ' + json.dumps(mel_file))
+
