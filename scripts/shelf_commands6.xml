@@ -120,13 +120,8 @@ Animation_ui.main()
         <icon>/PoseLog.png</icon>
         <type>python</type>
         <command><![CDATA[
-try:
-    from DrivePose.DriverPoseUI import DirveShapeToolsUI
-    RBFPT = DirveShapeToolsUI()
-    RBFPT.mainWindow()
-except:
-    import HelpImageUI as Hint
-    Hint.denyUserAccess()
+from py_rigAssit.driver_pose import rbf_pose_ui
+rbf_pose_ui.show()
         ]]></command>
     </button>
 
@@ -135,13 +130,8 @@ except:
         <icon>/Dir_pose_log.png</icon>
         <type>python</type>
         <command><![CDATA[
-try:
-    from DrivePose.direction_dirve_pose.dir_pose_ui import DIRDirveUI
-    DIRPT = DIRDirveUI()
-    DIRPT.mainWindow()
-except:
-    import HelpImageUI as Hint
-    Hint.denyUserAccess()
+from py_rigAssit.driver_pose import dir_pose_ui
+dir_pose_ui.show()
         ]]></command>
     </button>
 

@@ -332,11 +332,12 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout.addWidget(_widgest.create_text(u"创建adv手脚的修型骨骼"))
         layout.addLayout(pos_layout)
         layout.addLayout(finger_lay)
+        _widgest.separator(layout)
         layout.addWidget(_widgest.create_text(u"选择运动关节，加父对象 创建"))
         layout.addLayout(axis_layout)
         layout.addLayout(button_layout)
         frame.addLayout(layout)
-        help_btn1.clicked.connect(partial(self.show_help, u"ADV Fingers Volume \n一键添加adv系统手指,矫正修型骨骼"))
+        help_btn1.clicked.connect(partial(self.show_help, u"ADV Fingers Volume \n一键添加adv系统手指修型骨骼"))
         help_btn2.clicked.connect(partial(self.show_help, u"Vector Driver \n添加驱动系统 \n勾选add Volume Joint 添加带驱动的修型骨骼\n不勾选Constrain自行将system grp做约束或者parent进父级"))
         return frame
 
