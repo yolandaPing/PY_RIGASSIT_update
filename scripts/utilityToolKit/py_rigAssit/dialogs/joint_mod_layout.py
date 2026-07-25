@@ -15,17 +15,15 @@ import os
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import base_dir, Help, mayaPrint
-
-try:
-    from ui_framework.widgets.button import GridButtons
-except:
-    from CommonUse.button import GridButtons
+from ui_framework.widgets.button import GridButtons
 from py_rigAssit.dialogs.skin_inverseMatrix_dialog import SkinInvertMatrixDialog
 from py_rigAssit.dialogs.ikfk_system_layout import IKFKWidget
 from py_rigAssit.common.loader import SelectionLoader
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
+from Utils.undo import undo
 import py_rigAssit.common.commands
 import JointEdit.exp_inp_skinClusterIO as exp_inp_skinClusterIO
+
 import maya.cmds as cmds, maya.mel as mel
 
 _widgest = Widgets()
@@ -313,22 +311,33 @@ class PYJointEditLayout(PyouPersistentWindow):
         return frame
 
     def vector_driver_system(self):
-        frame = _widgest.create_collapsible_frame(" Create vector system")
+        frame = _widgest.create_collapsible_frame(" Volume/Vector system")
         layout = QtWidgets.QVBoxLayout()
-
+        pos_layout = QtWidgets.QFormLayout()
+        self.finger_pos_value = QtWidgets.QSpinBox()
+        self.finger_pos_value.setValue(2)
+        self.finger_pos_value.setFixedWidth(50)
+        pos_layout.addRow(u"修型骨骼距离: ", self.finger_pos_value)
+        finger_lay, self.adv_finger_vol, help_btn1 = _widgest.create_Qbuttons(" Add ")
         self.vector_axis_menu = QtWidgets.QComboBox()
         self.vector_axis_menu.addItems(['x', 'y', 'z', '-x', 'y', 'z'])
         self.vector_axis_menu.setFixedWidth(60)
+        self.vector_constrain = QtWidgets.QCheckBox(' constrain Vector system')
         self.vector_vol_joint = QtWidgets.QCheckBox(' add Volume Joint')
         axis_layout = QtWidgets.QFormLayout()
         axis_layout.addRow('Axis:', self.vector_axis_menu)
-        axis_layout.addRow('Vol:', self.vector_vol_joint)
-        button_layout, self.vector_system_btn, help_btn = _widgest.create_Qbuttons(" Apply ")
-        layout.addWidget(_widgest.create_text("select driver object and parent object"))
+        axis_layout.addRow('Joint:', self.vector_vol_joint)
+        axis_layout.addRow('Constrain:', self.vector_constrain)
+        button_layout, self.vector_system_btn, help_btn2 = _widgest.create_Qbuttons(" Apply ")
+        layout.addWidget(_widgest.create_text(u"创建adv手脚的修型骨骼"))
+        layout.addLayout(pos_layout)
+        layout.addLayout(finger_lay)
+        layout.addWidget(_widgest.create_text(u"选择运动关节，加父对象 创建"))
         layout.addLayout(axis_layout)
         layout.addLayout(button_layout)
         frame.addLayout(layout)
-        help_btn.clicked.connect(partial(Help.HelpImage, "", "vector_driver_system"))
+        help_btn1.clicked.connect(partial(self.show_help, u"ADV Fingers Volume \n一键添加adv系统手指,矫正修型骨骼"))
+        help_btn2.clicked.connect(partial(self.show_help, u"Vector Driver \n添加驱动系统 \n勾选add Volume Joint 添加带驱动的修型骨骼\n不勾选Constrain自行将system grp做约束或者parent进父级"))
         return frame
 
     def mirror_skin_lay(self):
@@ -558,7 +567,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         # self.joint_spinbox.valueChanged.connect(self.on_spinbox_joint_changed)
         self.mir_jnt_apple_btn.clicked.connect(self.mirror_build)
         self.mirror_constraint_btn.clicked.connect(self.apply_mirror_constraints)
-        self.vector_system_btn.clicked.connect(self.create_vector_driver)
+        self.vector_system_btn.clicked.connect(partial(self.create_vector_driver, 1))
+        self.adv_finger_vol.clicked.connect(partial(self.create_vector_driver, 2))
         self.sk_mirror_btn.clicked.connect(self.mirror_skin_build)
         self.skin_other_select_btn.clicked.connect(self._select_no_stand_joint)
         self.exp_btn.clicked.connect(exp_inp_skinClusterIO.devSave_json)
@@ -574,6 +584,9 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_copy_btn.clicked.connect(self.run_batch_copy_skin)
         self.sk_source_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.sk_source_filed, "mesh"))
         self.skin_other_middle_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.skin_other_middle_filed, "joint"))
+
+    def show_help(self, text="", *args):
+        QtWidgets.QMessageBox.information(self, "帮助", text)
 
     def _on_rigging_tab_block_toggled(self, btn_id):
 
@@ -671,9 +684,13 @@ class PYJointEditLayout(PyouPersistentWindow):
             "replace_type": replace_type
         }
         self.dispatcher.execute("mirror constraints", datas)
-
-    def create_vector_driver(self,):
-        self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked()])
+    @undo
+    def create_vector_driver(self, func=1):
+        if func == 1:
+            self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked(), self.vector_constrain.isChecked()])
+        else:
+            from JointEdit.adv_fingers_volume import add_volume
+            add_volume(self.finger_pos_value.value())
 
     def _select_no_stand_joint(self):
         if self.no_stand_joint:

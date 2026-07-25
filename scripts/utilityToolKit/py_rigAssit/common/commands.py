@@ -730,7 +730,7 @@ def apply_attr_vis_lock(ui, datas):
 def vector_driver_system(ui, info):
     try:
         from ConstrainEdit.vector_system import create_angle_system
-        create_angle_system(info[0], info[1])
+        create_angle_system(info[0], info[1], info[2])
     except Exception as e:
         mayaPrint.warning(e)
 
