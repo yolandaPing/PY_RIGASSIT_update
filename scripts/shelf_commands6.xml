@@ -175,9 +175,8 @@ ui.main()
         <icon>/melTopyLog.png</icon>
         <type>python</type>
         <command><![CDATA[
-from GeneralTools.translate_mel_to_python import TranslateMELtoPyhtonUI
-TranslateMELtoPyhtonUI=TranslateMELtoPyhtonUI()
-TranslateMELtoPyhtonUI.window()
+from py_rigAssit.dialogs import mel_translate_py
+mel_translate_py.show()
         ]]></command>
     </button>
 
