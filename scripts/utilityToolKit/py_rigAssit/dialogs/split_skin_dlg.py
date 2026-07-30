@@ -40,11 +40,12 @@ class PYSoftWeight_Manager(QtWidgets.QWidget):
         container_main = QtWidgets.QWidget()
         container_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout = QtWidgets.QVBoxLayout(container_main)
-        main_layout.setContentsMargins(5, 5, 5, 5)
-        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(5, 2, 5, 2)
+        main_layout.setSpacing(2)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(1, 1, 1, 1)
+        layout.setSpacing(4)
         option_form = QtWidgets.QFormLayout()
         selected_field_layout = QtWidgets.QHBoxLayout()
 

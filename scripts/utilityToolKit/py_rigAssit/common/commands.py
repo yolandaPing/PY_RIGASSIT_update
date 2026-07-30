@@ -450,6 +450,27 @@ def uv_move_shape(ui, is_uv):
 def copy_bs_targets(ui):
     _mesh_edit().import_from_file()
 
+@CommandDispatcher.register("Create Cut Plan")
+@decorator.undo
+def createCutPlane(ui):
+    global cut_obj_plan
+    cut_obj_plan = cmds.ls(sl=True)
+    mel_cmd = 'source ' + json.dumps(
+        base_dir + "scripts/mel/cutTool.mel") + ";js_cutPlane_create();"
+    if cut_obj_plan:
+        mel.eval(mel_cmd)
+
+@CommandDispatcher.register("Cut Mesh")
+@decorator.undo
+def cutPlane(ui):
+    global cut_obj_plan
+    mel_cmd = 'source ' + json.dumps(
+        base_dir + "scripts/mel/cutTool.mel") + ";js_cutPlane_cut (1);"
+    if cut_obj_plan:
+        mel.eval(mel_cmd)
+        cut_obj_plan = None
+        mayaPrint.log('Cutting successfully.')
+
 
 @CommandDispatcher.register("Remove Double")
 @decorator.undo
@@ -730,7 +751,7 @@ def apply_attr_vis_lock(ui, datas):
 def vector_driver_system(ui, info):
     try:
         from ConstrainEdit.vector_system import create_angle_system
-        create_angle_system(info[0], info[1], info[2])
+        create_angle_system(info[0], info[1], info[2], mapping=info[3], replace_type=info[4])
     except Exception as e:
         mayaPrint.warning(e)
 

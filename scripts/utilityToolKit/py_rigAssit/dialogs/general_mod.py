@@ -146,14 +146,13 @@ class PYGeneralLayout(QtWidgets.QDialog):
         scroll_layout.setContentsMargins(6, 0, 6, 0)
         scroll.setWidget(container)
         main.addWidget(scroll)
-        scroll_layout.addWidget(py_widgets.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它"))
+        scroll_layout.addWidget(py_widgets.create_text(u"You can see how to use it on the button\n阁下可以在按钮上停留片刻看如何使用"))
         scroll_layout.addWidget(self.build_tabs())
 
         scroll_layout.addStretch()
         self.create_connection()
 
         return main
-
 
     def build_tabs(self):
         frame = QtWidgets.QFrame()
@@ -238,13 +237,13 @@ class PYGeneralLayout(QtWidgets.QDialog):
         ord_layout.addWidget(self.combo)
         layout_r.addLayout(lh_vis_layout)
         layout_r.addLayout(ord_layout)
-        # sec_lh_vis.addLayout(layout_r)
+
         layout.addWidget(sec_vlock )
         set_frame.addLayout(layout)
         sec0.addWidget(global_grid)
         sec0.addWidget(node_grid)
         sec3.addWidget(data_grid)
-        # sec3.addWidget(sec_lh_vis)
+
         sec1.addWidget(add_attribute_frame)
         sec2.addWidget(grid0)
         sec2.addLayout(layout_r)
@@ -327,13 +326,16 @@ class PYGeneralLayout(QtWidgets.QDialog):
         lay.setContentsMargins(4, 0, 4, 0)
         lay.setSpacing(6)
 
-        sec0 = py_widgets.create_section("Mesh Edit")
+        sec0 = py_widgets.create_section(u"快速编辑")
         grid0 = GridButtons("mesh_edit", 3)
         grid0.clicked.connect(self.run_action)
         sec0.addWidget(grid0)
 
-        sec1 = py_widgets.create_section("Mesh Data transfer")
+        sec1 = py_widgets.create_section("Mesh Editor")
+        frame = py_widgets.create_collapsible_frame(u"Json导出模型")
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(4, 0, 4, 0)
+        layout.setSpacing(4)
         layout.addWidget(py_widgets.create_text(u" 模型数据导出导入 "))
         btn_layout = QtWidgets.QHBoxLayout()
         uv_cbx = py_widgets.add_checkbox('Export UV?')
@@ -350,24 +352,27 @@ class PYGeneralLayout(QtWidgets.QDialog):
         btn_layout.addWidget(mesh_help_btn)
         layout.addWidget(uv_cbx)
         layout.addLayout(btn_layout)
-        sec1.addLayout(layout)
-
+        frame.addLayout(layout)
+        sec1.addWidget(frame)
+        sec1.addWidget(self.split_target_lay())
+        sec1.addWidget(self.cut_mesh_lay())
         lay.addWidget(sec0)
         lay.addWidget(sec1)
-        lay.addWidget(self.split_target_lay())
+
         lay.addStretch()
         export_mesh_btn.clicked.connect(lambda: self.dispatcher.execute("Export Mesh Data", uv_cbx.isChecked()))
         import_mesh_data_btn.clicked.connect(lambda: self.dispatcher.execute("Import Mesh Data"))
         self.page_widget.setVisible(False)
         return self.page_widget
 
-
     def split_target_lay(self):
+        frame = py_widgets.create_collapsible_frame(u"拆分 blendShape Target")
         sec0 = py_widgets.create_section("Split blendShape Target")
+
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(4, 0, 4, 0)
+        main_layout.setSpacing(4)
         sec0.addLayout(main_layout)
-        main_layout.addWidget(py_widgets.create_text(u" 拆分blendShape目标体 "))
         base_layout, self.base_shape_field, self.assign_base_btn = py_widgets.create_QLineEdit_row("Shape:")
         blend_layout, self.dest_blsp_field, self.assign_dest_btn = py_widgets.create_QLineEdit_row("BlendShape:")
         self.assign_base_btn.clicked.connect(self.assign_base_shape)
@@ -416,7 +421,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
         layout.addWidget(self.pos_dir_cb)
         main_layout.addWidget(group)
 
-        # 按钮行
         btn_layout = QtWidgets.QHBoxLayout()
         create_plane_btn = QtWidgets.QPushButton("Create Plane")
         create_plane_btn.clicked.connect(self.create_plane_btn_cmd)
@@ -432,7 +436,18 @@ class PYGeneralLayout(QtWidgets.QDialog):
         btn_layout.addWidget(make_blsp_btn, 1)
         btn_layout.addWidget(help_btn)
         main_layout.addLayout(btn_layout)
-        return sec0
+        frame.addWidget(sec0)
+        return frame
+
+    def cut_mesh_lay(self):
+        frame = py_widgets.create_collapsible_frame(u"切割模型")
+        sec = py_widgets.create_section("Cut Mesh")
+        cut_grid = GridButtons("js_cutPlane", 2)
+        cut_grid.clicked.connect(self.run_action)
+        sec.addWidget(py_widgets.create_text(u"选择需要切割的模型，创建cutPlane;阁下可以自行复制plan数量和调节位置"))
+        sec.addWidget(cut_grid)
+        frame.addWidget(sec)
+        return frame
 
     def create_checkbox_group(self, label_text, vis_checked=True, lock_checked=False):
         label = QtWidgets.QLabel(label_text)
@@ -448,15 +463,13 @@ class PYGeneralLayout(QtWidgets.QDialog):
         h_layout.addWidget(label)
         h_layout.addWidget(vis_cb)
         h_layout.addWidget(lock_cb)
-        h_layout.addStretch()  # 使复选框靠右
+        h_layout.addStretch()
         return h_layout, vis_cb, lock_cb
-
 
     def create_connection(self):
         self.add_separator_btn.clicked.connect(self.create_separator)
         self.add_attr_apply_btn.clicked.connect(self.create_attr)
         self.vlock_apply_btn.clicked.connect(self.apply_attr_vis_lock)
-
 
     def _on_general_tab_block_toggled(self, btn_id):
 
@@ -471,11 +484,9 @@ class PYGeneralLayout(QtWidgets.QDialog):
             self.attribute_page.show()
             self.page_widget.show()
 
-
     def _on_value_fields(self, enabled):
         self.min_value_field.setEnabled(enabled), self.max_value_field.setEnabled(
             enabled), self.default_value_field.setEnabled(enabled)
-
 
     def _attr_block_toggled(self, btn_id):
         if btn_id == 1:
@@ -487,8 +498,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
             self._attr_value_page.setEnabled(True)
         else:
             self._attr_value_page.setEnabled(False)
-            
-    
+
     def update_division_label(self, value):
         self.division_label.setText(str(value))
 
@@ -515,15 +525,12 @@ class PYGeneralLayout(QtWidgets.QDialog):
         else:
             mayaPrint.error("Please select a blendShape node.")
 
-
     def show_vlock_help(self):
         QtWidgets.QMessageBox.information(self, "帮助", "Diaplay\n\n"
                                                       "Translate, Rotate, Scale, Visibility属性显示和隐藏\n")
-
     def show_vis_help(self):
         QtWidgets.QMessageBox.information(self, "帮助", "Lock/Hide Vis\n\n"
                                                       "锁定并隐藏创建里所有控制器的visibility\n")
-
     def show_split_help(self):
         QtWidgets.QMessageBox.information(self, "帮助", "拆分BlendShape目标工具\n\n"
                                                       "1. 选择模型载入Shape\n"
@@ -533,18 +540,14 @@ class PYGeneralLayout(QtWidgets.QDialog):
                                                       "5. 点击“Create Plane”生成分割平面(自行调整plane位置)\n"
                                                       "6. 点击“Make blendShape”创建分割目标和控制器\n")
 
-
-
     def run_action(self, text):
         print("Run:", text)
         if hasattr(self, "dispatcher"):
             self.dispatcher.execute(text)
 
-
     def create_separator(self):
         name = self.add_separator_name.text()
         self.dispatcher.execute("create separator", name)
-
 
     def create_attr(self):
         attr_id = self.attr_type_block.checkedId()
@@ -568,7 +571,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
         }
         self.dispatcher.execute("create attrs", datas)
 
-
     def apply_attr_vis_lock(self):
         t_key = self.trans_vis_cb.isChecked()
         t_lock = self.trans_lock_cb.isChecked()
@@ -586,7 +588,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
             "v_info": [v_key, v_lock],
         }
         self.dispatcher.execute("apply attr vis lock", datas)
-
 
     def set_rotate_order(self, index):
         sel = cmds.ls(sl=True)
@@ -626,11 +627,9 @@ class PYGeneralLayout(QtWidgets.QDialog):
         print("Destination blendShape:", dest_blsp)
         print("Positive Direction:", pos_dir)
 
-
     def create_plane_btn_cmd(self):
         divisions, create_ctrl, ctrl_type, name_base, specify_base, base_shape_text, dest_blsp, pos_dir = self.get_ui_values()
         split_blendshape_target.create_plane_btn_cmd(divisions, specify_base, base_shape_text)
-
 
     def make_blsp_btn_cmd(self):
         divisions, create_ctrl, ctrl_type, name_base, specify_base, base_shape_text, dest_blsp, pos_dir = self.get_ui_values()

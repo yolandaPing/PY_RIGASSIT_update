@@ -245,6 +245,19 @@ lastly select the source transform with attributes you want to duplicate and run
         </button>
     </category>
 
+    <category name="js_cutPlane">
+        <button>
+            <label>Create Cut Plan</label>
+            <tooltip><![CDATA[选择需要切割得模型，生成plan]]></tooltip>
+            <color><![CDATA[cld]]></color>
+        </button>
+        <button>
+            <label>Cut Mesh</label>
+            <tooltip><![CDATA[]]></tooltip>
+            <color><![CDATA[cld]]></color>
+        </button>
+    </category>
+
     <category name="global_vis">
         <button>
             <label>Global ctrl</label>

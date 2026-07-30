@@ -68,7 +68,7 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         scroll.setWidget(cld_widget)
         main.addWidget(scroll)
-        scroll_layout.addWidget(_widgest.create_text(u"You can see how to use it on the button\n你可以放置在按钮上看如何使用它"))
+        scroll_layout.addWidget(_widgest.create_text(u"You can see how to use it on the button\n阁下可以在按钮上停留片刻看如何使用"))
         scroll_layout.addWidget(self.build_tabs())
 
         scroll_layout.addStretch()
@@ -82,17 +82,14 @@ class PYJointEditLayout(PyouPersistentWindow):
         return main
 
     # def build_tabs(self):
-    #
     #     self.tabs = QtWidgets.QTabWidget()
     #     self.tabs.setTabPosition(QtWidgets.QTabWidget.West)
     #     # self.tabs.setTabPosition(QtWidgets.QTabWidget.North)
     #     self.tabs.setMovable(False)
     #     self.tabs.setUsesScrollButtons(False)
-    #
     #     self.tabs.addTab(self.build_joint_tab(), "Quick")
     #     self.tabs.addTab(self.build_skin_tab(), "Skin")
     #     self.tabs.addTab(self.build_rig_tab(), "Rigging")
-    #
     #     return self.tabs
 
     def build_tabs(self):
@@ -222,9 +219,35 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.py_rigging_page.setVisible(False)
         return self.py_rigging_page
 
+    def _create_search_replace_widgets(self, callback, default_search="L_", default_replace="R_"):
+        """
+        创建包含 radiogroup（prefix/middle/suffix）和两个行编辑的控件组
+        返回:
+            group:  radiogroup 控件
+            search_layout: 搜索行编辑所在的布局（包含标签）
+            search_le: 搜索行编辑控件
+            replace_layout: 替换行编辑所在的布局（包含标签）
+            replace_le: 替换行编辑控件
+        """
+        group = _widgest.create_radiogroup(
+            "Mirror:",
+            [
+                ("prefix", 1, None),
+                ("middle", 2, None),
+                ("suffix", 3, None),
+            ],
+            default_id=1
+        )
+        search_layout, search_le = self._QLineEdit_row("Search:", default_search)
+        replace_layout, replace_le = self._QLineEdit_row("Replace:", default_replace)
+        group.idClicked.connect(callback)
+        return group, search_layout, search_le, replace_layout, replace_le
+
     def mirror_joint_lay(self):
         frame = _widgest.create_collapsible_frame(" Mirror Joints")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 2, 4, 2)
+        main_layout.setSpacing(6)
         search_replace_layout = QtWidgets.QHBoxLayout()
         self.across_block = _widgest.create_radiogroup(
             "Mirror across:",
@@ -244,19 +267,12 @@ class PYJointEditLayout(PyouPersistentWindow):
             ],
             default_id=1
         )
-        self.search_joint_group = _widgest.create_radiogroup(
-            "",
-            [
-                ("prefix", 1, None),
-                ("middle", 2, None),
-                ("suffix", 3, None),
-            ],
-            default_id=1
-        )
+        (self.search_joint_group,
+         search_layout,
+         self.mir_jnt_search_filed,
+         replace_layout,
+         self.mir_jnt_replace_filed) = self._create_search_replace_widgets(self._optional_joint_Toggled)
 
-        search_layout, self.mir_jnt_search_filed = self._QLineEdit_row("Search:", "L_")
-        replace_layout, self.mir_jnt_replace_filed = self._QLineEdit_row("Replace:", "R_")
-        self.search_joint_group.idClicked.connect(self._optional_joint_Toggled)
         self.mir_jnt_apple_btn = QtWidgets.QPushButton(" Apply ")
         self.mir_jnt_apple_btn.setProperty("main", True)
         main_layout.addWidget(self.across_block)
@@ -273,30 +289,26 @@ class PYJointEditLayout(PyouPersistentWindow):
     def mirror_constraints(self):
         frame = _widgest.create_collapsible_frame(" Mirror Constraints")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 2, 4, 2)
+        main_layout.setSpacing(2)
         layout = QtWidgets.QVBoxLayout()
-        search_layout = QtWidgets.QHBoxLayout()
 
-        self.search_type_group = _widgest.create_radiogroup(
-            "",
-            [
-                ("prefix", 1, None),
-                ("middle", 2, None),
-                ("suffix", 3, None),
-            ],
-            default_id=1
+        group, _, search_le, _, replace_le = self._create_search_replace_widgets(
+            self._optional_cons_Toggled
         )
-        search_layout.addWidget(self.search_type_group)
+        self.search_type_group = group
+        self.search_le = search_le
+        self.replace_le = replace_le
 
+        search_layout = QtWidgets.QHBoxLayout()
+        search_layout.addWidget(self.search_type_group)
         layout.addLayout(search_layout)
-        self.search_type_group.idClicked.connect(self._optional_cons_Toggled)
 
         prefix_layout = QtWidgets.QHBoxLayout()
         self.search_label = QtWidgets.QLabel("Search prefix:")
-        self.search_le = QtWidgets.QLineEdit("L_")
+        self.replace_label = QtWidgets.QLabel("Replace prefix:")
         prefix_layout.addWidget(self.search_label)
         prefix_layout.addWidget(self.search_le)
-        self.replace_label = QtWidgets.QLabel("Replace prefix:")
-        self.replace_le = QtWidgets.QLineEdit("R_")
         prefix_layout.addWidget(self.replace_label)
         prefix_layout.addWidget(self.replace_le)
 
@@ -313,10 +325,12 @@ class PYJointEditLayout(PyouPersistentWindow):
     def vector_driver_system(self):
         frame = _widgest.create_collapsible_frame(" Volume/Vector system")
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(6)
         pos_layout = QtWidgets.QFormLayout()
-        self.finger_pos_value = QtWidgets.QSpinBox()
-        self.finger_pos_value.setValue(2)
-        self.finger_pos_value.setFixedWidth(50)
+        self.finger_pos_value = _widgest.create_floatSlider("")
+        self.finger_pos_value.setValue(2.00)
+        self.finger_pos_value.setRange(0.1, 100.0)
         pos_layout.addRow(u"修型骨骼距离: ", self.finger_pos_value)
         finger_lay, self.adv_finger_vol, help_btn1 = _widgest.create_Qbuttons(" Add ")
         self.vector_axis_menu = QtWidgets.QComboBox()
@@ -328,6 +342,15 @@ class PYJointEditLayout(PyouPersistentWindow):
         axis_layout.addRow('Axis:', self.vector_axis_menu)
         axis_layout.addRow('Joint:', self.vector_vol_joint)
         axis_layout.addRow('Constrain:', self.vector_constrain)
+
+        search_replace_layout = QtWidgets.QHBoxLayout()
+        (self.search_vector_block,
+         search_layout,
+         self.mir_vec_search_filed,
+         replace_layout,
+         self.mir_vec_replace_filed) = self._create_search_replace_widgets(self._optional_vec_Toggled)
+        search_replace_layout.addLayout(search_layout)
+        search_replace_layout.addLayout(replace_layout)
         button_layout, self.vector_system_btn, help_btn2 = _widgest.create_Qbuttons(" Apply ")
         layout.addWidget(_widgest.create_text(u"创建adv手脚的修型骨骼"))
         layout.addLayout(pos_layout)
@@ -335,6 +358,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         _widgest.separator(layout)
         layout.addWidget(_widgest.create_text(u"选择运动关节，加父对象 创建"))
         layout.addLayout(axis_layout)
+        layout.addWidget(self.search_vector_block)
+        layout.addLayout(search_replace_layout)
         layout.addLayout(button_layout)
         frame.addLayout(layout)
         help_btn1.clicked.connect(partial(self.show_help, u"ADV Fingers Volume \n一键添加adv系统手指修型骨骼"))
@@ -344,7 +369,8 @@ class PYJointEditLayout(PyouPersistentWindow):
     def mirror_skin_lay(self):
         frame = _widgest.create_collapsible_frame(" Mirror Skin")
         main_layout = QtWidgets.QVBoxLayout()
-
+        main_layout.setContentsMargins(4, 2, 4, 2)
+        main_layout.setSpacing(4)
         left_layout, self.skin_left_filed = self._QLineEdit_row("Left side:", "L_/_L/l_")
         right_layout, self.skin_right_filed = self._QLineEdit_row("Right side:", "R_/_R/r_")
         middle_layout, self.skin_middle_filed = self._QLineEdit_row("Mid side:", "M_/_M/m_")
@@ -390,6 +416,8 @@ class PYJointEditLayout(PyouPersistentWindow):
     def copy_skin_lay(self):
         frame = _widgest.create_collapsible_frame(" Copy Skin Weight Options")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 2, 4, 2)
+        main_layout.setSpacing(4)
 
         layout, self.sk_source_filed, self.sk_source_btn = _widgest.create_QLineEdit_row("Source:")
 
@@ -419,6 +447,8 @@ class PYJointEditLayout(PyouPersistentWindow):
     def optimize_skin_lay(self):
         frame = _widgest.create_collapsible_frame(" Optimize Skin Weight Options")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 0, 4, 0)
+        main_layout.setSpacing(4)
         group = QtWidgets.QGroupBox(u"自动优化/拆分权重类型:")
         layout = QtWidgets.QVBoxLayout(group)
         btn_layout = QtWidgets.QHBoxLayout()
@@ -482,6 +512,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         frame = _widgest.create_collapsible_frame(" Skin Inverse")
         group = QtWidgets.QGroupBox(u"Skin Inverse:")
         main_layout = QtWidgets.QVBoxLayout(group)
+        main_layout.setContentsMargins(4, 0, 4, 0)
+        main_layout.setSpacing(4)
         main_layout.addWidget(skinInverse_lay.init_ui())
         frame.addWidget(group)
         return frame
@@ -495,6 +527,8 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         frame = _widgest.create_collapsible_frame(" Api Export/Import skinWeight")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(4, 0, 4, 0)
+        main_layout.setSpacing(4)
         group1 = QtWidgets.QGroupBox(u"mesh/surface/curve/ffd:")
         layout1 = QtWidgets.QVBoxLayout(group1)
 
@@ -653,6 +687,10 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.mir_jnt_search_filed.setText(self.MAP[btn_id][0][1])
         self.mir_jnt_replace_filed.setText(self.MAP[btn_id][1][1])
 
+    def _optional_vec_Toggled(self, btn_id):
+        self.mir_vec_search_filed.setText(self.MAP[btn_id][0][1])
+        self.mir_vec_replace_filed.setText(self.MAP[btn_id][1][1])
+
     def load_field(self, field, list=False):
         objs = cmds.ls(sl=1)
         if objs is None:
@@ -688,7 +726,9 @@ class PYJointEditLayout(PyouPersistentWindow):
     @undo
     def create_vector_driver(self, func=1):
         if func == 1:
-            self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked(), self.vector_constrain.isChecked()])
+            replace_type = self.search_vector_block.checkedId()
+            mapping = {self.mir_vec_search_filed.text().strip(): self.mir_vec_replace_filed.text().strip()}
+            self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked(), self.vector_constrain.isChecked(), mapping, replace_type])
         else:
             from JointEdit.adv_fingers_volume import add_volume
             add_volume(self.finger_pos_value.value())
