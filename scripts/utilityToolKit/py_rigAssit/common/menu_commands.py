@@ -256,7 +256,6 @@ def rename_tool(ui):
     rename_dialog.main()
 
 
-
 @CommandDispatcher.register("Joint Orient")
 def joints_orient_tool(ui):
     __import__(
@@ -293,3 +292,15 @@ def animkeys_to_drivenkeys(ui):
         'py_rigAssit.dialogs.convert_drivenkeys_ui',
         fromlist=['main']
     ).main()
+
+
+@CommandDispatcher.register("BlendShape Exp/Imp")
+def exp_imp_data_tool(ui):
+    from py_rigAssit.driver_pose.exp_imp_data_ui import show_ui
+    show_ui()
+
+
+@CommandDispatcher.register("Curve Snape")
+def snape_curve_tool(ui):
+    from py_rigAssit.general_mod.snape_curve import show
+    show()

@@ -47,14 +47,14 @@ if maya_ver >= 2025:
 
     try:
         from PySide6 import QtCore, QtGui, QtWidgets
-        from PySide6.QtCore import Qt
+        from PySide6.QtCore import Signal, Qt
         from shiboken6 import wrapInstance
         from PySide6.QtGui import QAction
         PYSIDE_VERSION = 6
 
     except:
         from PySide2 import QtCore, QtGui, QtWidgets
-        from PySide2.QtCore import Qt
+        from PySide2.QtCore import Signal, Qt
         from shiboken2 import wrapInstance
         from PySide2.QtWidgets import QAction
         PYSIDE_VERSION = 2
@@ -64,14 +64,14 @@ else:
 
     try:
         from PySide2 import QtCore, QtGui, QtWidgets
-        from PySide2.QtCore import Qt
+        from PySide2.QtCore import Signal, Qt
         from shiboken2 import wrapInstance
         from PySide2.QtWidgets import QAction
         PYSIDE_VERSION = 2
 
     except:
         from PySide6 import QtCore, QtGui, QtWidgets
-        from PySide6.QtCore import Qt
+        from PySide6.QtCore import Signal, Qt
         from shiboken6 import wrapInstance
         from PySide6.QtGui import QAction
         PYSIDE_VERSION = 6
@@ -281,6 +281,7 @@ __all__ = [
     "QtCore",
     "QtGui",
     "QtWidgets",
+    "Signal",
     "Qt",
     "wrapInstance",
     "QAction",
