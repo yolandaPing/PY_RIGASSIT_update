@@ -245,7 +245,11 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             callback=lambda: self.dispatcher.execute("Maya Script Editor"))
         add(tool, "CharcoalEditor2",
             callback=lambda: self.dispatcher.execute("CharcoalEditor2"))
-
+        tool.addAction("Other").setEnabled(False)
+        add(tool, "Curve Snape",
+            callback=lambda: self.dispatcher.execute("Curve Snape"))
+        add(tool, "BlendShape Exp/Imp",
+            callback=lambda: self.dispatcher.execute("BlendShape Exp/Imp"))
         # ---------------- OPTIONS ----------------
         opt = self.menu_bar.addMenu("Options")
 
