@@ -21,6 +21,13 @@ except ImportError:
     mel = None
     IN_MAYA = False
 
+try:
+    from importlib import reload
+except ImportError:
+    pass
+from py_rigAssit.openpipeline import version_context
+reload(version_context)
+
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
 from py_rigAssit.openpipeline.asset_info import PROJECTS_XML
@@ -54,9 +61,10 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                             QtCore.Qt.WindowCloseButtonHint)
 
         self.cfg = OpenPipelineConfig()
+        self.maya_version = cmds.about(version=True) if IN_MAYA and cmds else 'Unknown'
 
         self.timeStamp = TIMESTAMP
-        self.WINDOW_NAME = 'OpenPipeline v{} (Maya{})'.format(VERSION, cmds.about(version=True))
+        self.WINDOW_NAME = 'OpenPipeline v{} (Maya{})'.format(VERSION, self.maya_version)
 
         self.pm = None
         self.current_project_path = u''
@@ -275,9 +283,10 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             self.project_combo.addItem(name, path)
 
     def select_last_project(self):
-        last_project_path = self.cfg.get_last_project()
-        last_assetType = self.cfg.get_last_select_type()
-        last_asset = self.cfg.get_last_select_asset()
+        # last_project_path = self.cfg.get_last_project()
+        # last_assetType = self.cfg.get_last_select_type()
+        # last_asset = self.cfg.get_last_select_asset()
+        last_project_path, last_assetType, last_asset = self.cfg.get_last_info(self.maya_version)
 
         if last_project_path:
             normalized_last_path = last_project_path.replace('\\', '/').rstrip('/')
@@ -339,7 +348,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             if os.path.exists(normalized_path):
                 self.current_project_path = normalized_path
                 self.current_project_name = text
-                self.cfg.set_last_project(normalized_path)
+                # self.cfg.set_last_project(normalized_path)
+                self.cfg.update_last_info(self.maya_version, project=normalized_path)
                 lib = self.get_library_folder_from_xml(text)
                 self.pm = ProjectManager(normalized_path, text, lib)
                 self.update_asset_type_combo()
@@ -630,7 +640,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.load_assets()
         self.btn_delete_asset.setEnabled(False)
         self.btn_delete_asset.setVisible(False)
-        self.cfg.set_last_select_type(self.current_asset_type)
+        # self.cfg.set_last_select_type(self.current_asset_type)
+        self.cfg.update_last_info(self.maya_version, asset_type=self.current_asset_type)
 
     def filter_assets(self, text):
         for i in range(self.asset_list.count()):
@@ -780,7 +791,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.show_asset_preview(self.current_asset_type, self.selected_asset)
         self.clear_right()
         self.show_version_count(0)
-        self.cfg.set_last_select_asset(self.selected_asset)
+        # self.cfg.set_last_select_asset(self.selected_asset)
+        self.cfg.update_last_info(self.maya_version, asset=self.selected_asset)
 
     def load_subtypes(self):
         self.subtype_list.clear()

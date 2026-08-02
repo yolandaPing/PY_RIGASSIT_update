@@ -69,6 +69,8 @@ def build_openpipeline_ui(main_window):
     btn_about = QtWidgets.QPushButton('')
     btn_about.setIcon(QtGui.QIcon(":help.png"))
     btn_about.setToolTip(u"帮助")
+    btn_refresh.setProperty("help", True)
+    btn_about.setProperty("help", True)
     btn_refresh.clicked.connect(self.load_projects)
     btn_about.clicked.connect(about)
 
