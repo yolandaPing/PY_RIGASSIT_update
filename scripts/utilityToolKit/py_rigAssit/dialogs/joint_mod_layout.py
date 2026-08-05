@@ -342,6 +342,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         axis_layout.addRow('Axis:', self.vector_axis_menu)
         axis_layout.addRow('Joint:', self.vector_vol_joint)
         axis_layout.addRow('Constrain:', self.vector_constrain)
+        self.vector_constrain.setChecked(True)
+        self.vector_vol_joint.setChecked(True)
 
         search_replace_layout = QtWidgets.QHBoxLayout()
         (self.search_vector_block,

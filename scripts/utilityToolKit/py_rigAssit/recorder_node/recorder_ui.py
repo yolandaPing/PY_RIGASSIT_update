@@ -1,8 +1,19 @@
 # -*- coding: utf-8 -*-
+"""
+PY_RIGASSIT BatchNodeRecorder Module
+
+Developed by:
+    YolandaPing
+
+Based on:
+    Original technology and framework by ZhiYong-H
+
+License:
+    Authorized modification and commercial use
+"""
 
 import os
-from ui_framework.core.qtCompat import *
-from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
+from py_rigAssit import QtWidgets, QtCore, QtGui, QAction, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import Help, mayaPrint
 from py_rigAssit.recorder_node.recorder_snapshot import (extract_template, save_template_to,
                                load_template, list_templates, rename_template,
@@ -15,6 +26,27 @@ _widgest = Widgets()
 
 __version__ = "0.1.1"
 __time__ = "2026"
+
+
+class AboutDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(AboutDialog, self).__init__(parent)
+        self.setWindowTitle("About")
+        self.resize(300, 220)
+        layout = QtWidgets.QVBoxLayout(self)
+        text = QtWidgets.QTextEdit()
+        text.setReadOnly(True)
+        text.setText(
+            "Batch Node Recorder\n\n"
+            "Supported Maya Versions:\n"
+            "2018 - 2026\n\n"
+            "===============================\n"
+            "- Original Author: ZhiYong-H\n"
+            "- Developed by: YolandaPing\n"
+            "===============================\n"
+            "- Status: Continued Development"
+        )
+        layout.addWidget(text)
 
 
 def _pair_iter(scrs, tars):
@@ -134,12 +166,8 @@ class BatchNodeRecorderUI(PyouPersistentWindow):
         splitter_h.setSizes([100, 300])
         splitter_h.setHandleWidth(5)
 
-        # main_h_layout = QtWidgets.QHBoxLayout()
-        # main_h_layout.setContentsMargins(0, 0, 0, 0)
-        # main_h_layout.addWidget(left_widget, 1)
-        # main_h_layout.addWidget(right_widget, 3)
-
         overall = QtWidgets.QVBoxLayout(self)
+        self.create_menu_bar(overall)
         overall.setContentsMargins(8, 0, 8, 8)
         overall.addWidget(_widgest.create_title("Recorder Node", 14))
         overall.addLayout(tpl_row)
@@ -161,6 +189,17 @@ class BatchNodeRecorderUI(PyouPersistentWindow):
 
         self.refresh_tpl_list()
         self._restore_state()
+
+    def create_menu_bar(self, parent_layout):
+        menu_bar = QtWidgets.QMenuBar()
+        about_menu = menu_bar.addMenu("About")
+        act = about_menu.addAction("about")
+        act.triggered.connect(self.show_about)
+        parent_layout.setMenuBar(menu_bar)
+
+    def show_about(self):
+        dlg = AboutDialog(self)
+        dlg.show()
 
     def _append_colored_text(self, text, color):
         cursor = self.text.textCursor()

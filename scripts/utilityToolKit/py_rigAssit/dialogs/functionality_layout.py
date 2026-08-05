@@ -454,7 +454,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(6)
         name_layout, self.spring_attr_field, self.spring_attr_btn = _widgest.create_QLineEdit_row("Mian:",label_width=78)
-        self.spring_distance = _widgest.create_floatSlider("Distance:")
+        self.spring_distance = _widgest.create_floatSlider(u"偏移距离:")
         self.spring_distance.setRange(0.01, 100.0)
         self.spring_distance.setValue(5.00)
         self.spring_invert_direction = _widgest.add_checkbox('Invert X direction to -X')

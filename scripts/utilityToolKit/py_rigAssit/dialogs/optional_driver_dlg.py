@@ -506,7 +506,8 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         # self.replace_text.setReadOnly(True)
         replace_prefixname_layout.addWidget(replace_label)
         replace_prefixname_layout.addWidget(self.replace_text)
-
+        self.replace_text.setFixedHeight(28)
+        self.search_text.setFixedHeight(28)
         main_search_prefixname_layout = QtWidgets.QHBoxLayout()
         main_search_prefixname_layout.addLayout(search_prefixname_layout)
         main_search_prefixname_layout.addLayout(replace_prefixname_layout)
