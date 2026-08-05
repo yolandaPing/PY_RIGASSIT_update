@@ -17,7 +17,7 @@ Why Should I use this ?
 
 ============================================================
 
-# 当前版本 0.6.3.2
+# 当前版本 0.6.3.3
 
 <img width="2486" height="1139" alt="新版ui" src="https://github.com/user-attachments/assets/4b715585-ae7b-4ec8-a809-539a5acbc6d7" />
 <img width="2551" height="1332" alt="第六版升级" src="https://github.com/user-attachments/assets/e14d61bf-b37a-417e-a6ac-174921d7e1d7" />
@@ -51,6 +51,7 @@ Why Should I use this ?
 * ✔导出动画数据工具 ，
 * ✔导入模型材质，
 * ✔导出模型数据工具,
+* ✔Recorder Node,
 * ✔️ hotBox designer （热盒大师）、
 * ✔支持用户加入自己工具和脚本 等等
 

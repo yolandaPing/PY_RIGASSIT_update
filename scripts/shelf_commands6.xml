@@ -109,6 +109,16 @@ Animation_ui.main()
     </button>
 
     <button>
+        <label>Recorder Node</label>
+        <icon>/recorder_node.png</icon>
+        <type>python</type>
+        <command><![CDATA[
+from py_rigAssit.recorder_node.recorder_ui import show 
+show()
+        ]]></command>
+    </button>
+
+    <button>
         <label>separator</label>
         <icon>none</icon>
         <type>separator</type>
@@ -120,7 +130,7 @@ Animation_ui.main()
         <icon>/PoseLog.png</icon>
         <type>python</type>
         <command><![CDATA[
-from py_rigAssit.driver_pose import rbf_pose_ui
+from py_rigAssit.driver_pose import rbf_pose_ui as rbf_pose_ui
 rbf_pose_ui.show()
         ]]></command>
     </button>
@@ -130,7 +140,7 @@ rbf_pose_ui.show()
         <icon>/Dir_pose_log.png</icon>
         <type>python</type>
         <command><![CDATA[
-from py_rigAssit.driver_pose import dir_pose_ui
+from py_rigAssit.driver_pose import dir_pose_ui as dir_pose_ui
 dir_pose_ui.show()
         ]]></command>
     </button>
@@ -196,6 +206,15 @@ syntax_jd.wrap()]]></command>
         <type>separator</type>
         <command>--------------------------------------------------------------------------------------------------------------</command>
     </button>
+    
+    <button>
+            <label>Pipeline</label>
+            <icon>/PipelineToolsLog.png</icon>
+            <type>mel</type>
+            <command><![CDATA[
+    source "utilityToolKit/PipelineTools/openPipeline_0.9.2a/openPipeline.mel";
+            ]]></command>
+        </button>
 
     <button>
         <label>py Openpipeline</label>
