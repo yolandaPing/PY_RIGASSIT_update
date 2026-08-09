@@ -62,6 +62,7 @@ Why Should I use this ?
 * ✔️ RBF修型工具（第三方节点）、
 * ✔️ DIR修型工具（maya自带节点）、
 * ✔️ blendShape Editor 、
+* ✔️ blendShape target导出导入 、
 * ✔️ snake rigging
 <img width="1054" height="844" alt="e0c0f0c019259a73b2f8e20b157216e0" src="https://github.com/user-attachments/assets/479d6232-cf17-4acc-b94a-df2b1afac5a6" />
 

@@ -10,6 +10,7 @@ import os
 import json
 import shutil
 import xml.etree.ElementTree as ET
+import html
 from datetime import datetime
 
 try:
@@ -283,9 +284,6 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             self.project_combo.addItem(name, path)
 
     def select_last_project(self):
-        # last_project_path = self.cfg.get_last_project()
-        # last_assetType = self.cfg.get_last_select_type()
-        # last_asset = self.cfg.get_last_select_asset()
         last_project_path, last_assetType, last_asset = self.cfg.get_last_info(self.maya_version)
 
         if last_project_path:
@@ -616,15 +614,32 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             except Exception as e:
                 self.show_warning(u'错误', u'删除失败: {error}'.format(error=str(e)))
 
-    def load_assets(self):
+    def on_asset_sort_changed(self, index):
+        self.load_assets(index)
+
+    def load_assets(self, sort_mode=1, *args):
         self.asset_list.clear()
         self.subtype_list.clear()
         self.clear_right()
         if not self.pm or not self.current_asset_type:
             return
+
         assets = self.pm.list_assets(self.current_asset_type)
-        if assets:
-            self.asset_list.addItems(assets)
+        if not assets:
+            return
+
+        if sort_mode == 2:
+            asset_with_time = []
+            for asset in assets:
+                asset_path = self.pm.get_asset_dir(self.current_asset_type, asset)
+                mtime = os.path.getmtime(asset_path) if os.path.exists(asset_path) else 0
+                asset_with_time.append((asset, mtime))
+            asset_with_time.sort(key=lambda x: x[1], reverse=True)
+            sorted_assets = [item[0] for item in asset_with_time]
+        else:
+            sorted_assets = sorted(assets)
+
+        self.asset_list.addItems(sorted_assets)
 
     def on_asset_type_changed(self, text):
         if not text or text == u'暂无资产类型':
@@ -868,6 +883,25 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             else:
                 self.show_warning(u'失败', message)
 
+    def format_notes_text(self, text):
+        if not text:
+            return ""
+        lines = text.splitlines()
+        html_parts = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("[MASTER SET]"):
+                color = "yellow"
+            elif stripped.startswith("Note: Delete"):
+                color = "red"
+            elif stripped.startswith("Note:"):
+                color = "green"
+            else:
+                color = "white"
+            escaped = html.escape(line)
+            html_parts.append('<span style="color:{};">{}</span>'.format(color, escaped))
+        return "<br>".join(html_parts)
+
     def on_subtype_clicked(self, item):
         st = item.text()
         self.selected_subtype = st
@@ -880,8 +914,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
 
         self.show_version_count(len(versions))
         notes = self.pm.get_notes(self.current_asset_type, self.selected_asset, st)
-        self.notes_text.setPlainText("{}".format(notes))
-
+        # self.notes_text.setPlainText("{}".format(notes))
+        self.notes_text.setHtml(self.format_notes_text(notes))
         has_versions = bool(versions)
         self.btn_save_new_version.setEnabled(True)
         self.btn_save_new_version.setStyleSheet("color: green;")

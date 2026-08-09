@@ -115,7 +115,11 @@ def build_openpipeline_ui(main_window):
     asset_group = QtWidgets.QGroupBox(u"对象名称")
     asset_layout = QtWidgets.QVBoxLayout(asset_group)
     asset_layout.setContentsMargins(4, 4, 4, 4)
-
+    self.asset_sort_block = _widgets.create_radiogroup(
+        "",
+        [(" Name ", 1, None), (" Date ", 2, None),],
+        default_id=1
+    )
     self.search_edit = QtWidgets.QLineEdit()
     self.search_edit.setPlaceholderText(u'搜索资产...')
     self.search_edit.textChanged.connect(self.filter_assets)
@@ -127,7 +131,8 @@ def build_openpipeline_ui(main_window):
     self.asset_list.setAlternatingRowColors(True)
     self.asset_list.itemClicked.connect(self.on_asset_clicked)
     self.asset_list.customContextMenuRequested.connect(self.show_asset_context_menu)
-
+    self.asset_sort_block.idClicked.connect(self.on_asset_sort_changed)
+    asset_layout.addWidget(self.asset_sort_block)
     asset_layout.addWidget(self.search_edit)
     asset_layout.addWidget(self.asset_list)
 
