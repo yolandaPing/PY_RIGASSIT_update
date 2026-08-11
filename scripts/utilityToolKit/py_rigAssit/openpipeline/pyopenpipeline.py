@@ -893,11 +893,11 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             if stripped.startswith("[MASTER SET]"):
                 color = "yellow"
             elif stripped.startswith("Note: Delete"):
-                color = "red"
+                color = "#e68b86"
             elif stripped.startswith("Note:"):
-                color = "green"
+                color = "#80fcca"
             else:
-                color = "white"
+                color = "#abc4d2"
             escaped = html.escape(line)
             html_parts.append('<span style="color:{};">{}</span>'.format(color, escaped))
         return "<br>".join(html_parts)
