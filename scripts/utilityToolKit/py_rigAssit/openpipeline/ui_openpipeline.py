@@ -25,6 +25,8 @@ def build_openpipeline_ui(main_window):
 
     main_layout = QtWidgets.QVBoxLayout(self)
     main = QtWidgets.QVBoxLayout()
+    main.setContentsMargins(0, 0, 0, 0)
+    main.setSpacing(6)
     main_layout.addLayout(main)
 
     root_row = QtWidgets.QHBoxLayout()
@@ -82,7 +84,7 @@ def build_openpipeline_ui(main_window):
     prow.addWidget(btn_about)
     prow.addStretch()
     main.addLayout(prow)
-
+    _widgets.separator(main, False)
     _widgets.separator(main, True)
 
     splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
@@ -91,7 +93,7 @@ def build_openpipeline_ui(main_window):
     leftw = QtWidgets.QWidget()
     leftl = QtWidgets.QVBoxLayout()
     leftl.setContentsMargins(0, 0, 0, 0)
-
+    leftl.setSpacing(0)
     type_row_group = QtWidgets.QGroupBox(u"类型")
     type_row = QtWidgets.QHBoxLayout(type_row_group)
     type_row.setContentsMargins(4, 4, 4, 4)
@@ -162,7 +164,8 @@ def build_openpipeline_ui(main_window):
 
     subtype_frame = QtWidgets.QGroupBox(u"任务")
     subtype_layout = QtWidgets.QVBoxLayout(subtype_frame)
-
+    subtype_layout.setContentsMargins(4, 4, 4, 4)
+    subtype_layout.setSpacing(6)
     self.info_label = QtWidgets.QLabel(u'未选择资产')
     self.info_label.setWordWrap(True)
     self.info_label.setAlignment(QtCore.Qt.AlignLeft)

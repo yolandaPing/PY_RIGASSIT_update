@@ -10,7 +10,8 @@ import os
 import json
 import shutil
 import xml.etree.ElementTree as ET
-import html
+import xml.sax.saxutils
+# import html
 from datetime import datetime
 
 try:
@@ -26,8 +27,8 @@ try:
     from importlib import reload
 except ImportError:
     pass
-from py_rigAssit.openpipeline import version_context
-reload(version_context)
+from py_rigAssit.openpipeline import ui_openpipeline
+reload(ui_openpipeline)
 
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
@@ -886,6 +887,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
     def format_notes_text(self, text):
         if not text:
             return ""
+
         lines = text.splitlines()
         html_parts = []
         for line in lines:
@@ -898,7 +900,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 color = "#80fcca"
             else:
                 color = "#abc4d2"
-            escaped = html.escape(line)
+            escaped = xml.sax.saxutils.escape(line)
             html_parts.append('<span style="color:{};">{}</span>'.format(color, escaped))
         return "<br>".join(html_parts)
 
