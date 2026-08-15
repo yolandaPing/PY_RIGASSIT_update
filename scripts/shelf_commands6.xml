@@ -208,15 +208,6 @@ syntax_jd.wrap()]]></command>
     </button>
     
     <button>
-            <label>Pipeline</label>
-            <icon>/PipelineToolsLog.png</icon>
-            <type>mel</type>
-            <command><![CDATA[
-    source "utilityToolKit/PipelineTools/openPipeline_0.9.2a/openPipeline.mel";
-            ]]></command>
-        </button>
-
-    <button>
         <label>py Openpipeline</label>
         <icon>/pyOpenpipeline.png</icon>
         <type>python</type>
