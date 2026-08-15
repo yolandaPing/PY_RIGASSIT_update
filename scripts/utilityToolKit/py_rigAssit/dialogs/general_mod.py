@@ -10,6 +10,7 @@ from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets
 from py_rigAssit.dialogs import base_dir, Help, decorator, mayaPrint
 from ui_framework.widgets.button import GridButtons
 from GeneralTools import split_blendshape_target as split_blendshape_target
+from py_rigAssit.dialogs.rename_dialog import PYRenameQWidget
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
 # import py_rigAssit.common.commands,img_commands
 import maya.cmds as cmds, maya.mel as mel
@@ -161,7 +162,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
         self.tab_block = py_widgets.create_radiogroup(
             "",
             [
-                (" Attribute / Data ", 1, None),
+                (" General ", 1, None),
                 (" Mesh ", 2, None),
                 (" All Module", 3, None),
             ],
@@ -194,6 +195,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
         grid0.clicked.connect(self.run_action)
 
         sec3 = py_widgets.create_section("Data Import/Export")
+        sec4 = py_widgets.create_section("Rename")
         data_grid = GridButtons("data_edit", 3)
         data_grid.clicked.connect(self.run_action)
 
@@ -232,6 +234,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
 
         add_attribute_frame = self.add_attribute_lay()
         edit_attribute_frame = self.edit_attribute_lay()
+        rename_container_frame = self.rename_container_lay()
 
         ord_layout.addWidget(QtWidgets.QLabel("RotateOrder:"))
         ord_layout.addWidget(self.combo)
@@ -249,12 +252,24 @@ class PYGeneralLayout(QtWidgets.QDialog):
         sec2.addLayout(layout_r)
         sec2.addWidget(set_frame)
         sec2.addWidget(edit_attribute_frame)
+        sec4.addWidget(rename_container_frame)
+
         lay.addWidget(sec0)
         lay.addWidget(sec3)
         lay.addWidget(sec2)
         lay.addWidget(sec1)
+        lay.addWidget(sec4)
         lay.addStretch()
         return self.attribute_page
+
+    def rename_container_lay(self):
+        frame = py_widgets.create_collapsible_frame(u"rename 重命名工具")
+        _layout = QtWidgets.QVBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 0)
+        rename_container = PYRenameQWidget(parent=self)
+        _layout.addWidget(rename_container.init_ui())
+        frame.addLayout(_layout)
+        return frame
 
     def edit_attribute_lay(self):
         frame = py_widgets.create_collapsible_frame(u"LimitInformation 属性限制")
@@ -285,7 +300,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
             ],
             default_id=1
         )
-
         self.value_cbx = py_widgets.add_checkbox('Min/Max/Default value:')
         self.min_value_field = QtWidgets.QSpinBox()
         self.max_value_field = QtWidgets.QSpinBox()
@@ -320,7 +334,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
         return frame
 
     def build_mesh_tab(self):
-
         self.page_widget = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(self.page_widget)
         lay.setContentsMargins(4, 0, 4, 0)
