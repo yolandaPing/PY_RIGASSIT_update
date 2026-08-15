@@ -36,7 +36,7 @@ class TransferModelUI(PyouPersistentWindow):
     selected_filter = "Maya (*ma *.mb)"
 
     def __init__(self, parent=_widgest.maya_main_window()):
-        super(TransferModelUI, self).__init__("CleanModelFileApp", "TransferModelUI", parent)
+        super(TransferModelUI, self).__init__("TransferModelUI", "TransferModelUI", parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         self.WINDOW_NAME = 'Model trandfer UV Shader '
@@ -58,7 +58,7 @@ class TransferModelUI(PyouPersistentWindow):
         main_layout.addWidget(_widgest.create_title(self.WINDOW_NAME, 15, 30))
 
         tle_layout = QtWidgets.QHBoxLayout(self)
-        tle_layout.addWidget(_widgest.create_text(u" File: ", 15, "left"))
+        tle_layout.addWidget(_widgest.create_text(u" File: ", 20))
 
         self.filepath = QtWidgets.QLineEdit()
         self.References_button = QtWidgets.QPushButton()
@@ -330,11 +330,15 @@ class TransferModelUI(PyouPersistentWindow):
 
 
 def main():
-    if cmds.window("TransferModelUI", exists=True):
-        cmds.deleteUI("TransferModelUI", window=True)
+    global Transfer
 
-    Transfer = TransferModelUI(parent=_widgest.maya_main_window())
-    Transfer.setObjectName("TransferModelUI")
+    try:
+        Transfer.close()  # pylint: disable=E0601
+        Transfer.deleteLater()
+    except:
+        pass
+
+    Transfer = TransferModelUI()
     Transfer.show()
 
     return

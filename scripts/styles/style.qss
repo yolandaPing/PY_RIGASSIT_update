@@ -2,11 +2,8 @@
 QWidget {
     font-family: "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC";
     font-size: 11px;
-
     color:#e0e0e0;
 }
-
-
 
 QDialog{
         background: #353535;
@@ -81,6 +78,12 @@ QTextEdit[isNotes="true"] {
     color: #abc4d2;
 }
 
+QTextEdit[isInfos="true"] {
+                border: 2px solid #555;
+                color: #ffff00;
+                font-family: "Consolas", "Courier New", monospace;
+                font-size: 9pt;
+            }
 
 QPushButton {
     background: #5a5f68;
@@ -276,6 +279,18 @@ QListWidget::item:selected {
     color: black;
 }
 
+
+QTableWidget {
+    background-color: #353535;   
+    border: 1px solid #444;
+    font-family: "Microsoft YaHei";
+}
+
+
+QTableWidget::item:selected {
+    background-color: #4dd0e1;
+    color: black;
+}
 
 QComboBox {
     font-family: "Microsoft YaHei";

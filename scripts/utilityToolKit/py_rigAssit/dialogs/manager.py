@@ -197,44 +197,30 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         # ---------------- CLEAR ----------------
         clear = self.menu_bar.addMenu("Clear")
-
         add(clear, "Clean NameSpace",
             callback=lambda: self.dispatcher.execute("Clean NameSpace"))
-
         add(clear, "Optimize Scene",
             callback=lambda: self.dispatcher.execute("Optimize Scene"))
-
         clear.addSeparator()
-
         add(clear, "Check Scene Name",
             callback=lambda: self.dispatcher.execute("Check Scene Name"), bold=True)
-
         add(clear, "Delete Unused Nodes",
             callback=lambda: self.dispatcher.execute("Delete Unused Nodes"), bold=True)
-
         add(clear, "Delete unknown Node",
             callback=lambda: self.dispatcher.execute("Delete unknown Node"), bold=True)
-
         add(clear, "Delete unUsedOrig",
             callback=lambda: self.dispatcher.execute("Delete unUsedOrig"), bold=True)
-
         clear.addSeparator()
-
         add(clear, "Delete unDisplayPoint",
             callback=lambda: self.dispatcher.execute("Delete unDisplayPoint"))
-
         add(clear, "Delete unUsedPlug",
             callback=lambda: self.dispatcher.execute("Delete unUsedPlug"))
-
         add(clear, "Delete unUsedDagPose",
             callback=lambda: self.dispatcher.execute("Delete unUsedDagPose"))
-
         add(clear, "UnLockNode selected",
             callback=lambda: self.dispatcher.execute("UnLockNode selected"))
-
         add(clear, "UnLockNode Scene",
             callback=lambda: self.dispatcher.execute("UnLockNode Scene"), bold=True)
-
         add(clear, "UnLock initialShading",
             callback=lambda: self.dispatcher.execute("UnLock initialShading"), bold=True)
 
@@ -248,29 +234,23 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         tool.addAction("Other").setEnabled(False)
         add(tool, "Curve Snape",
             callback=lambda: self.dispatcher.execute("Curve Snape"))
+        add(tool, "Compare Groups",
+            callback=lambda: self.dispatcher.execute("Compare Groups"))
         add(tool, "BlendShape Exp/Imp",
             callback=lambda: self.dispatcher.execute("BlendShape Exp/Imp"))
         # ---------------- OPTIONS ----------------
         opt = self.menu_bar.addMenu("Options")
-
         opt.addAction("Convenient").setEnabled(False)
-
         add(opt, "Use shelfButton New",
             checkable=True, checked=ud.shelfButton_New)
-
         add(opt, "Auto import Hotkey",
             checkable=True, checked=ud.hotkey)
-
         add(opt, "Auto add sec/pri grp",
             checkable=True, checked=ud.Grp_prisec)
-
         opt.addSeparator()
-
         opt.addAction("Window Display").setEnabled(False)
-
         add(opt, "Dock",
             callback=self.to_dock_mode)
-
         add(opt, "Reload Theme",
             callback=self.reload_theme)
 

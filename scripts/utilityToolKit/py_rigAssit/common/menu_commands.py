@@ -304,3 +304,9 @@ def exp_imp_data_tool(ui):
 def snape_curve_tool(ui):
     from py_rigAssit.general_mod.snape_curve import show
     show()
+
+
+@CommandDispatcher.register("Compare Groups")
+def compare_groups(ui):
+    from py_rigAssit.model_mod.compare_groups import show_ui
+    show_ui()
