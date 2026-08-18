@@ -644,8 +644,8 @@ class VersionContextMenu(PipelineContext):
 
         open_path_action = menu.addAction(u"📂 打开资产目录")
         menu.addSeparator()
-        add_menu_label(menu, "🎨 color:")
-        color_menu = menu.addMenu(u"设置标记")
+        add_menu_label(menu, "color:")
+        color_menu = menu.addMenu(u"🎨 设置标记")
         for label, color in _color_options:
             action = color_menu.addAction(label)
             action.triggered.connect(partial(self.ui._set_color, asset_name, color))
@@ -666,8 +666,8 @@ class VersionContextMenu(PipelineContext):
         subtype_name = item.text()
         menu = QtWidgets.QMenu(list_widget)
         open_path_action = menu.addAction(u"📂 打开任务目录")
-        add_menu_label(menu, "🎨 color:")
-        color_menu = menu.addMenu(u"设置标记")
+        add_menu_label(menu, "color:")
+        color_menu = menu.addMenu(u"🎨 设置标记")
         for label, color in _color_options:
             action = color_menu.addAction(label)
             action.triggered.connect(partial(self.ui._set_color, self.asset, color, subtype_name=subtype_name))
