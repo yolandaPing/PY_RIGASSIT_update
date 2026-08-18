@@ -3,6 +3,7 @@
 # .@Author : Yolanda Ping (You P)
 # .@Email : yolandaping1224@gmail.com
 # .Date....: 2025/12/13 13:02
+from functools import partial
 
 import os
 import shutil
@@ -13,11 +14,7 @@ try:
 except ImportError:
     pass
 
-try:
-    from ui_framework.core.qtCompat import *
-except ImportError:
-    from CommonUse.qtCompat import *
-
+from ui_framework.core.qtCompat import *
 from Pipeline import file_operations as file_ops
 from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
@@ -42,12 +39,19 @@ try:
     import maya.cmds as cmds
     import maya.mel as mel
     import maya.OpenMaya as om
-
     IN_MAYA = True
 except Exception:
     IN_MAYA = False
 
 _cfg = OpenPipelineConfig()
+
+_color_options = [
+        (u"🟡 黄色", "yellow"),
+        (u"🔴 红色", "red"),
+        (u"🔵 蓝色", "blue"),
+        (u"🟢 绿色", "green"),
+        (u"❌ 清除标记", None)
+    ]
 
 
 def _show_info_inview(title=u"Finished", color='yellow'):
@@ -633,15 +637,18 @@ class VersionContextMenu(PipelineContext):
     def show_asset_menu(self, position):
         list_widget = self.ui.asset_list
         item = list_widget.itemAt(position)
-
         if not item:
             return
-
         asset_name = item.text()
-
         menu = QtWidgets.QMenu(list_widget)
 
         open_path_action = menu.addAction(u"📂 打开资产目录")
+        menu.addSeparator()
+        add_menu_label(menu, "🎨 color:")
+        color_menu = menu.addMenu(u"设置标记")
+        for label, color in _color_options:
+            action = color_menu.addAction(label)
+            action.triggered.connect(partial(self.ui._set_color, asset_name, color))
 
         def _open():
             self.path_service.open_asset_path(asset_name)
@@ -657,10 +664,14 @@ class VersionContextMenu(PipelineContext):
             return
 
         subtype_name = item.text()
-
         menu = QtWidgets.QMenu(list_widget)
-
         open_path_action = menu.addAction(u"📂 打开任务目录")
+        add_menu_label(menu, "🎨 color:")
+        color_menu = menu.addMenu(u"设置标记")
+        for label, color in _color_options:
+            action = color_menu.addAction(label)
+            action.triggered.connect(partial(self.ui._set_color, self.asset, color, subtype_name=subtype_name))
+
         menu.addSeparator()
         open_master_action = menu.addAction(u"打开 Master")
         import_master_action = menu.addAction(u"导入 Master")
@@ -670,11 +681,7 @@ class VersionContextMenu(PipelineContext):
             try:
                 func()
             except Exception as e:
-                QtWidgets.QMessageBox.warning(
-                    self.ui,
-                    u"错误",
-                    str(e)
-                )
+                QtWidgets.QMessageBox.warning(self.ui, u"错误", str(e))
 
         def _open():
             self.path_service.open_subtype_path(subtype_name)
@@ -732,11 +739,7 @@ class VersionContextMenu(PipelineContext):
             try:
                 func()
             except Exception as e:
-                QtWidgets.QMessageBox.warning(
-                    self.ui,
-                    u"错误",
-                    str(e)
-                )
+                QtWidgets.QMessageBox.warning(self.ui, u"错误", str(e))
 
         def _open():
             safe_run(lambda: self.file_ops.open_version(version_name))

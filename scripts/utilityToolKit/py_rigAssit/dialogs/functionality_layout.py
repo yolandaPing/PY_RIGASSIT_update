@@ -702,8 +702,10 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         try:
             if mc.pluginInfo(plugin_name, q=True, loaded=True):
                 pass
-        except Exception:
-            mc.loadPlugin(plugin_name)
+            else:
+                mc.loadPlugin(plugin_name)
+        except Exception as e:
+            mayaPrint.warning(e)
 
         dist = self.spring_distance.value()
         hostName = self.spring_attr_field.text()
@@ -712,7 +714,6 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         except TypeError:
             host = False
         invertX = self.spring_invert_direction.isChecked()
-
         postSpring(dist, host, invertX)
         mayaPrint.log(u"build complete.")
         self.show_help("build complete.")

@@ -37,22 +37,21 @@ from py_rigAssit.openpipeline.ui_openpipeline import build_openpipeline_ui
 from Pipeline import file_operations as fops
 from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
-from Pipeline.pipelineUtils import (
-    load_projects_from_xml, get_projects_xml_path, ensure_projects_xml,
-    add_project_to_xml, open_folder_in_explorer, open_file_in_explorer
-)
-
-try:
-    from ui_framework.core.qtCompat import *
-    from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
-except:
-    from CommonUse.qtCompat import *
-    from CommonUse.widgetsUse import Widgets, PyouPersistentWindow
+from Pipeline.pipelineUtils import (load_projects_from_xml, get_projects_xml_path, ensure_projects_xml,add_project_to_xml, open_folder_in_explorer, open_file_in_explorer)
+from ui_framework.core.qtCompat import *
+from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
 
 _widgets = Widgets()
 
 
 class PYPenpipelineDialog(PyouPersistentWindow):
+    COLOR_MAP = {
+        'red': QtGui.QColor(255, 120, 120),
+        'yellow': QtGui.QColor(255, 230, 80),
+        'blue': QtGui.QColor(100, 170, 255),
+        'green': QtGui.QColor(100, 220, 120),
+    }
+
     def __init__(self, parent=_widgets.maya_main_window()):
         super(PYPenpipelineDialog, self).__init__("PYPenpipelineDlgApp", "PYPenpipelineDialog", parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -618,6 +617,79 @@ class PYPenpipelineDialog(PyouPersistentWindow):
     def on_asset_sort_changed(self, index):
         self.load_assets(index)
 
+    def _get_color_file_path(self, asset_name, subtype_name=None):
+        """返回颜色文件的完整路径"""
+        if not self.pm or not self.current_asset_type or not asset_name:
+            return None
+        asset_dir = self.pm.get_asset_dir(self.current_asset_type, asset_name)
+        if subtype_name:  # 子类型颜色：存储在 components/<subtype>/.color
+            color_file = os.path.join(asset_dir, 'components', subtype_name, '.color')
+        else:  # 资产颜色：存储在资产根目录
+            color_file = os.path.join(asset_dir, '.color')
+        return color_file
+
+    def _get_color(self, asset_name, subtype_name=None):
+        """获取颜色（'red','yellow','blue','green' 或 None）"""
+        color_file = self._get_color_file_path(asset_name, subtype_name)
+        if color_file and os.path.exists(color_file):
+            try:
+                with open(color_file, 'r') as f:
+                    color = f.read().strip().lower()
+                    if color in ('red', 'yellow', 'blue', 'green'):
+                        return color
+            except:
+                pass
+        return None
+
+    def _set_color(self, asset_name, color, subtype_name=None):
+        """
+        设置颜色，color 为 'red','yellow','blue','green' 或 None（清除）
+        """
+        if not self.pm or not self.current_asset_type or not asset_name:
+            return
+        color_file = self._get_color_file_path(asset_name, subtype_name)
+        if not color_file:
+            return
+        dir_path = os.path.dirname(color_file)  # 确保目录存在（如果是子类型，需创建 components/subtype 目录）
+        if not os.path.exists(dir_path):
+            try:
+                os.makedirs(dir_path)
+            except:
+                return
+        if color and color in ('red', 'yellow', 'blue', 'green'):
+            with open(color_file, 'w') as f:
+                f.write(color)
+        else:
+            if os.path.exists(color_file):
+                os.remove(color_file)
+        self._update_item_color(asset_name, subtype_name)    # 更新 UI
+
+    def _update_item_color(self, asset_name, subtype_name=None):
+        if subtype_name:  # 更新子类型列表
+            for i in range(self.subtype_list.count()):
+                item = self.subtype_list.item(i)
+                if item.text() == subtype_name:
+                    color = self._get_color(asset_name, subtype_name)
+                    if color and color in self.COLOR_MAP:
+                        item.setBackground(self.COLOR_MAP[color])
+                        item.setForeground(QtGui.QColor("#222222"))
+                    else:
+                        item.setBackground(QtGui.QColor(QtCore.Qt.transparent))
+                        item.setForeground(QtGui.QColor("#e0e0e0"))
+                    break
+        else:  # 更新资产列表
+            for i in range(self.asset_list.count()):
+                item = self.asset_list.item(i)
+                if item.text() == asset_name:
+                    color = self._get_color(asset_name)
+                    if color and color in self.COLOR_MAP:
+                        item.setBackground(self.COLOR_MAP[color])
+                        item.setForeground(QtGui.QColor("#222222"))
+                    else:
+                        item.setBackground(QtGui.QColor(QtCore.Qt.transparent))
+                        item.setForeground(QtGui.QColor("#e0e0e0"))
+                    break
+
     def load_assets(self, sort_mode=1, *args):
         self.asset_list.clear()
         self.subtype_list.clear()
@@ -639,8 +711,14 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             sorted_assets = [item[0] for item in asset_with_time]
         else:
             sorted_assets = sorted(assets)
-
-        self.asset_list.addItems(sorted_assets)
+        # self.asset_list.addItems(sorted_assets)
+        for asset in sorted_assets:
+            item = QtWidgets.QListWidgetItem(asset)
+            color = self._get_color(asset)  # 修改此处
+            if color and color in self.COLOR_MAP:
+                item.setBackground(self.COLOR_MAP[color])
+                item.setForeground(QtGui.QColor("#222222"))
+            self.asset_list.addItem(item)
 
     def on_asset_type_changed(self, text):
         if not text or text == u'暂无资产类型':
@@ -815,7 +893,15 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         if not (self.pm and self.selected_asset):
             return
         subs = self.pm.list_subtypes(self.current_asset_type, self.selected_asset)
-        self.subtype_list.addItems(subs)
+        # self.subtype_list.addItems(subs)
+        if subs:
+            for sub in subs:
+                item = QtWidgets.QListWidgetItem(sub)
+                color = self._get_color(self.selected_asset, subtype_name=sub)
+                if color and color in self.COLOR_MAP:
+                    item.setBackground(self.COLOR_MAP[color])
+                    item.setForeground(QtGui.QColor("#222222"))
+                self.subtype_list.addItem(item)
 
     def add_subtype_dialog(self):
         if not (self.pm and self.selected_asset):
