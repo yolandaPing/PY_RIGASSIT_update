@@ -154,7 +154,6 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         except Exception as e:
             self.show_warning(u'错误', u"检查配置时出错: {}".format(str(e)))
 
-    #FBX配置管理
     def load_fbx_config(self):
         try:
             self.fbx_config = self.cfg.get_fbx_export_info()
@@ -719,6 +718,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 item.setBackground(self.COLOR_MAP[color])
                 item.setForeground(QtGui.QColor("#222222"))
             self.asset_list.addItem(item)
+        self.asset_count.setText("{}".format(len(sorted_assets)))
 
     def on_asset_type_changed(self, text):
         if not text or text == u'暂无资产类型':

@@ -459,7 +459,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         self.spring_distance.setValue(5.00)
         self.spring_invert_direction = _widgest.add_checkbox('Invert X direction to -X')
         btn_layout, self.spring_apply_btn, help_btn = _widgest.create_Qbuttons(" Apply ")
-        bk_btn_layout, self.spring_baker_apply_btn, baker_help_btn = _widgest.create_Qbuttons(" Baker ")
+        # bk_btn_layout, self.spring_baker_apply_btn, baker_help_btn = _widgest.create_Qbuttons(" Baker ")
 
         main_layout.addWidget(_widgest.create_text(u"* 此功能依赖第三方mGear节点"))
         main_layout.addLayout(name_layout)
@@ -469,12 +469,12 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         _widgest.separator(main_layout)
         main_layout.addLayout(btn_layout)
 
-        main_layout.addLayout(bk_btn_layout)
+        # main_layout.addLayout(bk_btn_layout)
         sec.addLayout(main_layout)
         frame.addWidget(sec)
         help_btn.clicked.connect(partial(self.show_help, "按顺序选择添加的fk或fk grp"))
-        baker_help_btn.clicked.connect(
-            partial(self.show_help, "从根部按顺序选择控制器"))
+        # baker_help_btn.clicked.connect(
+        #     partial(self.show_help, "从根部按顺序选择控制器"))
 
         return frame
 
@@ -525,7 +525,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         self.zip_root_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.zip_root_filed, "joint"))
         self.spring_attr_btn.clicked.connect(self.spring_load_main)
         self.spring_apply_btn.clicked.connect(self.build_spring)
-        self.spring_baker_apply_btn.clicked.connect(self.bake_spring)
+        # self.spring_baker_apply_btn.clicked.connect(self.bake_spring)
 
     def get_menu_item(self, item):
         return item

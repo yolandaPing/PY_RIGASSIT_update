@@ -28,8 +28,6 @@ import maya.cmds as cmds, maya.mel as mel
 
 _widgest = Widgets()
 
-skinInverse_lay = SkinInvertMatrixDialog()
-
 
 class PYJointEditLayout(PyouPersistentWindow):
     OPTIMIZE_HINT = {1: u'自动计算飘带（条状物）模型权重，参与权重的关节必须是有序选择参与蒙皮',
@@ -37,7 +35,8 @@ class PYJointEditLayout(PyouPersistentWindow):
                      3: u'变形器转权重，先添权重模型加DeltaMush/Tension变形器,设置好内部值',
                      4: u'选择拷贝源+需要拷贝的对象,此功能会直接将拷贝源提高细分来优化权重'}
 
-    MAP = {1: [("Search Prefix:", "L_"), ("Replace Prefix:", "R_")],
+    MAP = {0: [("Search :", ""), ("Replace :", "")],
+           1: [("Search Prefix:", "L_"), ("Replace Prefix:", "R_")],
            2: [("Search Middle:", "_L_"), ("Replace Middle:", "_R_")],
            3: [("Search Suffix:", "_L"), ("Replace Suffix:", "_R")]
            }
@@ -101,11 +100,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         self.rigging_tab_block = _widgest.create_radiogroup(
             "Module:",
-            [
-                (" Quick ", 1, None),
-                (" Skin ", 2, None),
-                (" Rigging ", 3, None),
-                (" All ", 4, None),
+            [(" Quick ", 1, None), (" Skin ", 2, None), (" Rigging ", 3, None), (" All ", 4, None),
             ],
             default_id=1
         )
@@ -164,7 +159,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         sec3 = _widgest.create_section("Mirror Joints/ Constraints")
         sec3.addWidget(self.mirror_joint_lay())
         sec3.addWidget(self.mirror_constraints())
-        sec4 = _widgest.create_section("Driver system")
+        sec4 = _widgest.create_section("Volume Joint system")
         sec4.addWidget(self.vector_driver_system())
         _widgest.separator(lay, True)
         lay.addLayout(joint_size_layout)
@@ -219,7 +214,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.py_rigging_page.setVisible(False)
         return self.py_rigging_page
 
-    def _create_search_replace_widgets(self, callback, default_search="L_", default_replace="R_"):
+    def _create_search_replace_widgets(self, callback, default_search="L_", default_replace="R_", zero=False):
         """
         创建包含 radiogroup（prefix/middle/suffix）和两个行编辑的控件组
         返回:
@@ -231,13 +226,14 @@ class PYJointEditLayout(PyouPersistentWindow):
         """
         group = _widgest.create_radiogroup(
             "Mirror:",
-            [
-                ("prefix", 1, None),
-                ("middle", 2, None),
-                ("suffix", 3, None),
-            ],
+            [("no", 0, "noMirror"), ("prefix", 1, None), ("middle", 2, None), ("suffix", 3, None)],
             default_id=1
         )
+        if zero:
+            group.setEnabledByIds([0, 1, 2, 3], True)
+        else:
+            group.setEnabledByIds([0], False)
+
         search_layout, search_le = self._QLineEdit_row("Search:", default_search)
         replace_layout, replace_le = self._QLineEdit_row("Replace:", default_replace)
         group.idClicked.connect(callback)
@@ -305,8 +301,8 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout.addLayout(search_layout)
 
         prefix_layout = QtWidgets.QHBoxLayout()
-        self.search_label = QtWidgets.QLabel("Search prefix:")
-        self.replace_label = QtWidgets.QLabel("Replace prefix:")
+        self.search_label = QtWidgets.QLabel("Search:")
+        self.replace_label = QtWidgets.QLabel("Replace:")
         prefix_layout.addWidget(self.search_label)
         prefix_layout.addWidget(self.search_le)
         prefix_layout.addWidget(self.replace_label)
@@ -328,10 +324,12 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout.setContentsMargins(4, 2, 4, 2)
         layout.setSpacing(6)
         pos_layout = QtWidgets.QFormLayout()
-        self.finger_pos_value = _widgest.create_floatSlider("")
-        self.finger_pos_value.setValue(2.00)
-        self.finger_pos_value.setRange(0.1, 100.0)
-        pos_layout.addRow(u"修型骨骼距离: ", self.finger_pos_value)
+        self.vol_pos_value = _widgest.create_floatSlider("")
+        self.vol_pos_value.setRange(0.1, 100.0)
+        self.vol_pos_value.setValue(2.00)
+        pos_layout.addRow(u"骨骼偏移距离: ", self.vol_pos_value)
+        sec1 = _widgest.create_section("Fingers")
+        sec2 = _widgest.create_section("Limbs and trunk")
         finger_lay, self.adv_finger_vol, help_btn1 = _widgest.create_Qbuttons(" Add ")
         self.vector_axis_menu = QtWidgets.QComboBox()
         self.vector_axis_menu.addItems(['x', 'y', 'z', '-x', 'y', 'z'])
@@ -350,19 +348,23 @@ class PYJointEditLayout(PyouPersistentWindow):
          search_layout,
          self.mir_vec_search_filed,
          replace_layout,
-         self.mir_vec_replace_filed) = self._create_search_replace_widgets(self._optional_vec_Toggled)
+         self.mir_vec_replace_filed) = self._create_search_replace_widgets(self._optional_vec_Toggled, zero=True)
         search_replace_layout.addLayout(search_layout)
         search_replace_layout.addLayout(replace_layout)
         button_layout, self.vector_system_btn, help_btn2 = _widgest.create_Qbuttons(" Apply ")
-        layout.addWidget(_widgest.create_text(u"创建adv手脚的修型骨骼"))
+
         layout.addLayout(pos_layout)
-        layout.addLayout(finger_lay)
-        _widgest.separator(layout)
-        layout.addWidget(_widgest.create_text(u"选择运动关节，加父对象 创建"))
-        layout.addLayout(axis_layout)
-        layout.addWidget(self.search_vector_block)
-        layout.addLayout(search_replace_layout)
-        layout.addLayout(button_layout)
+        layout.addWidget(sec1)
+        _widgest.separator(layout, False)
+        layout.addWidget(sec2)
+        sec1.addWidget(_widgest.create_text(u"添加adv手指的修型骨骼"))
+        sec1.addLayout(finger_lay)
+
+        sec2.addWidget(_widgest.create_text(u"选择运动关节，加父对象 创建"))
+        sec2.addLayout(axis_layout)
+        sec2.addWidget(self.search_vector_block)
+        sec2.addLayout(search_replace_layout)
+        sec2.addLayout(button_layout)
         frame.addLayout(layout)
         help_btn1.clicked.connect(partial(self.show_help, u"ADV Fingers Volume \n一键添加adv系统手指修型骨骼"))
         help_btn2.clicked.connect(partial(self.show_help, u"Vector Driver \n添加驱动系统 \n勾选add Volume Joint 添加带驱动的修型骨骼\n不勾选Constrain自行将system grp做约束或者parent进父级"))
@@ -516,6 +518,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         main_layout = QtWidgets.QVBoxLayout(group)
         main_layout.setContentsMargins(4, 0, 4, 0)
         main_layout.setSpacing(4)
+        skinInverse_lay = SkinInvertMatrixDialog()
         main_layout.addWidget(skinInverse_lay.init_ui())
         frame.addWidget(group)
         return frame
@@ -680,18 +683,34 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_optimize_hint.setText(self.OPTIMIZE_HINT[btn_id])
 
     def _optional_cons_Toggled(self, btn_id):
-        self.search_label.setText(self.MAP[btn_id][0][0])
         self.search_le.setText(self.MAP[btn_id][0][1])
-        self.replace_label.setText(self.MAP[btn_id][1][0])
         self.replace_le.setText(self.MAP[btn_id][1][1])
+        if btn_id == 0:
+            self.search_le.setEnabled(False)
+            self.replace_le.setEnabled(False)
+        else:
+            self.search_le.setEnabled(True)
+            self.replace_le.setEnabled(True)
 
     def _optional_joint_Toggled(self, btn_id):
         self.mir_jnt_search_filed.setText(self.MAP[btn_id][0][1])
         self.mir_jnt_replace_filed.setText(self.MAP[btn_id][1][1])
+        if btn_id == 0:
+            self.mir_jnt_search_filed.setEnabled(False)
+            self.mir_jnt_replace_filed.setEnabled(False)
+        else:
+            self.mir_jnt_search_filed.setEnabled(True)
+            self.mir_jnt_replace_filed.setEnabled(True)
 
     def _optional_vec_Toggled(self, btn_id):
         self.mir_vec_search_filed.setText(self.MAP[btn_id][0][1])
         self.mir_vec_replace_filed.setText(self.MAP[btn_id][1][1])
+        if btn_id == 0:
+            self.mir_vec_search_filed.setEnabled(False)
+            self.mir_vec_replace_filed.setEnabled(False)
+        else:
+            self.mir_vec_search_filed.setEnabled(True)
+            self.mir_vec_replace_filed.setEnabled(True)
 
     def load_field(self, field, list=False):
         objs = cmds.ls(sl=1)
@@ -727,13 +746,14 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.dispatcher.execute("mirror constraints", datas)
     @undo
     def create_vector_driver(self, func=1):
+        pos_value = self.vol_pos_value.value()
         if func == 1:
             replace_type = self.search_vector_block.checkedId()
             mapping = {self.mir_vec_search_filed.text().strip(): self.mir_vec_replace_filed.text().strip()}
-            self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked(), self.vector_constrain.isChecked(), mapping, replace_type])
+            self.dispatcher.execute("Vector Driver System", [self.vector_axis_menu.currentText(), self.vector_vol_joint.isChecked(), self.vector_constrain.isChecked(), mapping, replace_type, pos_value])
         else:
             from JointEdit.adv_fingers_volume import add_volume
-            add_volume(self.finger_pos_value.value())
+            add_volume(pos_value)
 
     def _select_no_stand_joint(self):
         if self.no_stand_joint:
