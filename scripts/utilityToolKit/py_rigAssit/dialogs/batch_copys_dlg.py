@@ -10,11 +10,11 @@ from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
 from selectOrRemove import SelectOrremoveObj
 from CopyEdit.copy_blendShape_info import BlendShapeInfo
 import CopyEdit.copy_skinCluster_info as copy_skinCluster_info
-
 # from py_rigAssit.dialogs import decorator
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
 import py_rigAssit.common.img_commands
 from py_rigAssit.dialogs import mayaPrint
+from Utils.undo import undo
 
 import  maya.cmds as cmds
 
@@ -322,7 +322,7 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
             self.copy_uv()
 
     def run_skin_copy(self):
-        mode = self.copy_block.checkedId()
+        mode = self.skin_block.checkedId()
 
         if mode == 1:
             self.copy_skin_default()
@@ -331,91 +331,66 @@ class PYCopyToolsLayout(QtWidgets.QWidget):
         elif mode == 3:
             self.copy_skin_multi_to_one()
 
-    # @decorator.undo
+    @undo
     def copy_skin_default(self):
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try: 
-            for src, tgt in self._pair_iter(oldMod, newMod):
-                copy_skinCluster_info.copy_skin_type([src, tgt], if_add=False)
-                mayaPrint.log(" {} >>> {} .".format(src, tgt))
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        for src, tgt in self._pair_iter(oldMod, newMod):
+            copy_skinCluster_info.copy_skin_type([src, tgt], if_add=False)
+            mayaPrint.log(" {} >>> {} .".format(src, tgt))
 
-    # @decorator.undo
+
+    @undo
     def copy_skin_add_node(self):
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try: 
-            for src, tgt in self._pair_iter(oldMod, newMod):
-                copy_skinCluster_info.copy_skin_type([src, tgt], if_add=True)
-                mayaPrint.log(" {} >>> {} .".format(src, tgt))
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        for src, tgt in self._pair_iter(oldMod, newMod):
+            copy_skinCluster_info.copy_skin_type([src, tgt], if_add=True)
+            mayaPrint.log(" {} >>> {} .".format(src, tgt))
 
-    # @decorator.undo
+
+    @undo
     def copy_skin_multi_to_one(self):
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try: 
-            copy_skinCluster_info.copy_multi_mesh_skins_to_one(oldMod, newMod)
-            mayaPrint.log(" copy Successfully.")
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        copy_skinCluster_info.copy_multi_mesh_skins_to_one(oldMod, newMod)
+        mayaPrint.log(" copy Successfully.")
 
-    # @decorator.undo
+
+    @undo
     def copy_blendshape(self):
         clean = self.clean_invild_cbx.isChecked()
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try: 
-            for src, tgt in self._pair_iter(oldMod, newMod):
-                _bsInfo.apply_copy_blendShape_Drefrom(Source=src, Object=tgt)
-                if clean:
-                    _bsInfo.CleanUpBS([tgt])
+        for src, tgt in self._pair_iter(oldMod, newMod):
+            _bsInfo.apply_copy_blendShape_Drefrom(Source=src, Object=tgt)
+            if clean:
+                _bsInfo.CleanUpBS([tgt])
 
-                mayaPrint.log("copy blendShape: {} >>> {} .".format(src, tgt))
-        finally:
-            cmds.undoInfo(closeChunk=True)
+            mayaPrint.log("copy blendShape: {} >>> {} .".format(src, tgt))
 
-    # @decorator.undo
+    @undo
     def copy_uv(self):
         import CopyEdit.copy_FFD_UV as copy_FFD_UV
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try: 
-            for src, tgt in self._pair_iter(oldMod, newMod):
-                copy_FFD_UV.transferUV(src, tgt)
-                mayaPrint.log("transferUV: {} >>> {} .".format(src, tgt))
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        for src, tgt in self._pair_iter(oldMod, newMod):
+            copy_FFD_UV.transferUV(src, tgt)
+            mayaPrint.log("transferUV: {} >>> {} .".format(src, tgt))
 
+    @undo
     def copy_ffd(self):
         import CopyEdit.copy_FFD_UV as copy_FFD_UV
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try:   
-            for src, tgt in self._pair_iter(oldMod, newMod):
-                copy_FFD_UV.ADDFFD(src, tgt)
-                mayaPrint.log("transferFFD: {} >>> {} .".format(src, tgt))
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        for src, tgt in self._pair_iter(oldMod, newMod):
+            copy_FFD_UV.ADDFFD(src, tgt)
+            mayaPrint.log("transferFFD: {} >>> {} .".format(src, tgt))
 
-    # @decorator.undo
+    @undo
     def grp_to_copy(self, Type):
         oldMod, newMod = self._get_src_tgt()
-        cmds.undoInfo(openChunk=True)
-        try:    
-            for src, tgt in self._pair_iter(oldMod, newMod):
-                if Type == 2:
-                    copy_skinCluster_info.grp_object_name_copy(src, tgt)
-                elif Type == 3:
-                    copy_skinCluster_info.grp_combine_copy_skin(src, tgt)
+        for src, tgt in self._pair_iter(oldMod, newMod):
+            if Type == 2:
+                copy_skinCluster_info.grp_object_name_copy(src, tgt)
+            elif Type == 3:
+                copy_skinCluster_info.grp_combine_copy_skin(src, tgt)
 
-            cmds.select(cl=1)
             mayaPrint.log(' group object copy Successfully.')
-        finally:
-            cmds.undoInfo(closeChunk=True)
 
 
 class PYCopyToolsDialog(PyouPersistentWindow):
