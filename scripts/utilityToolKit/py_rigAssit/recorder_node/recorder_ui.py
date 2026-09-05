@@ -15,10 +15,10 @@ License:
 import os
 from py_rigAssit import QtWidgets, QtCore, QtGui, QAction, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import Help, mayaPrint
-from py_rigAssit.recorder_node.recorder_snapshot import (extract_template, save_template_to,
+from recorder_node.recorder_snapshot import (extract_template, save_template_to,
                                load_template, list_templates, rename_template,
                                template_dir)
-from py_rigAssit.recorder_node.recorder_apply import apply_template
+from recorder_node.recorder_apply import apply_template
 from Utils.undo import undo
 import maya.cmds as cmds
 

@@ -168,7 +168,7 @@ QPushButton[main="true"] {
     color: #000;
     font-weight: bold;
     font-size: 12px;
-    min-height: 18px;    
+    min-height: 20px;    
     padding: 2px 4px;   
     
 }
