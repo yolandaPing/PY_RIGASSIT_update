@@ -173,6 +173,18 @@ QPushButton[main="true"] {
     
 }
 
+QPushButton[cld_main="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #d5d5d5, stop:1 #9eb0cb);
+    border-color: #8698ac;   
+    color: #000;
+    font-weight: bold;
+    font-size: 11px;
+    min-height: 18px;    
+    padding: 2px 4px;   
+    
+}
+
 /* background-color: #9edce4; */
 
 QPushButton[green="true"] {

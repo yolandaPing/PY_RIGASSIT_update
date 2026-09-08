@@ -34,17 +34,17 @@
         <button>
             <label>World</label>
             <tooltip><![CDATA[世界模式]]></tooltip>
-            <color><![CDATA[main]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>Return</label>
             <tooltip><![CDATA[恢复原状态]]></tooltip>
-            <color><![CDATA[main]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>Orient</label>
             <tooltip><![CDATA[骨骼定向工具]]></tooltip>
-            <color><![CDATA[main]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
     </category>
 
@@ -113,7 +113,7 @@
         <button>
             <label>InsertJoints</label>
             <tooltip><![CDATA[插入关节, 选择起始关节]]></tooltip>
-            <color><![CDATA[main]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
     </category>
 
@@ -131,7 +131,7 @@
         <button>
             <label>Auto IK Weight</label>
             <tooltip><![CDATA[选择模型自动权重（参与权重的关节需要按顺序的）]]></tooltip>
-            <color><![CDATA[main]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
     </category>
 

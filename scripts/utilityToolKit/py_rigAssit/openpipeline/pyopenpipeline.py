@@ -154,6 +154,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         except Exception as e:
             self.show_warning(u'错误', u"检查配置时出错: {}".format(str(e)))
 
+    #FBX配置管理
     def load_fbx_config(self):
         try:
             self.fbx_config = self.cfg.get_fbx_export_info()
@@ -748,36 +749,49 @@ class PYPenpipelineDialog(PyouPersistentWindow):
             return
         dlg = QtWidgets.QDialog(self)
         dlg.setWindowTitle(u'创建资产')
-        dlg.setFixedSize(320, 120)
+        dlg.setFixedSize(320, 150)
         lay = QtWidgets.QVBoxLayout()
 
-        r = QtWidgets.QHBoxLayout()
-        r.addWidget(QtWidgets.QLabel(u'资产名称:'))
+        r_name = QtWidgets.QHBoxLayout()
+        r_name.addWidget(_widgets.create_text(u'名称:'))
         self.new_asset_name = QtWidgets.QLineEdit()
-        r.addWidget(self.new_asset_name)
+        r_name.addWidget(self.new_asset_name)
 
         btn_row = QtWidgets.QHBoxLayout()
-        ok = QtWidgets.QPushButton(u'创建')
+        btn_row.addWidget(_widgets.create_text(u'级别:'))
+        self.new_asset_level = QtWidgets.QComboBox()
+        self.new_asset_level.setEditable(True)
+        self.new_asset_level.addItems(['No', 'S', 'A', 'B', 'C', 'D'])
+        self.new_asset_level.setFixedWidth(60)
+        self.new_asset_level.setCurrentText('No')
+        btn_row.addWidget(self.new_asset_level)
+
+        ok = QtWidgets.QPushButton(u' 创建 ')
         ok.clicked.connect(lambda: self._create_asset(dlg))
-        cancel = QtWidgets.QPushButton(u'取消')
+        cancel = QtWidgets.QPushButton(u' 取消 ')
         cancel.clicked.connect(dlg.reject)
         btn_row.addStretch()
         btn_row.addWidget(ok)
         btn_row.addWidget(cancel)
 
-        lay.addLayout(r)
+        lay.addLayout(r_name)
         lay.addLayout(btn_row)
         dlg.setLayout(lay)
         dlg.exec_()
 
+    def _get_asset_level(self, asset_type, asset_name):
+        """从资产目录下的 info.json 读取级别，若文件不存在或读取失败返回 None"""
+        return self.pm.get_asset_level(asset_type, asset_name)
+
     def _create_asset(self, dlg):
         name = self.new_asset_name.text().strip()
+        level = self.new_asset_level.currentText().strip()
         self.btn_delete_asset.setEnabled(False)
         self.btn_delete_asset.setVisible(False)
         if not name:
             self.show_warning(u'错误', u'请输入资产名称')
             return
-        if self.pm.create_asset(self.current_asset_type, name):
+        if self.pm.create_asset(self.current_asset_type, name, level):
             dlg.accept()
             self.load_assets()
             self.show_info(u'成功', u'资产 {name} 创建完成'.format(name=name))
@@ -874,7 +888,12 @@ class PYPenpipelineDialog(PyouPersistentWindow):
     def on_asset_clicked(self, item):
         self.selected_asset = item.text()
         self.selected_subtype = None
-        self.info_label.setText(u'资产: {asset}'.format(asset=self.selected_asset))
+
+        level = self._get_asset_level(self.selected_asset)
+        level_display = level if level else 'No'   # 兼容旧资产info.json没有level显示 "No"
+        display_text = u'资产: {level} > {asset}'.format(level=level_display, asset=self.selected_asset)
+        self.info_label.setText(display_text)
+
         self.load_subtypes()
         self.btn_delete_asset.setEnabled(True)
         self.btn_delete_asset.setVisible(True)
@@ -885,7 +904,6 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.show_asset_preview(self.current_asset_type, self.selected_asset)
         self.clear_right()
         self.show_version_count(0)
-        # self.cfg.set_last_select_asset(self.selected_asset)
         self.cfg.update_last_info(self.maya_version, asset=self.selected_asset)
 
     def load_subtypes(self):
