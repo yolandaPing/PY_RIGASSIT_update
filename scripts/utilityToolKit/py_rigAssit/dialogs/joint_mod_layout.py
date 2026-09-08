@@ -456,8 +456,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         main_layout.setSpacing(4)
         group = QtWidgets.QGroupBox(u"自动优化/拆分权重类型:")
         layout = QtWidgets.QVBoxLayout(group)
-        btn_layout = QtWidgets.QHBoxLayout()
-
         self.sk_optimize_block = _widgest.create_radiogroup(
             title="",
             items=[
@@ -475,22 +473,14 @@ class PYJointEditLayout(PyouPersistentWindow):
         sk_optimize_help_btn.clicked.connect(lambda: Help.HelpImage("", "optimize_skin_tool"))
         group2 = QtWidgets.QGroupBox(u"Curve计算权重(Maya 2022 and above):")
         layout2 = QtWidgets.QVBoxLayout(group2)
-        btn_layout2 = QtWidgets.QHBoxLayout()
         self.sk_mesh_block = _widgest.create_radiogroup(
             title="Mesh type:",
-            items=[
-                ("Linear(条状)", 1, u"条状"),
-                ("Circular(环形) ", 2, u"环形，闭合"),
-            ],
+            items=[("Linear(条状，柱状)", 1), ("Circular(环形，闭合) ", 2)],
             default_id=1
         )
         self.sk_curve_type_block = _widgest.create_radiogroup(
             title="Degree:",
-            items=[
-                ("1", 1, u"条状"),
-                ("2", 2, u"环形，闭合"),
-                ("3", 3, u"环形，闭合"),
-            ],
+            items=[("1", 1, u"1线性"), ("2", 2), ("3", 3, u"3立方")],
             default_id=3
         )
 
