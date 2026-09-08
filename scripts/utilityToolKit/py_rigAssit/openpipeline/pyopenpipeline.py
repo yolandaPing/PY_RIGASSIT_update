@@ -889,7 +889,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.selected_asset = item.text()
         self.selected_subtype = None
 
-        level = self._get_asset_level(self.selected_asset)
+        level = self._get_asset_level(self.current_asset_type, self.selected_asset)
         level_display = level if level else 'No'   # 兼容旧资产info.json没有level显示 "No"
         display_text = u'资产: {level} > {asset}'.format(level=level_display, asset=self.selected_asset)
         self.info_label.setText(display_text)
