@@ -1,6 +1,6 @@
 {
   "tip":[
-  "0.6.3.3",
+  "0.6.3.4",
   "2022-2026",
   "https://github.com/yolandaPing/PY_RIGASSIT.get",
   "https://github.com/yolandaPing/PY_RIGASSIT_update",
@@ -47,7 +47,7 @@
   "2026-06-11. v 06.2.0   添加 soft split 转权重（想学的去看萌芽的教程）",
   "2026-06-28. v 06.3.0   IKFK System 内部使用uvpin， 新版模型生成关节链工具",
   "2026-07-04. v 06.3.2   修复生长动画和履带绑定功能",
-  "2026-09-06. v 06.3.3   修改体积骨骼约束，openpipline添加资产级别和颜色标签"
+  "2026-09-06. v 06.3.4   修改修型系统矩阵方式;openpipline添加资产级别和颜色标签;"
 ],
   "jointEdit":[
   "4.1.0",
@@ -90,12 +90,12 @@
   "https://space.bilibili.com/3493142019967757?spm_id_from=333.1007.0.0"
 ],
   "rbfPosetool":[
-  "2.6.5",
+  "2.6.6",
   "2024-2026",
   "https://www.bilibili.com/video/BV1tfz6YAE8D/?share_source=copy_web&vd_source=7b50d73ef3e3d9c8d5f26b106034eb71"
 ],
    "dirPosetool":[
-  "1.1.1",
+  "1.1.2",
   "2023-2026",
   "https://www.bilibili.com/video/BV1WmwjzGE2m/?share_source=copy_web&vd_source=7b50d73ef3e3d9c8d5f26b106034eb71"
 ],
