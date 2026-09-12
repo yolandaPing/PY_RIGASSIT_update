@@ -611,7 +611,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.numpy_batch_exp_btn.clicked.connect(exp_inp_skinClusterIO.batch_save)
         self.numpy_batch_imp_btn.clicked.connect(exp_inp_skinClusterIO.batch_load)
         self.sk_optimize_btn.clicked.connect(self.execute_optimize_weight)
-        self.sk_curve_convert_btn.clicked.connect(self.execute_optimize_weight)
+        self.sk_curve_convert_btn.clicked.connect(self.curve_split_weight)
         self.sk_copy_btn.clicked.connect(self.run_batch_copy_skin)
         self.sk_source_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.sk_source_filed, "mesh"))
         self.skin_other_middle_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.skin_other_middle_filed, "joint"))
@@ -845,9 +845,11 @@ class PYJointEditLayout(PyouPersistentWindow):
             self.dispatcher.execute(map[self.sk_optimize_block.checkedId()])
 
     def curve_split_weight(self):
+        typ = self.sk_mesh_block.checkedId()
+        degree = self.sk_curve_type_block.checkedId()
         if hasattr(self, "dispatcher"):
-            self.dispatcher.execute("Curve Split",
-                                    [self.sk_mesh_block.checkedId(), self.sk_curve_type_block.checkedId()])
+            print([typ, degree])
+            self.dispatcher.execute("Curve Split", [typ, degree])
 
     def run_action(self, text):
         print("Run:", text)

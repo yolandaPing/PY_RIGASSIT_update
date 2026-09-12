@@ -258,9 +258,7 @@ def run_wire_convert_weight(ui):
         import DefromConvertWeight.wire_deltamush_tension_to_weight as defromer_convert_weight
         defromer_convert_weight.run_wire_convert_weight()
     except ImportError as e:
-        mayaPrint.warning(
-            "Import failed: {}".format(e)
-        )
+        mayaPrint.warning("Import failed: {}".format(e))
 
 
 @CommandDispatcher.register("Split Weight")
@@ -271,9 +269,7 @@ def run_wire_split_weight(ui):
         import DefromConvertWeight.wire_deltamush_tension_to_weight as defromer_convert_weight
         defromer_convert_weight.run_wire_split_weight()
     except ImportError as e:
-        mayaPrint.warning(
-            "Import failed: {}".format(e)
-        )
+        mayaPrint.warning("Import failed: {}".format(e))
 
 
 @CommandDispatcher.register("DeltaMush Weight")
@@ -284,9 +280,7 @@ def run_defrom_convert_weight(ui):
         import DefromConvertWeight.wire_deltamush_tension_to_weight as defromer_convert_weight
         defromer_convert_weight.run_defrom_convert_weight()
     except ImportError as e:
-        mayaPrint.warning(
-            "Import failed: {}".format(e)
-        )
+        mayaPrint.warning("Import failed: {}".format(e))
 
 
 @CommandDispatcher.register("Divisions Weight")
@@ -297,14 +291,12 @@ def smooth_convert_weight(ui):
         import DefromConvertWeight.wire_deltamush_tension_to_weight as defromer_convert_weight
         defromer_convert_weight.smooth_convert_weight()
     except ImportError as e:
-        mayaPrint.warning(
-            "Import failed: {}".format(e)
-        )
+        mayaPrint.warning("Import failed: {}".format(e))
 
 
 @CommandDispatcher.register("Curve Split")
 @decorator.undo
-def curve_split_weight(ui, types):
+def curve_split_weight(ui, infos):
     from Utils.attr_name import PyAttrUtils
     from PyUtils import PyObjectUtils
     import DefromConvertWeight.auto_nurbs_convert_skinWeight as auto_curve_convert_skinWeight
@@ -312,8 +304,8 @@ def curve_split_weight(ui, types):
     AttrUtils = PyAttrUtils()
     ObjectUtils = PyObjectUtils()
 
-    Type = types[0]
-    degree = types[1]
+    typ = infos[0]
+    degree = infos[1]
 
     sels = cmds.ls(sl=1)
     if sels:
@@ -330,17 +322,18 @@ def curve_split_weight(ui, types):
                 continue
 
             skin_joints_list = cmds.skinCluster(skin_node, q=True, inf=True)
-            if Type == 1:
-                curve = ObjectUtils.createCurveforObj(skin_joints_list)
-                auto_curve_convert_skinWeight.main(skin_joints_list, curve, mesh, degree)
-            else:
-                curve = cmds.circle(c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=1, d=3, ut=0, tol=0.01, s=len(skin_joints_list), ch=0, name="temp_cur")[0]
+            if typ != 1:
+                curve = cmds.circle(c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=1, d=3, ut=0, tol=0.01, s=len(skin_joints_list), ch=0,
+                            name="temp_cur")[0]
                 jnt = skin_joints_list[1::]
                 jnt.append(skin_joints_list[0])
-                for i, c in zip(skin_joints_list, cmds.ls("{}.cv[0:]".format(curve), fl=1)):
+                for i, c in zip(skin_joints_list, cmds.ls("{}.cv[*]".format(curve), fl=1)):
                     pos = cmds.xform(i, query=1, a=1, translation=1, worldSpace=1)
                     cmds.xform(c, t=pos)
                 auto_curve_convert_skinWeight.main(jnt, curve, mesh, degree)
+            else:
+                curve = ObjectUtils.createCurveforObj(skin_joints_list)
+                auto_curve_convert_skinWeight.main(skin_joints_list, curve, mesh, degree)
 
             cmds.delete(curve)
             mayaPrint.log(u"{} is complete.".format(mesh))
