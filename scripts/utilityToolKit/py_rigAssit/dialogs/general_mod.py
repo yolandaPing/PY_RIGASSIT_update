@@ -304,6 +304,8 @@ class PYGeneralLayout(QtWidgets.QDialog):
         self.min_value_field = QtWidgets.QSpinBox()
         self.max_value_field = QtWidgets.QSpinBox()
         self.default_value_field = QtWidgets.QSpinBox()
+        for f in (self.min_value_field, self.max_value_field, self.default_value_field):
+            f.setRange(-500, 500)
         self.proxy_cbx = py_widgets.add_checkbox('Is Proxy ?(代理属性不可单独使用)')
         self.add_attr_hit = py_widgets.create_text(u"Enum first is the attribute name, then the internal object name\nEnum: 第一个名称是属性名，然后开个后全部是内部对象名")
         name_layout, self.add_attr_name_field = py_widgets.create_QLineEdit_grp("Attribute Name:")

@@ -845,11 +845,9 @@ class PYJointEditLayout(PyouPersistentWindow):
             self.dispatcher.execute(map[self.sk_optimize_block.checkedId()])
 
     def curve_split_weight(self):
-        typ = self.sk_mesh_block.checkedId()
-        degree = self.sk_curve_type_block.checkedId()
         if hasattr(self, "dispatcher"):
-            print([typ, degree])
-            self.dispatcher.execute("Curve Split", [typ, degree])
+            self.dispatcher.execute("Curve Split",
+                                    [self.sk_mesh_block.checkedId(), self.sk_curve_type_block.checkedId()])
 
     def run_action(self, text):
         print("Run:", text)

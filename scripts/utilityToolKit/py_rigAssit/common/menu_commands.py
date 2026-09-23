@@ -288,10 +288,7 @@ def InsertJoints(ui):
 
 @CommandDispatcher.register("Convert Drivenkeys")
 def animkeys_to_drivenkeys(ui):
-    __import__(
-        'py_rigAssit.dialogs.convert_drivenkeys_ui',
-        fromlist=['main']
-    ).main()
+    __import__('py_rigAssit.dialogs.convert_drivenkeys_ui',fromlist=['main']).main()
 
 
 @CommandDispatcher.register("BlendShape Exp/Imp")
@@ -302,11 +299,24 @@ def exp_imp_data_tool(ui):
 
 @CommandDispatcher.register("Curve Snape")
 def snape_curve_tool(ui):
-    from py_rigAssit.general_mod.snape_curve import show
-    show()
-
+    __import__('py_rigAssit.general_mod.snape_curve', fromlist=['show']).show()
 
 @CommandDispatcher.register("Compare Groups")
 def compare_groups(ui):
-    from py_rigAssit.model_mod.compare_groups import show_ui
-    show_ui()
+    __import__('py_rigAssit.model_mod.compare_groups', fromlist=['show_ui']).show_ui()
+
+@CommandDispatcher.register("Attr Connect")
+def batch_attr_connect(ui):
+    __import__('py_rigAssit.dialogs.batch_attr_connect', fromlist=['show']).show()
+
+@CommandDispatcher.register("brSmoothWeights")
+def brSmoothWeights(ui):
+    if not cmds.pluginInfo('brSmoothWeights', q=True, l=True):
+        cmds.loadPlugin('brSmoothWeights')
+    mel.eval("brSmoothWeightsToolCtx; toolPropertyWindow;")
+
+@CommandDispatcher.register("Skinner")
+def skinner(ui):
+    import skinner.window as skinWin
+    skinWin.App()
+

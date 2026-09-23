@@ -7,6 +7,7 @@
 # .Finish time:
 import os, webbrowser
 import traceback
+import xml.etree.ElementTree as ET
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, QAction, Widgets, PyouPersistentWindow
 from py_rigAssit.dialogs import base_dir, icon_dir
@@ -24,6 +25,86 @@ _widgest = Widgets()
 _WINDOW_CACHE = None
 
 
+_MENU_CONFIG_CACHE = None
+_MENU_CONFIG_FILE = "menu_config.xml"
+
+
+def load_menu_config(force_reload=False):
+    """
+    读取 menu_config.xml（带缓存）。
+    返回: { menu_name: [item_dict, ...] }
+
+    item_dict:
+        {"type": "separator"}
+        {
+            "type": "item",
+            "label": str,
+            "command": str or None,
+            "bold": bool,
+            "enabled": bool,
+            "checkable": bool,
+            "checked": bool,
+            "item_id": str or None,
+        }
+    """
+    global _MENU_CONFIG_CACHE
+    if _MENU_CONFIG_CACHE is not None and not force_reload:
+        return _MENU_CONFIG_CACHE
+
+    xml_path = os.path.join(os.path.dirname(__file__), _MENU_CONFIG_FILE)
+    data = {}
+
+    if not os.path.exists(xml_path):
+        print("[menu_config] not found: {}".format(xml_path))
+        _MENU_CONFIG_CACHE = data
+        return data
+
+    try:
+        root = ET.parse(xml_path).getroot()
+    except Exception as e:
+        print("[menu_config] parse failed: {}".format(e))
+        _MENU_CONFIG_CACHE = data
+        return data
+
+    def _bool(el, key, default=False):
+        v = el.get(key)
+        if v is None:
+            return default
+        return v.strip().lower() in ("1", "true", "yes", "on")
+
+    for menu_el in root.findall("menu"):
+        menu_name = (menu_el.get("name") or "").strip()
+        if not menu_name:
+            continue
+
+        items = []
+        for child in menu_el:
+            tag = child.tag.lower()
+
+            if tag == "separator":
+                items.append({"type": "separator"})
+                continue
+
+            if tag != "item":
+                continue
+
+            items.append({
+                "type": "item",
+                "label": (child.get("label") or "").strip(),
+                "command": (child.get("command") or "").strip() or None,
+                "bold": _bool(child, "bold", False),
+                "enabled": _bool(child, "enabled", True),
+                "checkable": _bool(child, "checkable", False),
+                "checked": _bool(child, "checked", False),
+                "item_id": (child.get("id") or "").strip() or None,
+            })
+
+        data[menu_name] = items
+
+    _MENU_CONFIG_CACHE = data
+    return data
+
+
 def return_checkBox(item_text, state):
 
     key_map = {
@@ -36,6 +117,7 @@ def return_checkBox(item_text, state):
     if key:
         ud.set_value(key, bool(state))
         setattr(ud, key, bool(state))
+
 
 def copy_to_clipboard(text, msg=None):
     QtWidgets.QApplication.clipboard().setText(text)
@@ -101,7 +183,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         timeStamp = "2022-2026"
         webs = None
 
-    # ---------------- INIT ----------------
     def __init__(self, dialog_data, parent=None):
 
         super(PYRiggingDialogManager, self).__init__(
@@ -118,7 +199,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         self.dispatcher = CommandDispatcher()
 
-        # FIX：防 Qt GC
+        # FIX防 Qt GC
         self._actions = []
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -135,7 +216,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         self.loadWindowSettings()
         self.setFocus()
 
-
     def build_ui(self):
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -147,12 +227,13 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         self.build_footer()
         self.init_marking_menu()
 
-
     def build_menu_bar(self):
 
         self.menu_bar = QtWidgets.QMenuBar()
 
-        def add(menu, label, callback=None, checkable=False, checked=False, item_id=None, bold=False):
+        # 单个 QAction 生成器
+        def add(menu, label, callback=None, checkable=False, checked=False,
+                item_id=None, bold=False):
 
             act = QAction(label, self)  # FIX parent
 
@@ -182,6 +263,37 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
             return act
 
+        # 根据 XML 生成一个菜单
+        def build_from_config(menu_name):
+            menu = self.menu_bar.addMenu(menu_name)
+            items = load_menu_config().get(menu_name, [])
+
+            for item in items:
+                if item["type"] == "separator":
+                    menu.addSeparator()
+                    continue
+
+                cmd = item.get("command")
+                callback = (
+                    (lambda *a, c=cmd: self.dispatcher.execute(c))
+                    if cmd else None
+                )
+
+                act = add(
+                    menu,
+                    item["label"],
+                    callback=callback,
+                    checkable=item.get("checkable", False),
+                    checked=item.get("checked", False),
+                    item_id=item.get("item_id"),
+                    bold=item.get("bold", False),
+                )
+
+                if not item.get("enabled", True):
+                    act.setEnabled(False)
+
+            return menu
+
         # ---------------- ABOUT ----------------
         about = self.menu_bar.addMenu("About")
 
@@ -195,49 +307,12 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         add(about, u"Quark 夸克网盘", callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
         add(about, "About", callback=self.show_about)
 
-        # ---------------- CLEAR ----------------
-        clear = self.menu_bar.addMenu("Clear")
-        add(clear, "Clean NameSpace",
-            callback=lambda: self.dispatcher.execute("Clean NameSpace"))
-        add(clear, "Optimize Scene",
-            callback=lambda: self.dispatcher.execute("Optimize Scene"))
-        clear.addSeparator()
-        add(clear, "Check Scene Name",
-            callback=lambda: self.dispatcher.execute("Check Scene Name"), bold=True)
-        add(clear, "Delete Unused Nodes",
-            callback=lambda: self.dispatcher.execute("Delete Unused Nodes"), bold=True)
-        add(clear, "Delete unknown Node",
-            callback=lambda: self.dispatcher.execute("Delete unknown Node"), bold=True)
-        add(clear, "Delete unUsedOrig",
-            callback=lambda: self.dispatcher.execute("Delete unUsedOrig"), bold=True)
-        clear.addSeparator()
-        add(clear, "Delete unDisplayPoint",
-            callback=lambda: self.dispatcher.execute("Delete unDisplayPoint"))
-        add(clear, "Delete unUsedPlug",
-            callback=lambda: self.dispatcher.execute("Delete unUsedPlug"))
-        add(clear, "Delete unUsedDagPose",
-            callback=lambda: self.dispatcher.execute("Delete unUsedDagPose"))
-        add(clear, "UnLockNode selected",
-            callback=lambda: self.dispatcher.execute("UnLockNode selected"))
-        add(clear, "UnLockNode Scene",
-            callback=lambda: self.dispatcher.execute("UnLockNode Scene"), bold=True)
-        add(clear, "UnLock initialShading",
-            callback=lambda: self.dispatcher.execute("UnLock initialShading"), bold=True)
+        # ---------------- CLEAR  (XML driven) ----------------
+        build_from_config("Clear")
 
-        # ---------------- TOOL ----------------
-        tool = self.menu_bar.addMenu("Tool")
-        tool.addAction("Script Editor").setEnabled(False)
-        add(tool, "Maya Script Editor",
-            callback=lambda: self.dispatcher.execute("Maya Script Editor"))
-        add(tool, "CharcoalEditor2",
-            callback=lambda: self.dispatcher.execute("CharcoalEditor2"))
-        tool.addAction("Other").setEnabled(False)
-        add(tool, "Curve Snape",
-            callback=lambda: self.dispatcher.execute("Curve Snape"))
-        add(tool, "Compare Groups",
-            callback=lambda: self.dispatcher.execute("Compare Groups"))
-        add(tool, "BlendShape Exp/Imp",
-            callback=lambda: self.dispatcher.execute("BlendShape Exp/Imp"))
+        # ---------------- TOOL   (XML driven) ----------------
+        build_from_config("Tool")
+
         # ---------------- OPTIONS ----------------
         opt = self.menu_bar.addMenu("Options")
         opt.addAction("Convenient").setEnabled(False)
@@ -255,7 +330,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             callback=self.reload_theme)
 
         self.main_layout.setMenuBar(self.menu_bar)
-
 
     def build_logo_area(self):
 
@@ -300,7 +374,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             )
         )
 
-
     def build_tabs(self):
 
         self.tabs = QtWidgets.QTabWidget()
@@ -324,7 +397,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         self.tabs.currentChanged.connect(self._load_tab)
         self._load_tab(0)
-
 
     def _load_tab(self, idx):
 
@@ -352,7 +424,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             traceback.print_exc()
 
         state["loaded"] = True
-
 
     def build_footer(self):
         _widgest.create_copyrightText(
@@ -391,7 +462,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         ], self)
 
-        self.mm_shift= PYMarkingMenuLite([
+        self.mm_shift = PYMarkingMenuLite([
             (" OLD PY_RIGASSIT", lambda: self.dispatcher.execute("OLD PY_RIGASSIT")),
             (" Rename", lambda: self.dispatcher.execute("Rename")),
             (" Joint Orient ", lambda: self.dispatcher.execute("Joint Orient")),
@@ -408,6 +479,8 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         dlg.show()
 
     def reload_theme(self):
+        # 重新加载 XML 菜单配置（下次重建窗口生效）
+        load_menu_config(force_reload=True)
         try:
             ThemeManager.reload(self)
         except:
@@ -457,7 +530,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         super(PYRiggingDialogManager, self).mousePressEvent(event)
 
-
     def closeEvent(self, event):
 
         try:
@@ -466,7 +538,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             pass
 
         PyouPersistentWindow.closeEvent(self, event)
-
 
 
 def show(dialog_data):

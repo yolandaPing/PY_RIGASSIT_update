@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menus>
+
+    <!-- ============ Clear ============ -->
+    <menu name="Clear">
+        <item label="Clean NameSpace"        command="Clean NameSpace"/>
+        <item label="Optimize Scene"         command="Optimize Scene"/>
+        <separator/>
+        <item label="Check Scene Name"       command="Check Scene Name"        bold="true"/>
+        <item label="Delete Unused Nodes"    command="Delete Unused Nodes"     bold="true"/>
+        <item label="Delete unknown Node"    command="Delete unknown Node"     bold="true"/>
+        <item label="Delete unUsedOrig"      command="Delete unUsedOrig"       bold="true"/>
+        <separator/>
+        <item label="Delete unDisplayPoint"  command="Delete unDisplayPoint"/>
+        <item label="Delete unUsedPlug"      command="Delete unUsedPlug"/>
+        <item label="Delete unUsedDagPose"   command="Delete unUsedDagPose"/>
+        <item label="UnLockNode selected"    command="UnLockNode selected"/>
+        <item label="UnLockNode Scene"       command="UnLockNode Scene"        bold="true"/>
+        <item label="UnLock initialShading"  command="UnLock initialShading"   bold="true"/>
+    </menu>
+
+    <!-- ============ Tool ============ -->
+    <menu name="Tool">
+        <item label="Script Editor" enabled="false"/>
+        <item label="Maya Script Editor"     command="Maya Script Editor"/>
+        <item label="CharcoalEditor2"        command="CharcoalEditor2"/>
+        
+        <item label="SKIN" enabled="false"/>
+        <item label="brSmoothWeights"            command="brSmoothWeights"/>
+        <item label="Skinner"            command="Skinner"/>
+
+        <item label="OTHER" enabled="false"/>
+        <item label="Curve Snape"            command="Curve Snape"/>
+        <item label="Compare Groups"         command="Compare Groups"/>
+        <item label="BlendShape Exp/Imp"     command="BlendShape Exp/Imp"/>
+        <item label="Attr Connect"           command="Attr Connect"/>
+        
+    </menu>
+
+</menus>

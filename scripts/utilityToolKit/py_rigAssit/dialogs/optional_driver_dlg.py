@@ -11,7 +11,7 @@ from py_rigAssit.common.command_dispatcher import CommandDispatcher
 import py_rigAssit.common.commands
 from selectOrRemove import SelectOrremoveObj
 from ConstrainEdit.Multifunctional_Drive import MultifunctionalDrive
-from py_rigAssit.dialogs import Help, decorator, mayaPrint
+from py_rigAssit.dialogs import Help, decorator, mayaPrint, undo
 
 import maya.cmds as cmds
 
@@ -288,29 +288,22 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
 
         splitter.setSizes([100, 100])
 
-        # ===== 左 =====
         l_layout = QtWidgets.QVBoxLayout(frame1)
         l_layout.setContentsMargins(8, 0, 4, 4)
-        # self.driver_list = QtWidgets.QListWidget()
         self.driver_list = SafeListWidget()
         self.driver_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-
         self.load_driver_btn = QtWidgets.QPushButton("Load")
         self.load_driver_btn.setProperty("green", True)
-
         l_layout.addWidget(QtWidgets.QLabel("Driver"))
         l_layout.addWidget(self.driver_list)
-
         l_layout.addWidget(self.load_driver_btn)
-        # ===== 右 =====
+
         r_layout = QtWidgets.QVBoxLayout(frame2)
         r_layout.setContentsMargins(4, 0, 8, 4)
-        # self.driven_list = QtWidgets.QListWidget()
         self.driven_list = SafeListWidget()
         self.driven_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.load_driven_btn = QtWidgets.QPushButton("Load")
         self.load_driven_btn.setProperty("green", True)
-
         r_layout.addWidget(QtWidgets.QLabel("Driven"))
         r_layout.addWidget(self.driven_list)
 
@@ -360,7 +353,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         # 创建并添加"Buttons"的折叠框
         self.frame_button_con = PY_WIDGEAT.create_collapsible_frame("Constraints / Connect (约束/链接)", True)
         main_layout = QtWidgets.QVBoxLayout()
-        # main_layout.setSpacing(4)
+        main_layout.setSpacing(4)
         checkbox_layout = QtWidgets.QHBoxLayout()
         self.parent_cbx = QtWidgets.QCheckBox(' Parent')
         self.point_cbx = QtWidgets.QCheckBox(' Point')
@@ -371,20 +364,23 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         checkbox_layout.addWidget(self.orient_cbx)
         checkbox_layout.addWidget(self.scale_cbx)
         button_layout = QtWidgets.QHBoxLayout()
-        self.Constraints_btn = QtWidgets.QPushButton('Constraint 约束')
-        self.Constraints_btn.setProperty("main", True)
-        self.Connect_btn = QtWidgets.QPushButton('Connect 链接')
-        self.Connect_btn.setProperty("main", True)
+        self.Constraints_btn = QtWidgets.QPushButton('Constraint')
+        self.Connect_btn = QtWidgets.QPushButton('Connect')
+        self.Matrix_btn = QtWidgets.QPushButton('Matrix')
         self.Help_btn_con = QtWidgets.QPushButton()
         self.Help_btn_con.setIcon(QtGui.QIcon(":\help.png"))
         self.Help_btn_con.setProperty("help", True)
-        button_layout.addWidget(self.Constraints_btn, 5)
-        button_layout.addWidget(self.Connect_btn, 5)
+        for bn, tip in zip([self.Constraints_btn, self.Connect_btn, self.Matrix_btn], ['约束', '链接', '矩阵约束']):
+            bn.setProperty("main", True)
+            bn.setToolTip(tip)
+        button_layout.addWidget(self.Constraints_btn, 3)
+        button_layout.addWidget(self.Connect_btn, 3)
+        button_layout.addWidget(self.Matrix_btn, 3)
         button_layout.addWidget(self.Help_btn_con, 0)
         main_layout.addWidget(PY_WIDGEAT.create_text("无需载入属性，直接载入对象，选中需要的类型", 12))
         main_layout.addWidget(QtWidgets.QLabel("Type: "))
         main_layout.addLayout(checkbox_layout)
-        # PY_WIDGEAT.separator(main_layout)
+
         main_layout.addWidget(QtWidgets.QLabel(""))
         main_layout.addLayout(button_layout)
         self.frame_button_con.setContentLayout(main_layout)
@@ -409,7 +405,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         checkbox_layout.addWidget(self.pre_Cycle_cbx)
         checkbox_layout.addWidget(self.post_Cycle_cbx)
 
-        decimals = 4
         driver_label = QtWidgets.QLabel("Driver value: ")
         self.driver_field1 = QtWidgets.QDoubleSpinBox()
         self.driver_field2 = QtWidgets.QDoubleSpinBox()
@@ -420,21 +415,11 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.driven_field2 = QtWidgets.QDoubleSpinBox()
         self.driven_field3 = QtWidgets.QDoubleSpinBox()
 
-        # 设置小数点后5位
-        self.driver_field1.setDecimals(decimals)
-        self.driver_field2.setDecimals(decimals)
-        self.driver_field3.setDecimals(decimals)
-        self.driven_field1.setDecimals(decimals)
-        self.driven_field2.setDecimals(decimals)
-        self.driven_field3.setDecimals(decimals)
-
-        # 设置范围
-        self.driver_field1.setRange(-500.0, 500.0)
-        self.driver_field2.setRange(-500.0, 500.0)
-        self.driver_field3.setRange(-500.0, 500.0)
-        self.driven_field1.setRange(-500.0, 500.0)
-        self.driven_field2.setRange(-500.0, 500.0)
-        self.driven_field3.setRange(-500.0, 500.0)
+        # 设置小数点后4位
+        decimals = 4
+        for f in (self.driver_field1, self.driver_field2, self.driver_field3,self.driven_field1, self.driven_field2, self.driven_field3):
+            f.setDecimals(decimals)
+            f.setRange(-500.0, 500.0)
 
         driver_field_layout = QtWidgets.QHBoxLayout()
         driven_field_layout = QtWidgets.QHBoxLayout()
@@ -643,6 +628,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.parent_cbx.stateChanged.connect(self._constrain_parent_Toggled)
         self.Constraints_btn.clicked.connect(partial(self.constraints_apply, False))
         self.Connect_btn.clicked.connect(partial(self.constraints_apply, True))
+        self.Matrix_btn.clicked.connect(partial(self.matrix_apply))
         self.Help_btn_con.clicked.connect(partial(self._show_img, "drive_con"))
         self.apply_btn_sdk.clicked.connect(self.set_driveKey_apply)
         self.help_btn_sdk.clicked.connect(partial(self._show_img, "drive_setKey"))
@@ -787,47 +773,67 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         Value = self.optional_block.checkedId()
         imgs = ["optional_parent", "optional_connectAttr", "optional_inverseMatrix_skin", "optional_addBS"]
         Help.HelpImage("", imgs[Value - 1])
+        
+    def _list_objects(self):
+        return self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
 
+    @undo
     def optional_apply(self):
         closest = self.parent_closest_cbx.isChecked()
         checked_type = self.optional_block.checkedId()
-        cmds.undoInfo(openChunk=True)
-        try:
-            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-            self._mfd.apply_Optional(driver, driven, checked_type, closest)
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        driver, driven = self._list_objects()
+        self._mfd.apply_Optional(driver, driven, checked_type, closest)
 
+    @undo
     def constraints_apply(self, connect=False, *args):
         parent = self.parent_cbx.isChecked()
         point = self.point_cbx.isChecked()
         orient = self.orient_cbx.isChecked()
         scale = self.scale_cbx.isChecked()
-        cmds.undoInfo(openChunk=True)
-        try:
-            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-            print(driver, driven)
-            if connect:
-                self._mfd.create_connect(driver, driven, [parent, point, orient, scale])
-            else:
-                self._mfd.create_constraint(driver, driven, [parent, point, orient, scale])
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        driver, driven = self._list_objects()
+        if connect:
+            self._mfd.create_connect(driver, driven, [parent, point, orient, scale])
+        else:
+            self._mfd.create_constraint(driver, driven, [parent, point, orient, scale])
 
+    @undo
+    def matrix_apply(self, *args):
+        from ConstrainEdit.matrix_constrain import all_matrix, point_matrix, orient_matrix, scale_matrix
+        parent = self.parent_cbx.isChecked()
+        point = self.point_cbx.isChecked()
+        orient = self.orient_cbx.isChecked()
+        scale = self.scale_cbx.isChecked()
+        driver, driven = self._list_objects()
+        if parent and scale:
+            for dri, drn in _pair_iter(driver, driven):
+                all_matrix(dri, drn, True)
+        elif point and orient and scale:
+            for dri, drn in _pair_iter(driver, driven):
+                all_matrix(dri, drn, True)
+        elif parent:
+            for dri, drn in _pair_iter(driver, driven):
+                all_matrix(dri, drn, False)
+        elif point:
+            for dri, drn in _pair_iter(driver, driven):
+                point_matrix(dri, drn)
+        elif orient:
+            for dri, drn in _pair_iter(driver, driven):
+                orient_matrix(dri, drn)
+        elif scale:
+            for dri, drn in _pair_iter(driver, driven):
+                scale_matrix(dri, drn)
+        mayaPrint.log('succeeded!')
+
+    @undo
     def set_driveKey_apply(self):
-
         driver_value = [self.driver_field1.value(), self.driver_field2.value(), self.driver_field3.value()]
         driven_value = [self.driven_field1.value(), self.driven_field2.value(), self.driven_field3.value()]
         pre_Cycle = self.pre_Cycle_cbx.isChecked()
         post_Cycle = self.post_Cycle_cbx.isChecked()
-        cmds.undoInfo(openChunk=True)
-        try:
-            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-            driver_value, driven_value = self._mfd.sift_list_value(driver_value, driven_value)
+        driver, driven = self._list_objects()
+        driver_value, driven_value = self._mfd.sift_list_value(driver_value, driven_value)
+        self._mfd.SetDrivenKey(driver, driven, driver_value, driven_value, pre_Cycle, post_Cycle)
 
-            self._mfd.SetDrivenKey(driver, driven, driver_value, driven_value, pre_Cycle, post_Cycle)
-        finally:
-            cmds.undoInfo(closeChunk=True)
 
     def copy_sdk_apply(self):
         from ConstrainEdit.copySDKAttr import CopySDKFun
@@ -849,7 +855,7 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
 
         cmds.undoInfo(openChunk=True)
         try:
-            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            driver, driven = self._list_objects()
             self._mfd._cheek_pairs([driver, driven])
             if prefix_Search is None or prefix_Replace is None:
                 mayaPrint.error(" Please enter a string to search/replace ! ")
@@ -863,14 +869,10 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
                             mayaPrint.error("The loaded object has no attributes, please check")
                             return
                         if _type == 1:
-                            _cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,
-                                                 search_Attr,
-                                                 replace_Attr)
+                            _cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,search_Attr, replace_Attr)
                             print(" {} >>> {} is ok".format(dri, drn))
                         elif _type == 2:
-                            _cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr,
-                                                       replace_Attr,
-                                                       posneg=map[is_rev])
+                            _cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr, replace_Attr, posneg=map[is_rev])
                             print(" {} >>> {} is ok".format(dri, drn))
                         else:
                             pass
@@ -886,19 +888,17 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         Type = self.infocon_block.checkedId()
         cmds.undoInfo(openChunk=True)
         try:
-            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
+            driver, driven = self._list_objects()
             self._mfd.copy_in_out_connect(driver, driven, Type)
         finally:
             cmds.undoInfo(closeChunk=True)
 
+    @undo
     def combine_apply(self):
-        cmds.undoInfo(openChunk=True)
-        try:
-            driver, driven = self._obj.driver_driven_outputItems_list(self.driver_list, self.driven_list)
-            self._mfd.combine_dirve(driver, driven)
-            mayaPrint.log("finish !")
-        finally:
-            cmds.undoInfo(closeChunk=True)
+        driver =self._obj.get_list_widget_items(self.driver_list)
+        driven = self._obj.get_list_widget_items(self.driven_list)
+        self._mfd.combine_dirve(driver, driven)
+        mayaPrint.log("finish !")
 
 
 class PYOptionalDriveDialog(PyouPersistentWindow):

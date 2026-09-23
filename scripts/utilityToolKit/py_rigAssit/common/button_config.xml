@@ -70,6 +70,16 @@
             <color><![CDATA[cld]]></color>
         </button>
         <button>
+            <label>Store Skin Temp</label>
+            <tooltip><![CDATA[快速存储权重]]></tooltip>
+            <color><![CDATA[cld_main]]></color>
+        </button>
+        <button>
+            <label>Restore Skin Temp</label>
+            <tooltip><![CDATA[恢复权重（无需选择对象）]]></tooltip>
+            <color><![CDATA[cld_main]]></color>
+        </button>
+        <button>
             <label>Resrt Skined Pose</label>
             <tooltip><![CDATA[重置蒙皮]]></tooltip>
             <color><![CDATA[green]]></color>
@@ -103,7 +113,7 @@
         <button>
             <label>curve > joint</label>
             <tooltip><![CDATA[曲线创建关节]]></tooltip>
-            <color><![CDATA[cld]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>joints > curve</label>
@@ -139,7 +149,7 @@
         <button>
             <label>To Parent</label>
             <tooltip><![CDATA[将选择的对象层级化]]></tooltip>
-            <color><![CDATA[cld]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>Group Clearing</label>
@@ -155,17 +165,17 @@
         <button>
             <label>Make Group</label>
             <tooltip><![CDATA[添加组]]></tooltip>
-            <color><![CDATA[cld]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>Make Global</label>
             <tooltip><![CDATA[添加Global属性：仅适用于此工具添加的控制器层级和ADV 的FK控制器器]]></tooltip>
-            <color><![CDATA[cld]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>Make Pivot</label>
             <tooltip><![CDATA[添加轴心位移控制]]></tooltip>
-            <color><![CDATA[cld]]></color>
+            <color><![CDATA[cld_main]]></color>
         </button>
     </category>
 
