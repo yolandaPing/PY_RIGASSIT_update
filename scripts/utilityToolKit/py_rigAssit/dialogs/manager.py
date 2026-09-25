@@ -24,28 +24,43 @@ import maya.cmds as cmds
 _widgest = Widgets()
 _WINDOW_CACHE = None
 
-
 _MENU_CONFIG_CACHE = None
 _MENU_CONFIG_FILE = "menu_config.xml"
 
+
+# ============================================================
+#  Py2/Py3 兼容小工具
+# ============================================================
+
+try:
+    text_type = unicode  # noqa: F821  (Python 2)
+except NameError:
+    text_type = str      # Python 3
+
+
+def _to_text(s):
+    """统一转成 text_type（Py2: unicode, Py3: str），用于 Qt / XML。"""
+    if s is None:
+        return None
+    if isinstance(s, text_type):
+        return s
+    try:
+        return s.decode("utf-8")
+    except Exception:
+        try:
+            return s.decode("gbk")
+        except Exception:
+            return s
+
+
+# ============================================================
+#  Menu Config (XML driven)  — 仅用于 Clear / Tool
+# ============================================================
 
 def load_menu_config(force_reload=False):
     """
     读取 menu_config.xml（带缓存）。
     返回: { menu_name: [item_dict, ...] }
-
-    item_dict:
-        {"type": "separator"}
-        {
-            "type": "item",
-            "label": str,
-            "command": str or None,
-            "bold": bool,
-            "enabled": bool,
-            "checkable": bool,
-            "checked": bool,
-            "item_id": str or None,
-        }
     """
     global _MENU_CONFIG_CACHE
     if _MENU_CONFIG_CACHE is not None and not force_reload:
@@ -72,8 +87,11 @@ def load_menu_config(force_reload=False):
             return default
         return v.strip().lower() in ("1", "true", "yes", "on")
 
-    for menu_el in root.findall("menu"):
-        menu_name = (menu_el.get("name") or "").strip()
+    for menu_el in root.findall("men"):
+        menu_name = _to_text(menu_el.get("name"))
+        if not menu_name:
+            continue
+        menu_name = menu_name.strip()
         if not menu_name:
             continue
 
@@ -88,15 +106,24 @@ def load_menu_config(force_reload=False):
             if tag != "item":
                 continue
 
+            label = _to_text(child.get("label")) or ""
+            command = _to_text(child.get("command"))
+            if command is not None:
+                command = command.strip() or None
+
+            item_id = _to_text(child.get("id"))
+            if item_id is not None:
+                item_id = item_id.strip() or None
+
             items.append({
                 "type": "item",
-                "label": (child.get("label") or "").strip(),
-                "command": (child.get("command") or "").strip() or None,
+                "label": label.strip(),
+                "command": command,
                 "bold": _bool(child, "bold", False),
                 "enabled": _bool(child, "enabled", True),
                 "checkable": _bool(child, "checkable", False),
                 "checked": _bool(child, "checked", False),
-                "item_id": (child.get("id") or "").strip() or None,
+                "item_id": item_id,
             })
 
         data[menu_name] = items
@@ -105,12 +132,17 @@ def load_menu_config(force_reload=False):
     return data
 
 
+# ============================================================
+#  Helpers
+# ============================================================
+
 def return_checkBox(item_text, state):
 
     key_map = {
         "Use shelfButton New": "shelfButton_New",
         "Auto import Hotkey": "hotkey",
         "Auto add sec/pri grp": "Grp_prisec",
+        "SkinPaint Hotkey": "skinPaint_hotkey",
     }
 
     key = key_map.get(item_text)
@@ -120,7 +152,7 @@ def return_checkBox(item_text, state):
 
 
 def copy_to_clipboard(text, msg=None):
-    QtWidgets.QApplication.clipboard().setText(text)
+    QtWidgets.QApplication.clipboard().setText(_to_text(text))
 
     try:
         cmds.inViewMessage(
@@ -131,6 +163,10 @@ def copy_to_clipboard(text, msg=None):
     except:
         print(msg or "Copied: {}".format(text))
 
+
+# ============================================================
+#  About Dialog
+# ============================================================
 
 class PYAboutDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -164,6 +200,10 @@ class PYAboutDialog(QtWidgets.QDialog):
         layout.addWidget(text)
 
 
+# ============================================================
+#  Main Manager
+# ============================================================
+
 class PYRiggingDialogManager(PyouPersistentWindow):
 
     WINDOW_NAME = "PYRiggingDialogManager"
@@ -183,6 +223,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         timeStamp = "2022-2026"
         webs = None
 
+    # ---------------- INIT ----------------
     def __init__(self, dialog_data, parent=None):
 
         super(PYRiggingDialogManager, self).__init__(
@@ -199,7 +240,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         self.dispatcher = CommandDispatcher()
 
-        # FIX防 Qt GC
+        # FIX：防 Qt GC
         self._actions = []
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
@@ -216,6 +257,8 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         self.loadWindowSettings()
         self.setFocus()
 
+    # ---------------- UI ----------------
+
     def build_ui(self):
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -231,10 +274,11 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         self.menu_bar = QtWidgets.QMenuBar()
 
-        # 单个 QAction 生成器
+        # -------- 底层：单个 QAction 生成器 --------
         def add(menu, label, callback=None, checkable=False, checked=False,
                 item_id=None, bold=False):
 
+            label = _to_text(label) or ""
             act = QAction(label, self)  # FIX parent
 
             if bold:
@@ -263,10 +307,16 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
             return act
 
-        # 根据 XML 生成一个菜单
+        # -------- 底层：根据 XML 生成一个菜单 --------
         def build_from_config(menu_name):
-            menu = self.menu_bar.addMenu(menu_name)
+            menu = self.menu_bar.addMenu(_to_text(menu_name))
             items = load_menu_config().get(menu_name, [])
+
+            # 用 def 闭包绑定 cmd，最稳，Py2/Py3 通吃
+            def _make_callback(command):
+                def _cb(*a, **kw):
+                    return self.dispatcher.execute(command)
+                return _cb
 
             for item in items:
                 if item["type"] == "separator":
@@ -274,10 +324,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
                     continue
 
                 cmd = item.get("command")
-                callback = (
-                    (lambda *a, c=cmd: self.dispatcher.execute(c))
-                    if cmd else None
-                )
+                callback = _make_callback(cmd) if cmd else None
 
                 act = add(
                     menu,
@@ -303,8 +350,10 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         sep = about.addAction("PY_RIGASSIT")
         sep.setEnabled(False)
         about.addSeparator()
-        add(about, "Update", callback=lambda: webbrowser.open(self._info[-2] if self._info else ""))
-        add(about, u"Quark 夸克网盘", callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
+        add(about, "Update",
+            callback=lambda: webbrowser.open(self._info[-2] if self._info else ""))
+        add(about, "Quark 夸克网盘",
+            callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
         add(about, "About", callback=self.show_about)
 
         # ---------------- CLEAR  (XML driven) ----------------
@@ -322,6 +371,8 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             checkable=True, checked=ud.hotkey)
         add(opt, "Auto add sec/pri grp",
             checkable=True, checked=ud.Grp_prisec)
+        add(opt, "SkinPaint Hotkey",
+            checkable=True, checked=ud.skinPaint_hotkey)
         opt.addSeparator()
         opt.addAction("Window Display").setEnabled(False)
         add(opt, "Dock",
@@ -388,7 +439,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             lay.setContentsMargins(1, 1, 1, 1)
             lay.setSpacing(2)
 
-            self.tabs.addTab(page, name)
+            self.tabs.addTab(page, _to_text(name))
 
             self._tab_state[name] = {
                 "layout": lay,
@@ -405,11 +456,21 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         name = self.tabs.tabText(idx)
         state = self._tab_state.get(name)
+        if state is None:
+            for k, v in self._tab_state.items():
+                if _to_text(k) == name:
+                    state = v
+                    break
 
         if not state or state["loaded"]:
             return
 
         builder = self.ui_contents.get(name)
+        if builder is None:
+            for k, v in self.ui_contents.items():
+                if _to_text(k) == name:
+                    builder = v
+                    break
 
         try:
             if callable(builder):
@@ -492,15 +553,12 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
             from py_rigAssit.dialogs.DockWindowBase import DockWindowBase
 
-            # ---------------------------------
             dialog_data = self.dialog_data
             title = self.title
             widget_cls = self.__class__
 
-            # ---------------------------------
             self.close()
 
-            # ---------------------------------
             QtCore.QTimer.singleShot(
                 0,
                 lambda: DockWindowBase.safe_dock(
@@ -511,7 +569,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         except Exception as e:
 
-            print("Dock Failed:", e)
+            print("Dock Failed: {}".format(e))
 
     def mousePressEvent(self, event):
 
@@ -540,9 +598,21 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         PyouPersistentWindow.closeEvent(self, event)
 
 
-def show(dialog_data):
+# ============================================================
+#  Entry
+# ============================================================
+
+def show(dialog_data=None):
 
     global _WINDOW_CACHE
+
+    if dialog_data is None:
+        dialog_data = {
+            "UI_NAME": "PY_RIGASSIT",
+            "TABS": (),
+            "WITHHIGHT": [320, 780],
+            "INIT_UI": {},
+        }
 
     try:
         if _WINDOW_CACHE:
