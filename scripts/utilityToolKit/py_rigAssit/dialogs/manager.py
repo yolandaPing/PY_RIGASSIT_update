@@ -28,15 +28,10 @@ _MENU_CONFIG_CACHE = None
 _MENU_CONFIG_FILE = "menu_config.xml"
 
 
-# ============================================================
-#  Py2/Py3 兼容小工具
-# ============================================================
-
 try:
-    text_type = unicode  # noqa: F821  (Python 2)
+    text_type = unicode
 except NameError:
-    text_type = str      # Python 3
-
+    text_type = str
 
 def _to_text(s):
     """统一转成 text_type（Py2: unicode, Py3: str），用于 Qt / XML。"""
@@ -52,10 +47,6 @@ def _to_text(s):
         except Exception:
             return s
 
-
-# ============================================================
-#  Menu Config (XML driven)  — 仅用于 Clear / Tool
-# ============================================================
 
 def load_menu_config(force_reload=False):
     """
@@ -75,7 +66,13 @@ def load_menu_config(force_reload=False):
         return data
 
     try:
-        root = ET.parse(xml_path).getroot()
+
+        with open(xml_path, "rb") as f:
+            raw = f.read()
+
+        if raw[:3] == b"\xef\xbb\xbf":
+            raw = raw[3:]
+        root = ET.fromstring(raw)
     except Exception as e:
         print("[menu_config] parse failed: {}".format(e))
         _MENU_CONFIG_CACHE = data
@@ -87,7 +84,10 @@ def load_menu_config(force_reload=False):
             return default
         return v.strip().lower() in ("1", "true", "yes", "on")
 
-    for menu_el in root.findall("men"):
+    for menu_el in root:
+        if menu_el.tag.lower() != "menu":
+            continue
+
         menu_name = _to_text(menu_el.get("name"))
         if not menu_name:
             continue
@@ -129,12 +129,9 @@ def load_menu_config(force_reload=False):
         data[menu_name] = items
 
     _MENU_CONFIG_CACHE = data
+    print("[menu_config] loaded menus: {}".format(list(data.keys())))
     return data
 
-
-# ============================================================
-#  Helpers
-# ============================================================
 
 def return_checkBox(item_text, state):
 
@@ -164,10 +161,6 @@ def copy_to_clipboard(text, msg=None):
         print(msg or "Copied: {}".format(text))
 
 
-# ============================================================
-#  About Dialog
-# ============================================================
-
 class PYAboutDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(PYAboutDialog, self).__init__(parent)
@@ -192,6 +185,7 @@ class PYAboutDialog(QtWidgets.QDialog):
             "- Rivet Follice Tool\n"
             "- Combine SDK Driven\n"
             "- Transfer uv shader Tool\n"
+            "- Split SkinWeight Tool\n"
             "- Animation Tool\n"
             "- Hotbox Designer\n"
             "- ......\n"
@@ -200,15 +194,11 @@ class PYAboutDialog(QtWidgets.QDialog):
         layout.addWidget(text)
 
 
-# ============================================================
-#  Main Manager
-# ============================================================
-
 class PYRiggingDialogManager(PyouPersistentWindow):
 
     WINDOW_NAME = "PYRiggingDialogManager"
     TOOL_NAME = "PY_RIGASSITDockControl"
-    VERSION = "06.0.0"
+    VERSION = "0.6"
 
     try:
         _info = json_info.version_info("tip")
@@ -223,7 +213,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         timeStamp = "2022-2026"
         webs = None
 
-    # ---------------- INIT ----------------
     def __init__(self, dialog_data, parent=None):
 
         super(PYRiggingDialogManager, self).__init__(
@@ -257,8 +246,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         self.loadWindowSettings()
         self.setFocus()
 
-    # ---------------- UI ----------------
-
     def build_ui(self):
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -274,7 +261,11 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         self.menu_bar = QtWidgets.QMenuBar()
 
-        # -------- 底层：单个 QAction 生成器 --------
+        try:
+            self.menu_bar.setNativeMenuBar(False)
+        except Exception:
+            pass
+
         def add(menu, label, callback=None, checkable=False, checked=False,
                 item_id=None, bold=False):
 
@@ -282,7 +273,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             act = QAction(label, self)  # FIX parent
 
             if bold:
-                f = act.font()
+                f = QtGui.QFont(act.font())
                 f.setBold(True)
                 act.setFont(f)
 
@@ -309,10 +300,15 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         # -------- 底层：根据 XML 生成一个菜单 --------
         def build_from_config(menu_name):
-            menu = self.menu_bar.addMenu(_to_text(menu_name))
             items = load_menu_config().get(menu_name, [])
 
-            # 用 def 闭包绑定 cmd，最稳，Py2/Py3 通吃
+            # 没有配置就别生成空壳菜单
+            if not items:
+                print("[menu_config] no items for menu: {}".format(menu_name))
+                return None
+
+            menu = self.menu_bar.addMenu(_to_text(menu_name))
+
             def _make_callback(command):
                 def _cb(*a, **kw):
                     return self.dispatcher.execute(command)
@@ -341,7 +337,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
             return menu
 
-        # ---------------- ABOUT ----------------
         about = self.menu_bar.addMenu("About")
 
         add(about, "bilibili: 我有一只猛犬",
@@ -356,13 +351,10 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
         add(about, "About", callback=self.show_about)
 
-        # ---------------- CLEAR  (XML driven) ----------------
         build_from_config("Clear")
 
-        # ---------------- TOOL   (XML driven) ----------------
         build_from_config("Tool")
 
-        # ---------------- OPTIONS ----------------
         opt = self.menu_bar.addMenu("Options")
         opt.addAction("Convenient").setEnabled(False)
         add(opt, "Use shelfButton New",
@@ -380,7 +372,10 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         add(opt, "Reload Theme",
             callback=self.reload_theme)
 
-        self.main_layout.setMenuBar(self.menu_bar)
+        try:
+            self.main_layout.setMenuBar(self.menu_bar)
+        except AttributeError:
+            self.main_layout.addWidget(self.menu_bar)
 
     def build_logo_area(self):
 
@@ -598,9 +593,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
         PyouPersistentWindow.closeEvent(self, event)
 
 
-# ============================================================
-#  Entry
-# ============================================================
 
 def show(dialog_data=None):
 
@@ -610,7 +602,7 @@ def show(dialog_data=None):
         dialog_data = {
             "UI_NAME": "PY_RIGASSIT",
             "TABS": (),
-            "WITHHIGHT": [320, 780],
+            "WITHHIGHT": [325, 780],
             "INIT_UI": {},
         }
 
