@@ -37,4 +37,39 @@
         
     </menu>
 
+    <!-- name: normal / ctrl / shift 分别对应三种修饰键 -->
+
+    <marking_menu name="normal">
+        <item label=" select skin joint "        command="Select Skin joints"/>
+        <item label=" select child joint "       command="Select Child joints"/>
+        <item label=" make group "               command="Make Group"/>
+        <item label=" mirror skin L > R "       command="Mirror Skin"/>
+        <item label=" copy skin "                command="Copy Skin"/>
+        <item label=" combine skinWeight "       command="Combine Skinweight"/>
+        <item label=" Resrt Skin Pose "          command="Resrt Skined Pose"/>
+        <item label=" Remove unInfluences "      command="Remove unInfluences"/>
+    </marking_menu>
+
+    <marking_menu name="ctrl">
+        <item label=" curve link "               command="Curve Keep Linked" args="False"/>
+        <item label=" curve keep link "          command="Curve Keep Linked" args="True"/>
+        <item label=" surface link "             command="Linked Surface"/>
+        <item label=" select input node "        command="Select Input Node"/>
+        <item label=" delete orig node "         command="Delete Orig Nodes"/>
+        <item label=" create joint "             command="Create Joints"/>
+        <item label=" joint add shape "          command="Joints Add Shape"/>
+        <item label=" curve create joints "      command="Curve Create Joint"/>
+    </marking_menu>
+
+    <marking_menu name="shift">
+        <item label=" Mirror Skin "           command="Mirror Skin" args="False"/>
+        <item label=" Rename"                    command="Rename"/>
+        <item label=" Joint Orient "             command="Joint Orient"/>
+        <item label=" InsertJoints "             command="InsertJoints"/>
+        <item label=" IKFK Rigging "             command="IKFK Rigging"/>
+        <item label=" Follow World "             command="Follow World"/>
+        <item label=" Attribute Edit "           command="Attribute Edit"/>
+        <item label=" Convert Drivenkeys "       command="Convert Drivenkeys"/>
+    </marking_menu>
+
 </menus>

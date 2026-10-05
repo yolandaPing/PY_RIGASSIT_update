@@ -555,7 +555,7 @@ def global_ctrl(ui):
 @decorator.undo
 def create_visibility(ui):
     from QuickTools.QuickFunction import MakeGroupPivot
-    MakeGroupPivot().addVisNameCtrl()
+    MakeGroupPivot().createVisCtrl()
 
 
 @CommandDispatcher.register("Connect Mesh")

@@ -25,6 +25,7 @@ _widgest = Widgets()
 _WINDOW_CACHE = None
 
 _MENU_CONFIG_CACHE = None
+_MARKING_CONFIG_CACHE = None
 _MENU_CONFIG_FILE = "menu_config.xml"
 
 
@@ -33,8 +34,9 @@ try:
 except NameError:
     text_type = str
 
+
 def _to_text(s):
-    """统一转成 text_type（Py2: unicode, Py3: str），用于 Qt / XML。"""
+    """统一转成 text_type，用于 Qt / XML。"""
     if s is None:
         return None
     if isinstance(s, text_type):
@@ -48,41 +50,70 @@ def _to_text(s):
             return s
 
 
+def _read_xml_root():
+    """读取 XML，剥离 BOM，返回 root element；失败返回 None。"""
+    xml_path = os.path.join(os.path.dirname(__file__), _MENU_CONFIG_FILE)
+    if not os.path.exists(xml_path):
+        print("[menu_config] not found: {}".format(xml_path))
+        return None
+    try:
+        with open(xml_path, "rb") as f:
+            raw = f.read()
+        if raw[:3] == b"\xef\xbb\xbf":
+            raw = raw[3:]
+        return ET.fromstring(raw)
+    except Exception as e:
+        print("[menu_config] parse failed: {}".format(e))
+        return None
+
+
+def _bool_attr(el, key, default=False):
+    v = el.get(key)
+    if v is None:
+        return default
+    return v.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _parse_args(args_str):
+    """解析 args 属性字符串 -> tuple。支持 True/False/None/数字/字符串。"""
+    if not args_str:
+        return ()
+    result = []
+    for part in args_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        low = part.lower()
+        if low == "true":
+            result.append(True)
+        elif low == "false":
+            result.append(False)
+        elif low == "none":
+            result.append(None)
+        else:
+            try:
+                result.append(int(part))
+            except ValueError:
+                try:
+                    result.append(float(part))
+                except ValueError:
+                    result.append(part)
+    return tuple(result)
+
 def load_menu_config(force_reload=False):
     """
-    读取 menu_config.xml（带缓存）。
+    读取 menu_config.xml 中的 <menu> 节点（带缓存）。
     返回: { menu_name: [item_dict, ...] }
     """
     global _MENU_CONFIG_CACHE
     if _MENU_CONFIG_CACHE is not None and not force_reload:
         return _MENU_CONFIG_CACHE
 
-    xml_path = os.path.join(os.path.dirname(__file__), _MENU_CONFIG_FILE)
     data = {}
-
-    if not os.path.exists(xml_path):
-        print("[menu_config] not found: {}".format(xml_path))
+    root = _read_xml_root()
+    if root is None:
         _MENU_CONFIG_CACHE = data
         return data
-
-    try:
-
-        with open(xml_path, "rb") as f:
-            raw = f.read()
-
-        if raw[:3] == b"\xef\xbb\xbf":
-            raw = raw[3:]
-        root = ET.fromstring(raw)
-    except Exception as e:
-        print("[menu_config] parse failed: {}".format(e))
-        _MENU_CONFIG_CACHE = data
-        return data
-
-    def _bool(el, key, default=False):
-        v = el.get(key)
-        if v is None:
-            return default
-        return v.strip().lower() in ("1", "true", "yes", "on")
 
     for menu_el in root:
         if menu_el.tag.lower() != "menu":
@@ -119,17 +150,79 @@ def load_menu_config(force_reload=False):
                 "type": "item",
                 "label": label.strip(),
                 "command": command,
-                "bold": _bool(child, "bold", False),
-                "enabled": _bool(child, "enabled", True),
-                "checkable": _bool(child, "checkable", False),
-                "checked": _bool(child, "checked", False),
+                "bold": _bool_attr(child, "bold", False),
+                "enabled": _bool_attr(child, "enabled", True),
+                "checkable": _bool_attr(child, "checkable", False),
+                "checked": _bool_attr(child, "checked", False),
                 "item_id": item_id,
             })
 
         data[menu_name] = items
 
     _MENU_CONFIG_CACHE = data
-    print("[menu_config] loaded menus: {}".format(list(data.keys())))
+    # print("[menu_config] loaded menus: {}".format(list(data.keys())))
+    return data
+
+def load_marking_config(force_reload=False):
+    """
+    读取 menu_config.xml 中的 <marking_menu> 节点（带缓存）。
+    返回: { marking_name(lower): [item_dict, ...] }
+
+    item_dict:
+        {
+            "label": text_type,
+            "command": text_type or None,
+            "args": tuple,
+            "enabled": bool,
+        }
+    """
+    global _MARKING_CONFIG_CACHE
+    if _MARKING_CONFIG_CACHE is not None and not force_reload:
+        return _MARKING_CONFIG_CACHE
+
+    data = {}
+    root = _read_xml_root()
+    if root is None:
+        _MARKING_CONFIG_CACHE = data
+        return data
+
+    for mm_el in root:
+        if mm_el.tag.lower() != "marking_menu":
+            continue
+
+        mm_name = _to_text(mm_el.get("name"))
+        if not mm_name:
+            continue
+        mm_name = mm_name.strip().lower()
+        if not mm_name:
+            continue
+
+        items = []
+        for child in mm_el:
+            if child.tag.lower() != "item":
+                continue
+
+            # 标记菜单 label 保留原始空格
+            label = _to_text(child.get("label")) or ""
+
+            command = _to_text(child.get("command"))
+            if command is not None:
+                command = command.strip() or None
+
+            args_str = _to_text(child.get("args"))
+            args = _parse_args(args_str) if args_str else ()
+
+            items.append({
+                "label": label,
+                "command": command,
+                "args": args,
+                "enabled": _bool_attr(child, "enabled", True),
+            })
+
+        data[mm_name] = items
+
+    _MARKING_CONFIG_CACHE = data
+    # print("[menu_config] loaded markings: {}".format(list(data.keys())))
     return data
 
 
@@ -298,11 +391,10 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
             return act
 
-        # -------- 底层：根据 XML 生成一个菜单 --------
+        # 根据 XML 生成一个菜单
         def build_from_config(menu_name):
             items = load_menu_config().get(menu_name, [])
 
-            # 没有配置就别生成空壳菜单
             if not items:
                 print("[menu_config] no items for menu: {}".format(menu_name))
                 return None
@@ -338,21 +430,17 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             return menu
 
         about = self.menu_bar.addMenu("About")
-
-        add(about, "bilibili: 我有一只猛犬",
-            callback=lambda: webbrowser.open("https://space.bilibili.com/3493142019967757"))
-        add(about, "pyrigassit@gmail.com", callback=self._copy_email)
         sep = about.addAction("PY_RIGASSIT")
         sep.setEnabled(False)
         about.addSeparator()
-        add(about, "Update",
-            callback=lambda: webbrowser.open(self._info[-2] if self._info else ""))
-        add(about, "Quark 夸克网盘",
-            callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
+        add(about, "bilibili: 我有一只猛犬",
+            callback=lambda: webbrowser.open("https://space.bilibili.com/3493142019967757"))
+        add(about, "pyrigassit@gmail.com", callback=self._copy_email)
+        add(about, "Update", callback=lambda: webbrowser.open(self._info[-2] if self._info else ""))
+        add(about, "Quark 夸克网盘", callback=lambda: webbrowser.open(self._info[-1] if self._info else ""))
         add(about, "About", callback=self.show_about)
 
         build_from_config("Clear")
-
         build_from_config("Tool")
 
         opt = self.menu_bar.addMenu("Options")
@@ -494,41 +582,37 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
     def init_marking_menu(self):
 
-        self.mm_normal = PYMarkingMenuLite([
-            (" select skin joint ", lambda: self.dispatcher.execute("Select Skin joints")),
-            (" select child joint ", lambda: self.dispatcher.execute("Select Child joints")),
-            (" mirror skin ", lambda: self.dispatcher.execute("Mirror Skin", False)),
-            (" mirror skin l>r ", lambda: self.dispatcher.execute("Mirror Skin")),
-            (" copy skin ", lambda: self.dispatcher.execute("Copy Skin")),
-            (" combine skinWeight ", lambda: self.dispatcher.execute("Combine Skinweight")),
-            (" Resrt Skin Pose ", lambda: self.dispatcher.execute("Resrt Skined Pose")),
-            (" Remove unInfluences ", lambda: self.dispatcher.execute("Remove unInfluences")),
+        config = load_marking_config()
 
-        ], self)
+        def _build_pairs(name):
+            """根据 XML 生成 PYMarkingMenuLite 需要的 [(label, callback), ...]"""
+            pairs = []
+            for item in config.get(name, []):
+                if not item.get("enabled", True):
+                    continue
 
-        self.mm_ctrl = PYMarkingMenuLite([
-            (" curve link ", lambda: self.dispatcher.execute("Curve Keep Linked", False)),
-            (" curve keep link ", lambda: self.dispatcher.execute("Curve Keep Linked", True)),
-            (" surface link ", lambda: self.dispatcher.execute("Linked Surface")),
-            (" select input node ", lambda: self.dispatcher.execute("Select Input Node")),
-            (" delete orig node ", lambda: self.dispatcher.execute("Delete Orig Nodes")),
-            (" create joint ", lambda: self.dispatcher.execute("Create Joints")),
-            (" joint add shape ", lambda: self.dispatcher.execute("Joints Add Shape")),
-            (" curve create joints ", lambda: self.dispatcher.execute("Curve Create Joint")),
+                cmd = item.get("command")
+                args = item.get("args", ())
+                label = item.get("label") or ""
 
-        ], self)
+                if cmd:
+                    # 用 def 内部函数 + 默认参数做值绑定
+                    def _make(c=cmd, a=args):
+                        def _cb():
+                            if a:
+                                return self.dispatcher.execute(c, *a)
+                            return self.dispatcher.execute(c)
+                        return _cb
+                    pairs.append((label, _make()))
+                else:
+                    # 无 command 的项留空操作，避免菜单项消失
+                    pairs.append((label, lambda: None))
 
-        self.mm_shift = PYMarkingMenuLite([
-            (" OLD PY_RIGASSIT", lambda: self.dispatcher.execute("OLD PY_RIGASSIT")),
-            (" Rename", lambda: self.dispatcher.execute("Rename")),
-            (" Joint Orient ", lambda: self.dispatcher.execute("Joint Orient")),
-            (" InsertJoints ", lambda: self.dispatcher.execute("InsertJoints")),
-            (" IKFK Rigging ", lambda: self.dispatcher.execute("IKFK Rigging")),
-            (" Follow World ", lambda: self.dispatcher.execute("Follow World")),
-            (" Attribute Edit ", lambda: self.dispatcher.execute("Attribute Edit")),
-            (" Convert Drivenkeys ", lambda: self.dispatcher.execute("Convert Drivenkeys")),
+            return pairs
 
-        ], self)
+        self.mm_normal = PYMarkingMenuLite(_build_pairs("normal"), self, variant="normal")
+        self.mm_ctrl = PYMarkingMenuLite(_build_pairs("ctrl"), self, variant="ctrl")
+        self.mm_shift = PYMarkingMenuLite(_build_pairs("shift"), self, variant="shift")
 
     def show_about(self):
         dlg = PYAboutDialog(self)
@@ -537,6 +621,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
     def reload_theme(self):
         # 重新加载 XML 菜单配置（下次重建窗口生效）
         load_menu_config(force_reload=True)
+        load_marking_config(force_reload=True)
         try:
             ThemeManager.reload(self)
         except:
@@ -545,9 +630,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
     def to_dock_mode(self):
 
         try:
-
             from py_rigAssit.dialogs.DockWindowBase import DockWindowBase
-
             dialog_data = self.dialog_data
             title = self.title
             widget_cls = self.__class__
@@ -591,7 +674,6 @@ class PYRiggingDialogManager(PyouPersistentWindow):
             pass
 
         PyouPersistentWindow.closeEvent(self, event)
-
 
 
 def show(dialog_data=None):

@@ -8,12 +8,20 @@ class PYMarkingMenuLite(QtWidgets.QWidget):
     RADIUS = 200
     VERTICAL_SCALE = 0.6  # 垂直压缩比例
 
-    def __init__(self, items, parent=None):
+    VARIANT_COLORS = {
+        "normal": "rgb(230, 230, 230)",  # 米白
+        "ctrl": "rgb(140, 255, 140)",  # 淡绿
+        "shift": "rgb(255, 235, 130)",  # 淡黄
+    }
+
+    def __init__(self, items, parent=None, variant="normal"):
         super(PYMarkingMenuLite, self).__init__(parent)
 
         self.items = items
         self.buttons = []
         self.hovered_button = None
+        self.variant = str(variant).lower()
+        self._default_color = self.VARIANT_COLORS.get(self.variant, "white")
 
         # Maya风格方向线
         self.center_pos = QtCore.QPoint()
@@ -22,7 +30,7 @@ class PYMarkingMenuLite(QtWidgets.QWidget):
         self.setWindowFlags(
             QtCore.Qt.Popup |
             QtCore.Qt.FramelessWindowHint |
-            QtCore.Qt.NoDropShadowWindowHint  # 关键：去除系统阴影
+            QtCore.Qt.NoDropShadowWindowHint  # 去除阴影
         )
         # 透明背景关键属性
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
@@ -35,28 +43,33 @@ class PYMarkingMenuLite(QtWidgets.QWidget):
         self._build_ui()
 
     def _build_ui(self):
+        # 根据 variant 决定默认文字颜色；hover / checked 统一黑字加粗
+        qss = """
+            QPushButton {{
+                background: rgb(70, 70, 70);
+                border: 1px solid rgb(120, 180, 230);
+                border-radius: 3px;
+                color: {default_color};
+                padding: 3px 8px;
+            }}
+            QPushButton:hover {{
+                background: rgb(0, 204, 204);
+                color: black;
+                font-weight: bold;
+                border: 1px solid rgb(120, 180, 230);
+            }}
+            QPushButton:checked {{
+                background: rgb(0, 204, 204);
+                color: black;
+                font-weight: bold;
+                border: 1px solid rgb(180, 220, 255);
+            }}
+        """.format(default_color=self._default_color)
+
         for label, cb in self.items:
             btn = QtWidgets.QPushButton(label, self)
-            # btn.setFixedSize(80, 25)
             btn.setCheckable(True)
-            btn.setStyleSheet("""
-                           QPushButton {
-                               background: rgb(70, 70, 70);    
-                               border: 1px solid black;        
-                               border-radius: 0px;
-                               color: white;
-
-                           }
-                           QPushButton:checked {
-                               background: rgb(0, 204, 204);  
-                               border: 1px solid black;
-                           }
-                           QPushButton:hover {
-                               background: rgb(0, 204, 204);  
-                               color: black;
-                           }
-                       """)
-
+            btn.setStyleSheet(qss)
             self.buttons.append(btn)
 
     def _layout_buttons(self):
@@ -118,7 +131,6 @@ class PYMarkingMenuLite(QtWidgets.QWidget):
 
         super(PYMarkingMenuLite, self).mouseMoveEvent(event)
 
-
     def paintEvent(self, event):
 
         painter = QtGui.QPainter(self)
@@ -157,6 +169,3 @@ class PYMarkingMenuLite(QtWidgets.QWidget):
         # 点击菜单外部区域时关闭菜单（不执行命令）
         if not self.rect().contains(event.pos()):
             self.close()
-
-
-
