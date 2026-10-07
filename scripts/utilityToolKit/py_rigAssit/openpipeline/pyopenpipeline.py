@@ -671,10 +671,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 if item.text() == subtype_name:
                     color = self._get_color(asset_name, subtype_name)
                     if color and color in self.COLOR_MAP:
-                        item.setBackground(self.COLOR_MAP[color])
-                        item.setForeground(QtGui.QColor("#222222"))
+                        item.setForeground(self.COLOR_MAP[color])
                     else:
-                        item.setBackground(QtGui.QColor(QtCore.Qt.transparent))
                         item.setForeground(QtGui.QColor("#e0e0e0"))
                     break
         else:  # 更新资产列表
@@ -683,10 +681,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 if item.text() == asset_name:
                     color = self._get_color(asset_name)
                     if color and color in self.COLOR_MAP:
-                        item.setBackground(self.COLOR_MAP[color])
-                        item.setForeground(QtGui.QColor("#222222"))
+                        item.setForeground(self.COLOR_MAP[color])
                     else:
-                        item.setBackground(QtGui.QColor(QtCore.Qt.transparent))
                         item.setForeground(QtGui.QColor("#e0e0e0"))
                     break
 
@@ -714,10 +710,9 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         # self.asset_list.addItems(sorted_assets)
         for asset in sorted_assets:
             item = QtWidgets.QListWidgetItem(asset)
-            color = self._get_color(asset)  # 修改此处
+            color = self._get_color(asset)
             if color and color in self.COLOR_MAP:
-                item.setBackground(self.COLOR_MAP[color])
-                item.setForeground(QtGui.QColor("#222222"))
+                item.setForeground(self.COLOR_MAP[color])
             self.asset_list.addItem(item)
         self.asset_count.setText("{}".format(len(sorted_assets)))
 
@@ -917,8 +912,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 item = QtWidgets.QListWidgetItem(sub)
                 color = self._get_color(self.selected_asset, subtype_name=sub)
                 if color and color in self.COLOR_MAP:
-                    item.setBackground(self.COLOR_MAP[color])
-                    item.setForeground(QtGui.QColor("#222222"))
+                    item.setForeground(self.COLOR_MAP[color])
                 self.subtype_list.addItem(item)
 
     def add_subtype_dialog(self):

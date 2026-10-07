@@ -289,6 +289,7 @@ QListWidget {
 QListWidget::item:selected {
     background-color: #4dd0e1;
     color: black;
+    font-weight: bold;
 }
 
 
@@ -302,6 +303,7 @@ QTableWidget {
 QTableWidget::item:selected {
     background-color: #4dd0e1;
     color: black;
+    font-weight: bold;
 }
 
 QComboBox {
@@ -317,6 +319,7 @@ QComboBox:hover {
 
 QComboBox::item:hover {
     border-color: #00bcd4;
+    font-weight: bold;
 }
 
 
