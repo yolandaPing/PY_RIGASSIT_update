@@ -483,6 +483,7 @@ class PYJointEditLayout(PyouPersistentWindow):
             items=[("1", 1, u"1线性"), ("2", 2), ("3", 3, u"3立方")],
             default_id=3
         )
+        self.cus_cbx = _widgest.add_checkbox(u'自选顺序(按序选择权重关节 + skin mesh)')
 
         btn_layout2, self.sk_curve_convert_btn, sk_convert_help_btn = _widgest.create_Qbuttons(" Apply ")
         sk_convert_help_btn.clicked.connect(lambda: Help.HelpImage("", "optimize_skin_tool"))
@@ -496,10 +497,10 @@ class PYJointEditLayout(PyouPersistentWindow):
         layout2.addWidget(_widgest.create_text(u"参与权重的关节必须是有序选择参与蒙皮"))
         layout2.addWidget(self.sk_mesh_block)
         layout2.addWidget(self.sk_curve_type_block)
+        layout2.addWidget(self.cus_cbx)
         _widgest.separator(layout2, True)
         layout2.addLayout(btn_layout2)
         main_layout.addWidget(group2)
-
         frame.addLayout(main_layout)
         return frame
 
@@ -847,7 +848,7 @@ class PYJointEditLayout(PyouPersistentWindow):
     def curve_split_weight(self):
         if hasattr(self, "dispatcher"):
             self.dispatcher.execute("Curve Split",
-                                    [self.sk_mesh_block.checkedId(), self.sk_curve_type_block.checkedId()])
+                                    [self.sk_mesh_block.checkedId(), self.sk_curve_type_block.checkedId(), self.cus_cbx.isChecked()])
 
     def run_action(self, text):
         print("Run:", text)

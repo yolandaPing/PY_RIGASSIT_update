@@ -302,7 +302,6 @@ def run_defrom_convert_weight(ui):
             "Import failed: {}".format(e)
         )
 
-
 @CommandDispatcher.register("Divisions Weight")
 @decorator.undo
 def smooth_convert_weight(ui):
@@ -315,50 +314,70 @@ def smooth_convert_weight(ui):
             "Import failed: {}".format(e)
         )
 
-
 @CommandDispatcher.register("Curve Split")
 @decorator.undo
 def curve_split_weight(ui, types):
     from Utils.attr_name import PyAttrUtils
-    from PyUtils import PyObjectUtils
     import DefromConvertWeight.auto_nurbs_convert_skinWeight as auto_curve_convert_skinWeight
 
-    AttrUtils = PyAttrUtils()
-    ObjectUtils = PyObjectUtils()
+    attr_utils = PyAttrUtils()
+    split_type, degree = types[0], types[1]
+    selection = types[2]
 
-    Type = types[0]
-    degree = types[1]
+    def _is_mesh(mesh):
+        shapes = cmds.listRelatives(mesh, shapes=True, noIntermediate=True, fullPath=True) or []
+        return any(cmds.objectType(s) == "mesh" for s in shapes)
 
-    sels = cmds.ls(sl=1)
-    if sels:
+    def _create_curve(joints):
+        if not joints:
+            raise RuntimeError(u"关节列表为空，无法创建曲线。")
+
+        if split_type == 1:
+            curve = cmds.curve(p=[(0, 0, 0), (0, 3, 0)], d=1, k=(0, 1))
+            for cv, jnt in zip(("cv[0]", "cv[1]"), (joints[0], joints[-1])):
+                cmds.xform("{}.{}".format(curve, cv), t=cmds.xform(jnt, q=True, ws=True, t=True))
+            return curve, joints
+
+        curve = cmds.circle(c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=1, d=3, ut=0, tol=0.01, s=len(joints), ch=0, name="temp_cur")[0]
+        for jnt, cv in zip(joints, cmds.ls("{}.cv[0:]".format(curve), fl=True) or []):
+            cmds.xform(cv, t=cmds.xform(jnt, q=True, ws=True, t=True))
+        return curve, joints[1:] + joints[:1]
+
+    def _run_split(joints, mesh):
+        if not joints:
+            mayaPrint.warning(u"{} 没有可用的关节。".format(mesh))
+            return
+        curve = None
+        try:
+            curve, convert_joints = _create_curve(joints)
+            auto_curve_convert_skinWeight.main(convert_joints, curve, mesh, degree)
+        finally:
+            if curve and cmds.objExists(curve):
+                cmds.delete(curve)
+        mayaPrint.log("{} is complete.".format(mesh))
+
+    def _process_selected_mesh(mesh):
+        if not _is_mesh(mesh):
+            mayaPrint.warning("{} is not mesh.".format(mesh))
+            return
+        skin_node = attr_utils.get_skinClusterNode(mesh)
+        if not skin_node:
+            mayaPrint.warning("{} is not add skin.".format(mesh))
+            return
+        joints = cmds.skinCluster(skin_node, q=True, inf=True) or []
+        _run_split(joints, mesh)
+
+    sels = cmds.ls(sl=True) or []
+    if not sels:
+        mayaPrint.warning(u"没有选择的对象")
+        return
+
+    if selection:
+        _run_split(sels[:-1], sels[-1])
+
+    else:
         for mesh in sels:
-            mesh_shape = cmds.listRelatives(mesh, s=True)[0]
-            if cmds.objectType(mesh_shape) != 'mesh':
-                mayaPrint.warning(u"{} is not mesh.".format(mesh))
-                continue
-
-            skin_node = AttrUtils.get_skinClusterNode(mesh)
-
-            if skin_node is None:
-                mayaPrint.warning(u"{} is not add skin.".format(mesh))
-                continue
-
-            skin_joints_list = cmds.skinCluster(skin_node, q=True, inf=True)
-            if Type == 1:
-                curve = ObjectUtils.createCurveforObj(skin_joints_list)
-                auto_curve_convert_skinWeight.main(skin_joints_list, curve, mesh, degree)
-            else:
-                curve = cmds.circle(c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=1, d=3, ut=0, tol=0.01, s=len(skin_joints_list), ch=0, name="temp_cur")[0]
-                jnt = skin_joints_list[1::]
-                jnt.append(skin_joints_list[0])
-                for i, c in zip(skin_joints_list, cmds.ls("{}.cv[0:]".format(curve), fl=1)):
-                    pos = cmds.xform(i, query=1, a=1, translation=1, worldSpace=1)
-                    cmds.xform(c, t=pos)
-                auto_curve_convert_skinWeight.main(jnt, curve, mesh, degree)
-
-            cmds.delete(curve)
-            mayaPrint.log(u"{} is complete.".format(mesh))
-
+            _process_selected_mesh(mesh)
 
 @CommandDispatcher.register("Menu Select All")
 @decorator.undo
