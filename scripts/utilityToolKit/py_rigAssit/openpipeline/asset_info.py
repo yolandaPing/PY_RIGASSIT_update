@@ -7,3 +7,4 @@
 # .Finish time:
 
 PROJECTS_XML = 'openPipeline_projects.xml'
+ENABLE_DESC_TIP = True

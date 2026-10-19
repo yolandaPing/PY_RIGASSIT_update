@@ -6,5 +6,5 @@
 # .Date....: 2025/12/13 13:01
 # .Finish time:
 
-VERSION = "1.3.5"
+VERSION = "1.3.6"
 TIMESTAMP = "2025-2026"

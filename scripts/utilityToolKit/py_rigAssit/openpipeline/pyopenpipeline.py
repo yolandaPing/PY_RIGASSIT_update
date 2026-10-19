@@ -28,12 +28,15 @@ try:
 except ImportError:
     pass
 from py_rigAssit.openpipeline import ui_openpipeline
+from py_rigAssit.openpipeline import description_manager
 reload(ui_openpipeline)
+reload(description_manager)
 
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
-from py_rigAssit.openpipeline.asset_info import PROJECTS_XML
+from py_rigAssit.openpipeline.asset_info import PROJECTS_XML, ENABLE_DESC_TIP
 from py_rigAssit.openpipeline.ui_openpipeline import build_openpipeline_ui
+from py_rigAssit.openpipeline.description_manager import DescriptionMixin
 from Pipeline import file_operations as fops
 from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
@@ -44,7 +47,7 @@ from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
 _widgets = Widgets()
 
 
-class PYPenpipelineDialog(PyouPersistentWindow):
+class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
     COLOR_MAP = {
         'red': QtGui.QColor(255, 120, 120),
         'yellow': QtGui.QColor(255, 230, 80),
@@ -319,6 +322,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                     self.selected_asset = last_asset
                     self.load_subtypes()
                     self.show_asset_preview(self.current_asset_type, last_asset)
+                    self.load_description()
                     print(u"已自动选择上次的项目资产: {}".format(last_asset))
                     break
 
@@ -715,6 +719,8 @@ class PYPenpipelineDialog(PyouPersistentWindow):
                 item.setForeground(self.COLOR_MAP[color])
             self.asset_list.addItem(item)
         self.asset_count.setText("{}".format(len(sorted_assets)))
+        if ENABLE_DESC_TIP:
+            self.update_asset_tooltips()  # ← 新增：给每个 item 设置 description tooltip
 
     def on_asset_type_changed(self, text):
         if not text or text == u'暂无资产类型':
@@ -900,6 +906,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
         self.clear_right()
         self.show_version_count(0)
         self.cfg.update_last_info(self.maya_version, asset=self.selected_asset)
+        self.load_description()
 
     def load_subtypes(self):
         self.subtype_list.clear()
@@ -1246,6 +1253,7 @@ class PYPenpipelineDialog(PyouPersistentWindow):
     def clear_right(self):
         self.version_list.clear()
         self.notes_text.clear()
+        self.clear_description_ui()
         self.btn_save_new_version.setEnabled(False)
         self.btn_save_new_version.setStyleSheet("color: gray;")
         self.btn_set_master.setEnabled(False)

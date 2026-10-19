@@ -258,7 +258,7 @@ def build_openpipeline_ui(main_window):
     center_layout.addWidget(vsplitter)
     centerw.setMinimumWidth(150)
 
-    # 预览 + Notes
+    # 预览 + Notes（在 QSplitter 内，可上下拉伸）
     rightw = QtWidgets.QWidget()
     rightw.setMinimumWidth(150)
     right_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
@@ -276,7 +276,7 @@ def build_openpipeline_ui(main_window):
     self.preview_label.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Sunken)
     self.preview_label.setStyleSheet("background-color: #2b2b2b; color: #888;")
 
-    self.btn_snapshot = QtWidgets.QPushButton('Take Snapshot')
+    self.btn_snapshot = QtWidgets.QPushButton(u'截取视图')
     self.btn_snapshot.clicked.connect(self.take_snapshot)
     self.btn_snapshot.setEnabled(False)
     pv_col.addWidget(self.btn_snapshot)
@@ -289,7 +289,6 @@ def build_openpipeline_ui(main_window):
     bottom_container = QtWidgets.QGroupBox("Notes")
     bottom_layout = QtWidgets.QVBoxLayout(bottom_container)
     bottom_layout.setContentsMargins(4, 6, 4, 4)
-
     self.notes_text = QtWidgets.QTextEdit()
     self.notes_text.setReadOnly(True)
     self.notes_text.setProperty("isNotes", True)
@@ -301,9 +300,22 @@ def build_openpipeline_ui(main_window):
     right_splitter.setStretchFactor(0, 0)
     right_splitter.setStretchFactor(1, 1)
 
+    # Description
+    description_con = QtWidgets.QGroupBox("Description")
+    description_con.setFixedHeight(80)
+    description_layout = QtWidgets.QVBoxLayout(description_con)
+    description_layout.setContentsMargins(4, 4, 4, 4)
+    self.description_text = QtWidgets.QTextEdit()
+    self.description_text.setPlaceholderText(u'临时备注')
+    self.description_text.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+    self.description_text.textChanged.connect(self.on_description_changed)
+    description_layout.addWidget(self.description_text)
+
     right_layout = QtWidgets.QVBoxLayout(rightw)
     right_layout.setContentsMargins(0, 0, 0, 0)
-    right_layout.addWidget(right_splitter)
+    right_layout.setSpacing(0)
+    right_layout.addWidget(right_splitter, 1)
+    right_layout.addWidget(description_con, 0)
 
     splitter.addWidget(leftw)
     splitter.addWidget(centerw)

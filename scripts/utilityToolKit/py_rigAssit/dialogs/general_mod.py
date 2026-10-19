@@ -11,6 +11,7 @@ from py_rigAssit.dialogs import base_dir, Help, decorator, mayaPrint
 from ui_framework.widgets.button import GridButtons
 from GeneralTools import split_blendshape_target as split_blendshape_target
 from py_rigAssit.dialogs.rename_dialog import PYRenameQWidget
+from py_rigAssit.dialogs.convert_drivenkeys_ui import PYConvertQtWidgets
 from py_rigAssit.common.command_dispatcher import CommandDispatcher
 # import py_rigAssit.common.commands,img_commands
 import maya.cmds as cmds, maya.mel as mel
@@ -195,7 +196,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
         grid0.clicked.connect(self.run_action)
 
         sec3 = py_widgets.create_section("Data Import/Export")
-        sec4 = py_widgets.create_section("Rename")
+        sec4 = py_widgets.create_section("Box")
         data_grid = GridButtons("data_edit", 3)
         data_grid.clicked.connect(self.run_action)
 
@@ -235,6 +236,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
         add_attribute_frame = self.add_attribute_lay()
         edit_attribute_frame = self.edit_attribute_lay()
         rename_container_frame = self.rename_container_lay()
+        animCurve_convert_frame = self.animCurve_convert_lay()
 
         ord_layout.addWidget(QtWidgets.QLabel("RotateOrder:"))
         ord_layout.addWidget(self.combo)
@@ -253,6 +255,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
         sec2.addWidget(set_frame)
         sec2.addWidget(edit_attribute_frame)
         sec4.addWidget(rename_container_frame)
+        sec4.addWidget(animCurve_convert_frame)
 
         lay.addWidget(sec0)
         lay.addWidget(sec3)
@@ -268,6 +271,15 @@ class PYGeneralLayout(QtWidgets.QDialog):
         _layout.setContentsMargins(0, 0, 0, 0)
         rename_container = PYRenameQWidget(parent=self)
         _layout.addWidget(rename_container.init_ui())
+        frame.addLayout(_layout)
+        return frame
+
+    def animCurve_convert_lay(self):
+        frame = py_widgets.create_collapsible_frame(u"animCurve convert")
+        _layout = QtWidgets.QVBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 0)
+        animCurve_convert = PYConvertQtWidgets(parent=self)
+        _layout.addWidget(animCurve_convert.init_ui())
         frame.addLayout(_layout)
         return frame
 
