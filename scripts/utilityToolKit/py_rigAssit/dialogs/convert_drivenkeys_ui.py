@@ -47,12 +47,12 @@ class PYConvertQtWidgets(QtWidgets.QWidget):
         )
         value_layout = QtWidgets.QHBoxLayout()
 
-        self.label = _widgets.create_bold_label(u'设置驱动属性值 (数量和关键帧一致):')
+        self.label = _widgets.create_bold_label(u'设置驱动属性值:')
         self.label.setStyleSheet("color: gray;")
         self.dirve_minmax_fld = QtWidgets.QLineEdit()
         self.dirve_minmax_fld.setText("0;10")
         self.dirve_minmax_fld.setEnabled(False)
-        self.dirve_minmax_fld.setFixedWidth(120)
+        self.dirve_minmax_fld.setFixedWidth(160)
         value_layout.addWidget(self.label)
         value_layout.addWidget(self.dirve_minmax_fld)
         self.create_block = _widgets.create_radiogroup(
@@ -66,10 +66,10 @@ class PYConvertQtWidgets(QtWidgets.QWidget):
         layout.addWidget(_widgets.create_text(u"设置驱动转到当前控制器对象的父层级层数"))
         layout.addLayout(parent_his_form)
         layout.addWidget(self.dirve_value_block)
-        layout.addWidget(_widgets.create_text(u"驱动属性值数量和关键帧一致，使用英文;分开"))
+        layout.addWidget(_widgets.create_text(u"* 驱动属性值数量和关键帧一致，使用英文;分开"))
         layout.addLayout(value_layout)
         layout.addWidget(self.create_block)
-        layout.addWidget(_widgets.create_text(u"mainChannelBox选择需要的属性"))
+        layout.addWidget(_widgets.create_text(u"* mainChannelBox选择需要的属性"))
         layout.addLayout(btn_layout)
         layout.addStretch()
 
@@ -97,10 +97,29 @@ class PYConvertQtWidgets(QtWidgets.QWidget):
             mayaPrint.error("请选择一个输出对象")
 
     def get_selection_attr(self, fld):
-        selection = cmds.ls(selection=True)
+        selection = self.get_selection()
         sel_attr = cmds.channelBox('mainChannelBox', q=1, sma=1)
         if selection and sel_attr:
             fld.setText("{}.{}".format(selection[0], sel_attr[0]))
+
+    def create_animCurve(self, name, node_type, infos, dirver_attr, dirven_attr, create_type):
+        new_node = cmds.createNode(node_type, name=name)
+        sdk_info.set_AnimCurve_ValuePair(new_node, infos)
+        cmds.connectAttr(dirver_attr, "{}.input".format(new_node), f=1)
+        if create_type == 2:
+            imp_drv_node = cmds.listConnections(dirven_attr, scn=False, p=True, s=True, d=False)
+            if imp_drv_node:
+                imp_drv_node = imp_drv_node[0]
+                if cmds.objectType(imp_drv_node.split(".")[0]) == "blendWeighted":
+                    indices = cmds.getAttr('{}.input'.format(imp_drv_node.split(".")[0]), multiIndices=True)
+                    cmds.connectAttr('{}.output'.format(new_node), '{}.input[{}]'.format(imp_drv_node.split(".")[0], (indices[-1])+1), f=1)
+                else:
+                    blendWtd = cmds.createNode('blendWeighted', name='{}_Wtd'.format(name))
+                    cmds.connectAttr(imp_drv_node, '{}.input[0]'.format(blendWtd), f=1)
+                    cmds.connectAttr('{}.output'.format(new_node), '{}.input[1]'.format(blendWtd), f=1)
+                    cmds.connectAttr("{}.output".format(blendWtd), dirven_attr, f=1)
+        else:
+            cmds.connectAttr("{}.output".format(new_node), dirven_attr, f=1)
 
     @undo
     def animCurve_convert(self):
@@ -142,23 +161,7 @@ class PYConvertQtWidgets(QtWidgets.QWidget):
                         infos[idx+1][0] = v
                 name = imp_source_node.split(".")[0].replace(node, parent_name)
                 node_type = cmds.objectType(imp_source_node)
-                new_node = cmds.createNode(animCurve_map[node_type], name=name)
-                sdk_info.set_AnimCurve_ValuePair(new_node, infos)
-                cmds.connectAttr(dirve_attr, "{}.input".format(new_node), f=1)
-                if create_type == 2:
-                    imp_drv_node = cmds.listConnections("{}.{}".format(parent_name, attr), scn=False, p=True, s=True, d=False)
-                    if imp_drv_node:
-                        imp_drv_node = imp_drv_node[0]
-                        if cmds.objectType(imp_drv_node.split(".")[0]) == "blendWeighted":
-                            indices = cmds.getAttr('{}.input'.format(imp_drv_node.split(".")[0]), multiIndices=True)
-                            cmds.connectAttr('{}.output'.format(new_node), '{}.input[{}]'.format(imp_drv_node.split(".")[0], (indices[-1])+1), f=1)
-                        else:
-                            blendWtd = cmds.createNode('blendWeighted', name='{}_Wtd'.format(name))
-                            cmds.connectAttr(imp_drv_node, '{}.input[0]'.format(blendWtd), f=1)
-                            cmds.connectAttr('{}.output'.format(new_node), '{}.input[1]'.format(blendWtd), f=1)
-                            cmds.connectAttr("{}.output".format(blendWtd), "{}.{}".format(parent_name, attr), f=1)
-                else:
-                    cmds.connectAttr("{}.output".format(new_node), "{}.{}".format(parent_name, attr), f=1)
+                self.create_animCurve(name, animCurve_map[node_type], infos, dirve_attr, "{}.{}".format(parent_name, attr), create_type)
 
         mayaPrint.log("animCurve convert succeeded.")
 
