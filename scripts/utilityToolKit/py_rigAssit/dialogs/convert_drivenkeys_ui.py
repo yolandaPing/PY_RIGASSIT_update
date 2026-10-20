@@ -139,7 +139,7 @@ class PYConvertQtWidgets(QtWidgets.QWidget):
         selAttr = cmds.channelBox("mainChannelBox", q=True, sma=True)
 
         for node in sels:
-            full_path = cmds.listRelatives(sels[0], p=True, fullPath=True)[0]
+            full_path = cmds.listRelatives(node, p=True, fullPath=True)[0]
             parent_list = full_path.split("|")[1:][::-1]
 
             if pa_his > len(parent_list):
