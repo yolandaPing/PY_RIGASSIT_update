@@ -27,10 +27,9 @@ try:
     from importlib import reload
 except ImportError:
     pass
+
 from py_rigAssit.openpipeline import ui_openpipeline
-from py_rigAssit.openpipeline import description_manager
 reload(ui_openpipeline)
-reload(description_manager)
 
 from py_rigAssit.openpipeline.version_context import (show_asset_context_menu, show_subtype_context_menu, show_version_context_menu)
 from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
@@ -81,6 +80,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         self.new_asset_name = None
         self.fbx_config = None
         self._fbx_dialog = None
+        self._snapshot_selector = None
 
         self.setWindowTitle(self.WINDOW_NAME)
         self.loadWindowSettings()
@@ -110,8 +110,11 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         QtCore.QTimer.singleShot(delay, lambda: QtWidgets.QMessageBox.critical(self, title, message))
 
     def show_info_inview(self, title=u"Finished", color='yellow'):
-        import HelpImageUI as help
-        help.inView_Message(color, u"{}".format(title))
+        from HelpImageUI import inView_Message
+        inView_Message(color, u"{}".format(title))
+
+    def show_help(self, text="", *args):
+        QtWidgets.QMessageBox.information(self, "帮助", text)
 
     def show_asset_context_menu(self, position):
         show_asset_context_menu(self, position)
@@ -338,6 +341,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
             self.btn_del_sub.setEnabled(False)
             self.btn_rename_sub.setEnabled(False)
             self.btn_snapshot.setEnabled(False)
+            self.btn_snapshot_direct.setEnabled(False)
             self.asset_list.clear()
             self.subtype_list.clear()
             self.clear_right()
@@ -360,6 +364,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
                 self.btn_del_sub.setEnabled(False)
                 self.btn_rename_sub.setEnabled(False)
                 self.btn_snapshot.setEnabled(False)
+                self.btn_snapshot_direct.setEnabled(False)
                 self.cfg.add_project_path(normalized_path)
                 self.load_assets()
             else:
@@ -646,9 +651,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         return None
 
     def _set_color(self, asset_name, color, subtype_name=None):
-        """
-        设置颜色，color 为 'red','yellow','blue','green' 或 None（清除）
-        """
+        """设置颜色，color 为 'red','yellow','blue','green' 或 None（清除）"""
         if not self.pm or not self.current_asset_type or not asset_name:
             return
         color_file = self._get_color_file_path(asset_name, subtype_name)
@@ -720,7 +723,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
             self.asset_list.addItem(item)
         self.asset_count.setText("{}".format(len(sorted_assets)))
         if ENABLE_DESC_TIP:
-            self.update_asset_tooltips()  # ← 新增：给每个 item 设置 description tooltip
+            self.update_asset_tooltips()  # 给每个 item 设置 description tooltip
 
     def on_asset_type_changed(self, text):
         if not text or text == u'暂无资产类型':
@@ -872,16 +875,12 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         preview = os.path.join(self.pm.get_asset_dir(asset_type, asset), 'preview.png')
         if os.path.exists(preview):
             pix = QtGui.QPixmap(preview)
-            self.preview_label.setPixmap(pix.scaled(self.preview_label.size(),
-                                                    QtCore.Qt.KeepAspectRatio,
-                                                    QtCore.Qt.SmoothTransformation))
+            self.preview_label.setPixmap(pix)
         else:
             preview = os.path.join(self.pm.get_asset_dir(asset_type, asset), 'preview.jpg')
             if os.path.exists(preview):
                 pix = QtGui.QPixmap(preview)
-                self.preview_label.setPixmap(pix.scaled(self.preview_label.size(),
-                                                        QtCore.Qt.KeepAspectRatio,
-                                                        QtCore.Qt.SmoothTransformation))
+                self.preview_label.setPixmap(pix)
             else:
                 self.preview_label.clear()
                 self.preview_label.setText('No Preview')
@@ -889,12 +888,10 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
     def on_asset_clicked(self, item):
         self.selected_asset = item.text()
         self.selected_subtype = None
-
         level = self._get_asset_level(self.current_asset_type, self.selected_asset)
         level_display = level if level else 'No'   # 兼容旧资产info.json没有level显示 "No"
         display_text = u'资产: {level} > {asset}'.format(level=level_display, asset=self.selected_asset)
         self.info_label.setText(display_text)
-
         self.load_subtypes()
         self.btn_delete_asset.setEnabled(True)
         self.btn_delete_asset.setVisible(True)
@@ -902,6 +899,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         self.btn_del_sub.setEnabled(False)
         self.btn_rename_sub.setEnabled(False)
         self.btn_snapshot.setEnabled(True)
+        self.btn_snapshot_direct.setEnabled(True)
         self.show_asset_preview(self.current_asset_type, self.selected_asset)
         self.clear_right()
         self.show_version_count(0)
@@ -1021,15 +1019,16 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
 
         self.show_version_count(len(versions))
         notes = self.pm.get_notes(self.current_asset_type, self.selected_asset, st)
-        # self.notes_text.setPlainText("{}".format(notes))
         self.notes_text.setHtml(self.format_notes_text(notes))
         has_versions = bool(versions)
         self.btn_save_new_version.setEnabled(True)
         self.btn_save_new_version.setStyleSheet("color: green;")
         self.btn_set_master.setEnabled(has_versions)
+        self.btn_set_master.setStyleSheet("color: red;")
         self.btn_snapshot.setEnabled(True)
-        self.btn_open_master.setEnabled(True)
-        self.btn_reference_master.setEnabled(True)
+        self.btn_snapshot_direct.setEnabled(True)
+        # self.btn_open_master.setEnabled(True)
+        # self.btn_reference_master.setEnabled(True)
         self.btn_del_sub.setEnabled(True)
         self.btn_rename_sub.setEnabled(True)
 
@@ -1037,17 +1036,13 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
                                'preview.png')
         if os.path.exists(preview):
             pix = QtGui.QPixmap(preview)
-            self.preview_label.setPixmap(pix.scaled(self.preview_label.size(),
-                                                    QtCore.Qt.KeepAspectRatio,
-                                                    QtCore.Qt.SmoothTransformation))
+            self.preview_label.setPixmap(pix)
         else:
             preview = os.path.join(self.pm.get_asset_dir(self.current_asset_type, self.selected_asset), 'components',
                                    st, 'preview.jpg')
             if os.path.exists(preview):
                 pix = QtGui.QPixmap(preview)
-                self.preview_label.setPixmap(pix.scaled(self.preview_label.size(),
-                                                        QtCore.Qt.KeepAspectRatio,
-                                                        QtCore.Qt.SmoothTransformation))
+                self.preview_label.setPixmap(pix)
             else:
                 self.preview_label.clear()
                 self.preview_label.setText('No Preview')
@@ -1214,41 +1209,137 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         else:
             self.version_count_text.setText("")
 
+    def take_snapshot_direct(self):
+        """直接调用 ProjectManager 截图；当前选中子类型时保存到子类型，否则保存到资产。"""
+        if not (self.pm and self.current_asset_type and self.selected_asset):
+            self.show_warning(u'提示', u'请先选择项目和资产')
+            return
+
+        try:
+            if self.selected_subtype:
+                path = self.pm.take_snapshot(
+                    self.current_asset_type, self.selected_asset, self.selected_subtype
+                )
+            else:
+                path = self.pm.take_snapshot(self.current_asset_type, self.selected_asset)
+
+            if not path or not os.path.isfile(path):
+                self.show_warning(u'失败', u'预览保存失败：未生成截图文件')
+                return
+
+            pix = QtGui.QPixmap(path)
+            if pix.isNull():
+                self.show_warning(u'失败', u'生成的预览图无效：{}'.format(path))
+                return
+
+            self.preview_label.setText('')
+            self.preview_label.setPixmap(pix)
+        except Exception as e:
+            self.show_warning(u'失败', u'直接截图失败: {}'.format(str(e)))
+
     def take_snapshot(self):
-        if not (self.pm and self.selected_asset or self.selected_subtype):
+        """框选截图：隐藏窗口 → 抓全屏 → 拖拽选区 → 裁切保存 preview.png"""
+        if not (self.pm and self.selected_asset):
             self.show_warning(u'提示', u'请先选择资产与子类型')
             return
 
-        if self.pm and self.selected_asset and self.selected_subtype:
+        was_visible = self.isVisible()
+        if was_visible:
+            self.hide()
+
+        def _start():
             try:
-                path = self.pm.take_snapshot(self.current_asset_type, self.selected_asset, self.selected_subtype)
-                if os.path.exists(path):
-                    pix = QtGui.QPixmap(path)
-                    if not pix.isNull():
-                        self.preview_label.setPixmap(pix.scaled(self.preview_label.size(),
-                                                                QtCore.Qt.KeepAspectRatio,
-                                                                QtCore.Qt.SmoothTransformation))
-                    else:
-                        self.show_warning(u'失败', u'生成的预览图无效')
-                else:
-                    self.show_warning(u'失败', u'预览保存失败')
+                screen = QtWidgets.QApplication.primaryScreen()
+                if not screen:
+                    self.show_warning(u'失败', u'无法获取屏幕')
+                    if was_visible:
+                        self.show(); self.raise_(); self.activateWindow()
+                    return
+                QtCore.QTimer.singleShot(80, lambda: _grab(screen))
             except Exception as e:
-                self.show_warning(u'失败', u'截图过程中发生错误: {error}'.format(error=str(e)))
-        elif self.pm and self.selected_asset and not self.selected_subtype:
+                self.show_warning(u'失败', u'启动截图失败: {}'.format(str(e)))
+                if was_visible:
+                    self.show(); self.raise_(); self.activateWindow()
+
+        def _grab_screen_pixmap(screen):
+            """兼容不同 Maya/PySide2 版本的屏幕抓取接口。"""
+            grab_func = getattr(screen, "grabWindow", None)
+            if callable(grab_func):
+                return grab_func(0)
+
+            # 某些旧环境可能没有 QScreen.grabWindow，尝试旧版 QPixmap 接口。
+            legacy_grab = getattr(QtGui.QPixmap, "grabWindow", None)
+            if callable(legacy_grab):
+                return legacy_grab(0)
+
+            raise RuntimeError(
+                u'当前 Maya/Qt 环境不提供可用的屏幕抓取接口（QScreen.grabWindow）。'
+            )
+
+        def _grab(screen):
             try:
-                path = self.pm.take_snapshot(self.current_asset_type, self.selected_asset)
-                if os.path.exists(path):
-                    pix = QtGui.QPixmap(path)
-                    if not pix.isNull():
-                        self.preview_label.setPixmap(pix.scaled(self.preview_label.size(),
-                                                                QtCore.Qt.KeepAspectRatio,
-                                                                QtCore.Qt.SmoothTransformation))
-                    else:
-                        self.show_warning(u'失败', u'生成的预览图无效')
-                else:
-                    self.show_warning(u'失败', u'预览保存失败')
+                full_pix = _grab_screen_pixmap(screen)
+                screen_geo = screen.geometry()
+                if full_pix.isNull() or full_pix.width() == 0:
+                    self.show_warning(u'失败', u'抓屏失败（可能是硬件加速视图导致）')
+                    if was_visible:
+                        self.show();
+                        self.raise_();
+                        self.activateWindow()
+                    return
+
+                selector = ui_openpipeline.ScreenRegionSelector(full_pix, screen_geo)
+                self._snapshot_selector = selector
+
+                def on_region(global_rect):
+                    try:
+                        pix = ui_openpipeline.crop_region_from_screenshot(
+                            full_pix, screen_geo, global_rect
+                        )
+                        if pix.isNull() or pix.width() < 2 or pix.height() < 2:
+                            self.show_warning(u'失败', u'截取区域无效')
+                            return
+                        if self.selected_subtype:
+                            target_dir = os.path.join(
+                                self.pm.get_asset_dir(
+                                    self.current_asset_type, self.selected_asset
+                                ),
+                                'components', self.selected_subtype
+                            )
+                        else:
+                            target_dir = self.pm.get_asset_dir(self.current_asset_type, self.selected_asset)
+                        if not os.path.exists(target_dir):
+                            os.makedirs(target_dir)
+                        target_path = os.path.join(target_dir, 'preview.png')
+                        if pix.save(target_path, 'PNG'):
+                            self.preview_label.setPixmap(pix)
+                            # self.show_info_inview('Snapshot saved', 'green')
+                        else:
+                            self.show_warning(u'失败', u'保存预览图失败')
+                    except Exception as e:
+                        self.show_warning(u'失败', u'截图保存出错: {}'.format(str(e)))
+                    finally:
+                        self._snapshot_selector = None
+                        if was_visible:
+                            self.show(); self.raise_(); self.activateWindow()
+
+                def on_cancel():
+                    self._snapshot_selector = None
+                    if was_visible:
+                        self.show(); self.raise_(); self.activateWindow()
+
+                selector.region_selected.connect(on_region)
+                selector.cancelled.connect(on_cancel)
+                selector.show()
+                selector.raise_()
+                selector.activateWindow()
+                selector.setFocus()
             except Exception as e:
-                self.show_warning(u'失败', u'截图过程中发生错误: {error}'.format(error=str(e)))
+                self.show_warning(u'失败', u'截图出错: {}'.format(str(e)))
+                if was_visible:
+                    self.show(); self.raise_(); self.activateWindow()
+
+        QtCore.QTimer.singleShot(200, _start)
 
     def clear_right(self):
         self.version_list.clear()
@@ -1257,14 +1348,16 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         self.btn_save_new_version.setEnabled(False)
         self.btn_save_new_version.setStyleSheet("color: gray;")
         self.btn_set_master.setEnabled(False)
-        self.btn_open_master.setEnabled(False)
-        self.btn_reference_master.setEnabled(False)
+        self.btn_set_master.setStyleSheet("color: gray;")
+        # self.btn_open_master.setEnabled(False)
+        # self.btn_reference_master.setEnabled(False)
         self.btn_del_sub.setEnabled(False)
         self.btn_rename_sub.setEnabled(False)
         if not self.selected_asset:
             self.btn_delete_asset.setEnabled(False)
             self.btn_delete_asset.setVisible(False)
             self.btn_snapshot.setEnabled(False)
+            self.btn_snapshot_direct.setEnabled(False)
             self.preview_label.clear()
             self.preview_label.setText('No Preview')
 
