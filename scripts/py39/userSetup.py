@@ -43,31 +43,25 @@ def default_config():
         "Allow_smooth": True,
         "Grp_prisec": False,
         "skinPaint_hotkey": False,
-
         "suffix": "bind",
-
         "Chinese": True,
-
         "CopyTools_UI_new": True,
         "Optional_Drive_UI_new": True,
-
         "Blendshape_Editor_User": False,
         "Dirve_Pose_Mirror": False,
         "MotionPath_Enable": False,
         "rbfMirrorManual": False,
-
+        "version_format": "new",
         "prefix_map": {
             "l_": "r_",
             "r_": "l_",
             "L_": "R_",
             "R_": "L_"
         },
-
         "suffix_map": {
             "_L": "_R",
             "_R": "_L"
         },
-
         "infix_map": {
             "_l_": "_r_",
             "_r_": "_l_",

@@ -9,6 +9,7 @@
 import os
 import json
 import shutil
+import errno
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 # import html
@@ -36,6 +37,7 @@ from py_rigAssit.openpipeline.version import VERSION, TIMESTAMP
 from py_rigAssit.openpipeline.asset_info import PROJECTS_XML, ENABLE_DESC_TIP
 from py_rigAssit.openpipeline.ui_openpipeline import build_openpipeline_ui
 from py_rigAssit.openpipeline.description_manager import DescriptionMixin
+from py_rigAssit.openpipeline.snapshot_manager import SnapshotMixin
 from Pipeline import file_operations as fops
 from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
@@ -44,9 +46,62 @@ from ui_framework.core.qtCompat import *
 from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
 
 _widgets = Widgets()
+_USER_DEFINED_CANDIDATES = (
+    "user_defined",
+    "Pipeline.user_defined",
+    "py_rigAssit.openpipeline.user_defined",
+)
+
+def _safe_makedirs(path):
+    """兼容 Python 2.7 / 3.x 的 makedirs（exist_ok=True 语义）。"""
+    if not path:
+        return
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if getattr(e, 'errno', None) == getattr(errno, 'EEXIST', 17):
+            return
+        if os.path.isdir(path):
+            return
+        raise
+
+def _load_user_defined_module():
+    """尝试多个候选路径导入 user_defined 模块，全部失败返回 None。"""
+    import importlib
+    for mod_path in _USER_DEFINED_CANDIDATES:
+        try:
+            mod = importlib.import_module(mod_path)
+            if hasattr(mod, "set_value"):
+                return mod
+        except Exception:
+            continue
+    return None
 
 
-class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
+def _load_version_format_from_user_defined():
+    """读取版本命名格式：'legacy' 或 'new'。默认 'new'。"""
+    mod = _load_user_defined_module()
+    if mod is not None and hasattr(mod, "get_version_format"):
+        try:
+            return mod.get_version_format()
+        except Exception:
+            pass
+    return "new"
+
+
+def _save_version_format_to_user_defined(fmt):
+    """把版本命名格式写入 user_defined.json。"""
+    mod = _load_user_defined_module()
+    if mod is None or not hasattr(mod, "set_value"):
+        return False
+    try:
+        mod.set_value("version_format", fmt)
+        return True
+    except Exception:
+        return False
+
+
+class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow):
     COLOR_MAP = {
         'red': QtGui.QColor(255, 120, 120),
         'yellow': QtGui.QColor(255, 230, 80),
@@ -90,6 +145,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         self.load_projects()
         self.select_last_project()
         self.load_fbx_config()
+        self._restore_version_format_combo()  # 新增
 
     def show_info(self, title, message):
         QtWidgets.QMessageBox.information(self, title, message)
@@ -112,6 +168,28 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
     def show_info_inview(self, title=u"Finished", color='yellow'):
         from HelpImageUI import inView_Message
         inView_Message(color, u"{}".format(title))
+
+    def _restore_version_format_combo(self):
+        """根据 user_defined.json 恢复下拉框选择。"""
+        if not hasattr(self, "version_format_combo"):
+            return
+        fmt = _load_version_format_from_user_defined()
+        idx = self.version_format_combo.findData(fmt)
+        if idx >= 0:
+            self.version_format_combo.blockSignals(True)
+            self.version_format_combo.setCurrentIndex(idx)
+            self.version_format_combo.blockSignals(False)
+
+    def on_version_format_changed(self, index):
+        """下拉框变化：写入 user_defined.json。"""
+        fmt = self.version_format_combo.itemData(index)
+        if not fmt:
+            return
+        if not _save_version_format_to_user_defined(fmt):
+            print(
+                u"[OpenPipeline] 无法保存版本格式 '{}' 到 user_defined.json"
+                u"（user_defined 模块不可导入）".format(fmt)
+            )
 
     def show_help(self, text="", *args):
         QtWidgets.QMessageBox.information(self, "帮助", text)
@@ -330,7 +408,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
                     break
 
     def on_project_changed(self, text):
-        if not text or text == '-- 选择项目 --' or text == u'请先设置项目根路径' or text == u'没有找到项目':
+        if not text or text == u'-- 选择项目 --' or text == u'请先设置项目根路径' or text == u'没有找到项目':
             self.pm = None
             self.current_project_path = ''
             self.current_project_name = ''
@@ -368,9 +446,7 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
                 self.cfg.add_project_path(normalized_path)
                 self.load_assets()
             else:
-                self.show_warning(u'错误',
-                                  u'项目路径不存在:\n{path}\n\n请检查项目是否被移动或删除。'.format(
-                                      path=normalized_path))
+                self.show_warning(u'错误', u'项目路径不存在:\n{path}\n\n请检查项目是否被移动或删除。'.format(path=normalized_path))
 
     def get_library_folder_from_xml(self, project_name):
         xml_path = get_projects_xml_path(self.cfg)
@@ -477,35 +553,31 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         name = self.new_proj_name.text().strip()
         root_path = self.cfg.get_project_root_path()
         lib = self.new_proj_lib.text().strip()
-
         if not name:
             self.show_warning(u'错误', u'请填写项目名称')
             return
 
         if not lib:
             lib = 'lib'
-
         project_root = os.path.join(root_path, name)
         project_root = project_root.replace('\\', '/')
         if not project_root.endswith('/'):
             project_root = project_root + '/'
-
         xml_projects = load_projects_from_xml(self.cfg)
         if name in xml_projects:
             self.show_warning(u'错误', u'项目"{name}"已存在'.format(name=name))
             return
-
         project_dir = project_root.rstrip('/')
         if os.path.exists(project_dir):
-            reply = QtWidgets.QMessageBox.question(self, u'文件夹已存在',
-                                                   u'文件夹"{name}"已存在于项目根路径下，是否继续？'.format(name=name),
-                                                   QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            reply = QtWidgets.QMessageBox.question(
+                self, u'文件夹已存在',
+                u'文件夹"{name}"已存在于项目根路径下，是否继续？'.format(name=name),
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
             if reply == QtWidgets.QMessageBox.No:
                 return
-
-        os.makedirs(project_dir, exist_ok=True)
-        os.makedirs(os.path.join(project_dir, lib), exist_ok=True)
-
+        _safe_makedirs(project_dir)
+        _safe_makedirs(os.path.join(project_dir, lib))
         ensure_projects_xml(self.cfg)
         add_project_to_xml(self.cfg, name, project_root, libraryfolder=lib)
         self.cfg.add_project_path(project_root)
@@ -513,7 +585,6 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
         idx = self.project_combo.findText(name)
         if idx >= 0:
             self.project_combo.setCurrentIndex(idx)
-
         dlg.accept()
         self.show_info(u'成功', u'项目 {name} 创建并记录'.format(name=name))
 
@@ -990,22 +1061,26 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
     def format_notes_text(self, text):
         if not text:
             return ""
+        try:
+            text = self.ensure_unicode_text(text)
+        except Exception:
+            pass
 
         lines = text.splitlines()
         html_parts = []
         for line in lines:
             stripped = line.strip()
-            if stripped.startswith("[MASTER SET]"):
-                color = "yellow"
-            elif stripped.startswith("Note: Delete"):
-                color = "#e68b86"
-            elif stripped.startswith("Note:"):
-                color = "#80fcca"
+            if stripped.startswith(u"[MASTER SET]"):
+                color = u"yellow"
+            elif stripped.startswith(u"Note: Delete"):
+                color = u"#e68b86"
+            elif stripped.startswith(u"Note:"):
+                color = u"#80fcca"
             else:
-                color = "#abc4d2"
+                color = u"#abc4d2"
             escaped = xml.sax.saxutils.escape(line)
-            html_parts.append('<span style="color:{};">{}</span>'.format(color, escaped))
-        return "<br>".join(html_parts)
+            html_parts.append(u'<span style="color:{};">{}</span>'.format(color, escaped))
+        return u"<br>".join(html_parts)
 
     def on_subtype_clicked(self, item):
         st = item.text()
@@ -1208,138 +1283,6 @@ class PYPenpipelineDialog(DescriptionMixin, PyouPersistentWindow):
             self.version_count_text.setText("总数量: {}".format(str(counts)))
         else:
             self.version_count_text.setText("")
-
-    def take_snapshot_direct(self):
-        """直接调用 ProjectManager 截图；当前选中子类型时保存到子类型，否则保存到资产。"""
-        if not (self.pm and self.current_asset_type and self.selected_asset):
-            self.show_warning(u'提示', u'请先选择项目和资产')
-            return
-
-        try:
-            if self.selected_subtype:
-                path = self.pm.take_snapshot(
-                    self.current_asset_type, self.selected_asset, self.selected_subtype
-                )
-            else:
-                path = self.pm.take_snapshot(self.current_asset_type, self.selected_asset)
-
-            if not path or not os.path.isfile(path):
-                self.show_warning(u'失败', u'预览保存失败：未生成截图文件')
-                return
-
-            pix = QtGui.QPixmap(path)
-            if pix.isNull():
-                self.show_warning(u'失败', u'生成的预览图无效：{}'.format(path))
-                return
-
-            self.preview_label.setText('')
-            self.preview_label.setPixmap(pix)
-        except Exception as e:
-            self.show_warning(u'失败', u'直接截图失败: {}'.format(str(e)))
-
-    def take_snapshot(self):
-        """框选截图：隐藏窗口 → 抓全屏 → 拖拽选区 → 裁切保存 preview.png"""
-        if not (self.pm and self.selected_asset):
-            self.show_warning(u'提示', u'请先选择资产与子类型')
-            return
-
-        was_visible = self.isVisible()
-        if was_visible:
-            self.hide()
-
-        def _start():
-            try:
-                screen = QtWidgets.QApplication.primaryScreen()
-                if not screen:
-                    self.show_warning(u'失败', u'无法获取屏幕')
-                    if was_visible:
-                        self.show(); self.raise_(); self.activateWindow()
-                    return
-                QtCore.QTimer.singleShot(80, lambda: _grab(screen))
-            except Exception as e:
-                self.show_warning(u'失败', u'启动截图失败: {}'.format(str(e)))
-                if was_visible:
-                    self.show(); self.raise_(); self.activateWindow()
-
-        def _grab_screen_pixmap(screen):
-            """兼容不同 Maya/PySide2 版本的屏幕抓取接口。"""
-            grab_func = getattr(screen, "grabWindow", None)
-            if callable(grab_func):
-                return grab_func(0)
-
-            # 某些旧环境可能没有 QScreen.grabWindow，尝试旧版 QPixmap 接口。
-            legacy_grab = getattr(QtGui.QPixmap, "grabWindow", None)
-            if callable(legacy_grab):
-                return legacy_grab(0)
-
-            raise RuntimeError(
-                u'当前 Maya/Qt 环境不提供可用的屏幕抓取接口（QScreen.grabWindow）。'
-            )
-
-        def _grab(screen):
-            try:
-                full_pix = _grab_screen_pixmap(screen)
-                screen_geo = screen.geometry()
-                if full_pix.isNull() or full_pix.width() == 0:
-                    self.show_warning(u'失败', u'抓屏失败（可能是硬件加速视图导致）')
-                    if was_visible:
-                        self.show();
-                        self.raise_();
-                        self.activateWindow()
-                    return
-
-                selector = ui_openpipeline.ScreenRegionSelector(full_pix, screen_geo)
-                self._snapshot_selector = selector
-
-                def on_region(global_rect):
-                    try:
-                        pix = ui_openpipeline.crop_region_from_screenshot(
-                            full_pix, screen_geo, global_rect
-                        )
-                        if pix.isNull() or pix.width() < 2 or pix.height() < 2:
-                            self.show_warning(u'失败', u'截取区域无效')
-                            return
-                        if self.selected_subtype:
-                            target_dir = os.path.join(
-                                self.pm.get_asset_dir(
-                                    self.current_asset_type, self.selected_asset
-                                ),
-                                'components', self.selected_subtype
-                            )
-                        else:
-                            target_dir = self.pm.get_asset_dir(self.current_asset_type, self.selected_asset)
-                        if not os.path.exists(target_dir):
-                            os.makedirs(target_dir)
-                        target_path = os.path.join(target_dir, 'preview.png')
-                        if pix.save(target_path, 'PNG'):
-                            self.preview_label.setPixmap(pix)
-                            # self.show_info_inview('Snapshot saved', 'green')
-                        else:
-                            self.show_warning(u'失败', u'保存预览图失败')
-                    except Exception as e:
-                        self.show_warning(u'失败', u'截图保存出错: {}'.format(str(e)))
-                    finally:
-                        self._snapshot_selector = None
-                        if was_visible:
-                            self.show(); self.raise_(); self.activateWindow()
-
-                def on_cancel():
-                    self._snapshot_selector = None
-                    if was_visible:
-                        self.show(); self.raise_(); self.activateWindow()
-
-                selector.region_selected.connect(on_region)
-                selector.cancelled.connect(on_cancel)
-                selector.show()
-                selector.raise_()
-                selector.activateWindow()
-                selector.setFocus()
-            except Exception as e:
-                self.show_warning(u'失败', u'截图出错: {}'.format(str(e)))
-                if was_visible:
-                    self.show(); self.raise_(); self.activateWindow()
-
-        QtCore.QTimer.singleShot(200, _start)
 
     def clear_right(self):
         self.version_list.clear()

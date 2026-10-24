@@ -51,6 +51,9 @@ class DescriptionMixin(object):
         asset_dir = self.pm.get_asset_dir(self.current_asset_type, asset_name)
         return os.path.join(asset_dir, 'description.txt')
 
+    def ensure_unicode_text(self, txt):
+        return _to_unicode(txt)
+
     def load_description(self):
         """选中 asset 时调用，加载内容到 UI（blockSignals 防止误保存）"""
         if not (getattr(self, 'pm', None) and self.selected_asset):
