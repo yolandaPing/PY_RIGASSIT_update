@@ -6,6 +6,7 @@
 from functools import partial
 
 import os
+import io
 import shutil
 from datetime import datetime
 
@@ -43,27 +44,48 @@ try:
 except Exception:
     IN_MAYA = False
 
+
+def _u(value):
+    """Py2/Py3 安全转 unicode。"""
+    if value is None:
+        return u''
+    if isinstance(value, bytes):
+        try:
+            return value.decode('utf-8')
+        except Exception:
+            try:
+                return value.decode('gbk')
+            except Exception:
+                return value.decode('utf-8', 'replace')
+    if isinstance(value, str):
+        return value
+    try:
+        return unicode(value)  # noqa: F821
+    except Exception:
+        return u'{}'.format(value)
+
+
 _cfg = OpenPipelineConfig()
 
 _color_options = [
-        (u"🟡 黄色", "yellow"),
-        (u"🔴 红色", "red"),
-        (u"🔵 蓝色", "blue"),
-        (u"🟢 绿色", "green"),
-        (u"❌ 清除标记", None)
-    ]
+    (u"🟡 黄色", "yellow"),
+    (u"🔴 红色", "red"),
+    (u"🔵 蓝色", "blue"),
+    (u"🟢 绿色", "green"),
+    (u"❌ 清除标记", None)
+]
 
 
 def _show_info_inview(title=u"Finished", color='yellow'):
     import HelpImageUI as help
-    help.inView_Message(color, u"{}".format(title))
+    help.inView_Message(color, u"{}".format(_u(title)))
 
 
 def add_menu_label(menu, text):
     widget = QtWidgets.QWidget()
     layout = QtWidgets.QHBoxLayout(widget)
 
-    label = QtWidgets.QLabel(text)
+    label = QtWidgets.QLabel(_u(text))
     label.setStyleSheet("color: yellow;")
 
     layout.addWidget(label)
@@ -112,94 +134,59 @@ class PathService(PipelineContext):
 
     def asset_dir(self, asset_name=None):
         asset_name = asset_name or self.asset
-        return self.pm.get_asset_dir(
-            self.asset_type,
-            asset_name
-        )
+        return self.pm.get_asset_dir(self.asset_type, asset_name)
 
     def subtype_dir(self, subtype_name=None):
         subtype_name = subtype_name or self.subtype
-        return os.path.join(
-            self.asset_dir(),
-            'components',
-            subtype_name
-        )
+        return os.path.join(self.asset_dir(), 'components', subtype_name)
 
     def workshop_dir(self):
-        return os.path.join(
-            self.subtype_dir(),
-            'workshop'
-        )
+        return os.path.join(self.subtype_dir(), 'workshop')
 
     def version_path(self, version_name):
-        return os.path.join(
-            self.workshop_dir(),
-            version_name
-        )
+        return os.path.join(self.workshop_dir(), version_name)
 
     def open_asset_path(self, asset_name):
         if not self.validate_asset():
-            self.ui.show_warning(
-                u'错误',
-                u'请先选择资产类型'
-            )
+            self.ui.show_warning(u'错误', u'请先选择资产类型')
             return
 
         path = self.asset_dir(asset_name)
 
         if os.path.exists(path):
-            open_folder_in_explorer(path.replace("/", "\\"))
+            open_folder_in_explorer(_u(path).replace("/", "\\"))
         else:
-            self.ui.show_warning(
-                u'错误',
-                u'资产路径不存在:\n{}'.format(path)
-            )
+            self.ui.show_warning(u'错误', u'资产路径不存在:\n{}'.format(_u(path)))
 
     def open_subtype_path(self, subtype_name):
         if not self.validate_subtype():
-            self.ui.show_warning(
-                u'错误',
-                u'请先选择资产和任务'
-            )
+            self.ui.show_warning(u'错误', u'请先选择资产和任务')
             return
 
-        path = os.path.join(
-            self.asset_dir(),
-            'components',
-            subtype_name
-        )
+        path = os.path.join(self.asset_dir(), 'components', subtype_name)
 
         if os.path.exists(path):
-            open_folder_in_explorer(path.replace("/", "\\"))
+            open_folder_in_explorer(_u(path).replace("/", "\\"))
         else:
-            self.ui.show_warning(
-                u'错误',
-                u'任务路径不存在:\n{}'.format(path)
-            )
+            self.ui.show_warning(u'错误', u'任务路径不存在:\n{}'.format(_u(path)))
 
     def open_version_path(self, version_name):
         if not self.validate_subtype():
-            self.ui.show_warning(
-                u'错误',
-                u'请先选择资产和任务'
-            )
+            self.ui.show_warning(u'错误', u'请先选择资产和任务')
             return
 
         path = self.version_path(version_name)
 
         if os.path.exists(path):
-            open_file_in_explorer(path.replace("/", "\\"))
+            open_file_in_explorer(_u(path).replace("/", "\\"))
         else:
-            self.ui.show_warning(
-                u'错误',
-                u'版本文件不存在:\n{}'.format(path)
-            )
+            self.ui.show_warning(u'错误', u'版本文件不存在:\n{}'.format(_u(path)))
 
     def get_file_info(self, version_filename):
         file_path = self.version_path(version_filename)
 
         if not os.path.exists(file_path):
-            return ""
+            return u""
 
         try:
             size_bytes = os.path.getsize(file_path)
@@ -207,9 +194,9 @@ class PathService(PipelineContext):
 
             return u"\n\n文件大小: {:.1f} KB\n最后修改: {}".format(
                 size_bytes / 1024.0,
-                datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M')
+                _u(datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M'))
             )
-        except:
+        except Exception:
             return u"\n\n(无法获取文件信息)"
 
 
@@ -229,16 +216,13 @@ class VersionService(PathService):
         version_list.clear()
 
         for version in versions:
-            version_list.addItem(version)
+            version_list.addItem(_u(version))
 
     def backup_to_deleted_folder(self, file_path):
         if not os.path.exists(file_path):
             return False
 
-        deleted_dir = os.path.join(
-            self.subtype_dir(),
-            "deleted"
-        )
+        deleted_dir = os.path.join(self.subtype_dir(), "deleted")
 
         if not os.path.exists(deleted_dir):
             os.makedirs(deleted_dir)
@@ -246,11 +230,8 @@ class VersionService(PathService):
         filename = os.path.basename(file_path)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        backup_name = "{}_{}".format(timestamp, filename)
-        backup_path = os.path.join(
-            deleted_dir,
-            backup_name
-        )
+        backup_name = u"{}_{}".format(_u(timestamp), _u(filename))
+        backup_path = os.path.join(deleted_dir, backup_name)
 
         shutil.copy2(file_path, backup_path)
         return True
@@ -268,24 +249,18 @@ class VersionService(PathService):
 
             master_name = os.path.basename(master_path)
             return master_name == version_filename
-        except:
+        except Exception:
             return False
 
     def delete_selected_version(self, version_filename):
         if not self.validate_subtype():
-            self.ui.show_warning(
-                u'错误',
-                u'请先选择资产和任务'
-            )
+            self.ui.show_warning(u'错误', u'请先选择资产和任务')
             return False
 
         file_path = self.version_path(version_filename)
 
         if not os.path.exists(file_path):
-            self.ui.show_warning(
-                u'错误',
-                u'文件不存在:\n{}'.format(file_path)
-            )
+            self.ui.show_warning(u'错误', u'文件不存在:\n{}'.format(_u(file_path)))
             return False
 
         if self.is_master_version(version_filename):
@@ -303,7 +278,7 @@ class VersionService(PathService):
             reply = QtWidgets.QMessageBox.question(
                 self.ui,
                 u'确认删除',
-                u'确定删除版本？\n{}'.format(version_filename),
+                u'确定删除版本？\n{}'.format(_u(version_filename)),
                 QtWidgets.QMessageBox.Yes |
                 QtWidgets.QMessageBox.No
             )
@@ -314,32 +289,27 @@ class VersionService(PathService):
         try:
             self.backup_to_deleted_folder(file_path)
         except Exception as e:
-            print(u"备份删除文件失败: {}".format(e))
+            print(u"备份删除文件失败: {}".format(_u(e)))
 
         try:
             os.remove(file_path)
         except Exception as e:
-            self.ui.show_critical(
-                u'删除失败',
-                str(e)
-            )
+            self.ui.show_critical(u'删除失败', _u(e))
             return False
 
         note_path = file_path + ".note"
         if os.path.exists(note_path):
             try:
                 os.remove(note_path)
-            except:
+            except Exception:
                 pass
 
         self.refresh_version_list()
 
         if hasattr(self.ui, "show_info"):
             try:
-                self.ui.show_info(u'文件删除成功',
-                                  u"已删除 {}".format(version_filename)
-                                  )
-            except:
+                self.ui.show_info(u'文件删除成功', u"已删除 {}".format(_u(version_filename)))
+            except Exception:
                 pass
 
         return True
@@ -399,7 +369,7 @@ class FBXExporter(PathService):
             matrix_attrs = [a for a in attrs if a.startswith("matrix")]
             for mx in matrix_attrs:
                 cons = cmds.listConnections(
-                    "{}.{}".format(skin, mx),
+                    u"{}.{}".format(_u(skin), _u(mx)),
                     d=True
                 ) or []
 
@@ -411,7 +381,7 @@ class FBXExporter(PathService):
                 if cmds.objExists(matrix_node):
                     try:
                         cmds.delete(matrix_node)
-                    except:
+                    except Exception:
                         pass
 
     def delete_blendshape_nodes(self):
@@ -434,7 +404,7 @@ class FBXExporter(PathService):
                 if cmds.objExists(bs):
                     try:
                         cmds.delete(bs)
-                    except:
+                    except Exception:
                         pass
 
     def cleanup_scene(self):
@@ -442,20 +412,14 @@ class FBXExporter(PathService):
         self.delete_blendshape_nodes()
 
     def build_fbx_path(self, version_filename):
-        fbx_dir = os.path.join(
-            self.subtype_dir(),
-            "fbx"
-        )
+        fbx_dir = os.path.join(self.subtype_dir(), "fbx")
 
         if not os.path.exists(fbx_dir):
             os.makedirs(fbx_dir)
 
-        base_name = os.path.splitext(version_filename)[0]
+        base_name = os.path.splitext(_u(version_filename))[0]
 
-        fbx_path = os.path.join(
-            fbx_dir,
-            base_name + ".fbx"
-        )
+        fbx_path = os.path.join(fbx_dir, base_name + u".fbx")
 
         return fbx_path.replace("\\", "/")
 
@@ -463,7 +427,7 @@ class FBXExporter(PathService):
         export_objects = self.get_export_objects()
         cmds.select(clear=True)
         cmds.select(export_objects, r=True)
-        mel.eval('file -force -options "v=0;" -typ "FBX export" -pr -es "{}";'.format(fbx_path))
+        mel.eval(u'file -force -options "v=0;" -typ "FBX export" -pr -es "{}";'.format(_u(fbx_path)))
         return os.path.exists(fbx_path)
 
     def _export_to_unreal(self, fbx_path):
@@ -475,10 +439,12 @@ class FBXExporter(PathService):
                         "char": "Chr",
                         "prp": "Prp",
                         "Prp": "Prp"}
-            ue_content_path = "/Game/{}/{}".format(CONTENT, obj_fold.get(self.asset_type, "Chr"))
+            ue_content_path = u"/Game/{}/{}".format(_u(CONTENT), _u(obj_fold.get(self.asset_type, "Chr")))
             fbx_to_unreal.export_to_unreal(fbx_path, UnrealEditor, UE_PROJECT, ue_content_path, self.asset)
         except Exception as e:
-            self.ui.show_warning_delayed(u'UE 导出警告', u'{}\n前往ue手动运行ue_importer.py移动材质贴图即可'.format(e))
+            self.ui.show_warning_delayed(
+                u'UE 导出警告',
+                u'{}\n前往ue手动运行ue_importer.py移动材质贴图即可'.format(_u(e)))
 
     def _save_json_for_ue(self, fbx_path):
         try:
@@ -489,9 +455,9 @@ class FBXExporter(PathService):
                         "char": "Chr",
                         "prp": "Prp",
                         "Prp": "Prp"}
-            ue_content_path = "/Game/{}/{}".format(CONTENT, obj_fold.get(self.asset_type, "Chr"))
+            ue_content_path = u"/Game/{}/{}".format(_u(CONTENT), _u(obj_fold.get(self.asset_type, "Chr")))
             fbx_to_unreal.save_json(fbx_path, ue_content_path, self.asset)
-        except:
+        except Exception:
             pass
 
     def export_fbx_for_version(self, version_filename, to_ue=False):
@@ -505,9 +471,7 @@ class FBXExporter(PathService):
         version_path = self.version_path(version_filename)
 
         if not os.path.exists(version_path):
-            raise RuntimeError(
-                "Version file missing:\n{}".format(version_path)
-            )
+            raise RuntimeError(u"Version file missing:\n{}".format(_u(version_path)))
 
         fbx_path = self.build_fbx_path(version_filename)
 
@@ -520,22 +484,22 @@ class FBXExporter(PathService):
             ok = self.export_selected_to_fbx(fbx_path)
             if ok:
                 cmds.file(new=True, force=True)
-                base_name = self.asset
 
                 if to_ue:
                     self._export_to_unreal(fbx_path)
                 else:
                     self._save_json_for_ue(fbx_path)
-                    self.ui.show_info_delayed(u'导出成功', u'FBX导出完成:\n\n导出对象: {} 和 {}\n导出路径: {}'.format(
-                        self.geo_grp, self.root_joint,
-                        fbx_path))
+                    self.ui.show_info_delayed(
+                        u'导出成功',
+                        u'FBX导出完成:\n\n导出对象: {} 和 {}\n导出路径: {}'.format(
+                            _u(self.geo_grp), _u(self.root_joint), _u(fbx_path)))
             if not ok:
                 raise RuntimeError("FBX export failed")
 
             return fbx_path
 
         except Exception as e:
-            self.ui.show_warning_delayed(u'导出失败', str(e))
+            self.ui.show_warning_delayed(u'导出失败', _u(e))
             return False
 
 
@@ -547,68 +511,34 @@ class FileOperationService(PathService):
 
     def import_version(self, version_name, namespace=None):
         path = self.version_path(version_name)
-        return file_ops.import_file(
-            path,
-            namespace=namespace
-        )
+        return file_ops.import_file(path, namespace=namespace)
 
     def reference_version(self, version_name, namespace=None):
         path = self.version_path(version_name)
-        # 若未指定命名空间，则使用文件名前缀（与原有行为一致）
         if namespace is None:
-            namespace = version_name.split('.')[0]
-        return file_ops.reference_file(
-            path,
-            namespace=namespace,
-            group_locator=True
-        )
+            namespace = _u(version_name).split('.')[0]
+        return file_ops.reference_file(path, namespace=namespace, group_locator=True)
 
     def open_master(self):
         return file_ops.open_master_file(
-            self.pm,
-            self.asset_type,
-            self.asset,
-            self.subtype
+            self.pm, self.asset_type, self.asset, self.subtype
         )
 
     def import_master(self, namespace=None):
         return file_ops.import_master_file(
-            self.pm,
-            self.asset_type,
-            self.asset,
-            self.subtype,
-            namespace=namespace
+            self.pm, self.asset_type, self.asset, self.subtype, namespace=namespace
         )
 
     def reference_master(self, namespace=None):
-        """
-        引用 Master。
-        若 namespace 为 None（默认），则无命名空间（使用 ":" 合并到根）。
-        若指定 namespace，则使用该命名空间。
-        """
-        mf = self.pm.get_master_file(
-            self.asset_type,
-            self.asset,
-            self.subtype
-        )
+        mf = self.pm.get_master_file(self.asset_type, self.asset, self.subtype)
 
         if not mf or not os.path.exists(mf):
-            raise FileNotFoundError("Master file not found")
+            raise RuntimeError(u"Master file not found")
 
-        # 默认无命名空间：使用 ":"（表示根命名空间）
         if namespace is None:
-            # 使用 ":" 并设置 group_locator=True，但不合并命名空间merge_namespaces
-            return file_ops.reference_file(
-                mf,
-                namespace=":",
-                group_locator=True
-            )
+            return file_ops.reference_file(mf, namespace=":", group_locator=True)
         else:
-            return file_ops.reference_file(
-                mf,
-                namespace=namespace,
-                group_locator=True
-            )
+            return file_ops.reference_file(mf, namespace=namespace, group_locator=True)
 
     def set_master(self, version_name):
         return file_ops.set_master_from_version(
@@ -616,11 +546,7 @@ class FileOperationService(PathService):
         )
 
     def write_note_info(self, subtype_name, version_filename, info="", workshop=True):
-        task_dir = os.path.join(
-            self.asset_dir(),
-            'components',
-            subtype_name
-        )
+        task_dir = os.path.join(self.asset_dir(), 'components', subtype_name)
         self.pm.write_note_info(task_dir, version_filename, info, workshop)
 
 
@@ -639,12 +565,12 @@ class VersionContextMenu(PipelineContext):
         item = list_widget.itemAt(position)
         if not item:
             return
-        asset_name = item.text()
+        asset_name = _u(item.text())
         menu = QtWidgets.QMenu(list_widget)
 
         open_path_action = menu.addAction(u"📂 打开资产目录")
         menu.addSeparator()
-        add_menu_label(menu, "color:")
+        add_menu_label(menu, u"color:")
         color_menu = menu.addMenu(u"🎨 设置标记")
         for label, color in _color_options:
             action = color_menu.addAction(label)
@@ -663,14 +589,15 @@ class VersionContextMenu(PipelineContext):
         if not item:
             return
 
-        subtype_name = item.text()
+        subtype_name = _u(item.text())
         menu = QtWidgets.QMenu(list_widget)
         open_path_action = menu.addAction(u"📂 打开任务目录")
-        add_menu_label(menu, "color:")
+        add_menu_label(menu, u"color:")
         color_menu = menu.addMenu(u"🎨 设置标记")
         for label, color in _color_options:
             action = color_menu.addAction(label)
-            action.triggered.connect(partial(self.ui._set_color, self.asset, color, subtype_name=subtype_name))
+            action.triggered.connect(partial(self.ui._set_color, self.asset, color,
+                                             subtype_name=subtype_name))
 
         menu.addSeparator()
         open_master_action = menu.addAction(u"打开 Master")
@@ -681,23 +608,22 @@ class VersionContextMenu(PipelineContext):
             try:
                 func()
             except Exception as e:
-                QtWidgets.QMessageBox.warning(self.ui, u"错误", str(e))
+                QtWidgets.QMessageBox.warning(self.ui, u"错误", _u(e))
 
         def _open():
             self.path_service.open_subtype_path(subtype_name)
 
         def _open_master():
             safe_run(lambda: self.file_ops.open_master())
-            _show_info_inview('Master opened', 'yellow')
+            _show_info_inview(u'Master opened', 'yellow')
 
         def _import_master():
             safe_run(lambda: self.file_ops.import_master())
-            _show_info_inview('Master imported', 'yellow')
+            _show_info_inview(u'Master imported', 'yellow')
 
         def _reference_master():
-            # 引用 Master 无命名空间（默认 None → 无命名空间）
             safe_run(lambda: self.file_ops.reference_master())
-            _show_info_inview('Master referenced', 'yellow')
+            _show_info_inview(u'Master referenced', 'yellow')
 
         open_path_action.triggered.connect(_open)
         open_master_action.triggered.connect(_open_master)
@@ -712,7 +638,7 @@ class VersionContextMenu(PipelineContext):
         if not item:
             return
 
-        version_name = item.text()
+        version_name = _u(item.text())
         menu = QtWidgets.QMenu(list_widget)
 
         add_menu_label(menu, u'📋 版本信息: {}'.format(version_name))
@@ -724,7 +650,7 @@ class VersionContextMenu(PipelineContext):
         menu.addSeparator()
         set_master_action = menu.addAction(u"⚙ Set Master ")
         menu.addSeparator()
-        add_menu_label(menu, "⭐ fbx:")
+        add_menu_label(menu, u"⭐ fbx:")
 
         set_fbx_action = menu.addAction(u'⚙ 设置FBX导出对象')
         menu.addSeparator()
@@ -739,22 +665,20 @@ class VersionContextMenu(PipelineContext):
             try:
                 func()
             except Exception as e:
-                QtWidgets.QMessageBox.warning(self.ui, u"错误", str(e))
+                QtWidgets.QMessageBox.warning(self.ui, u"错误", _u(e))
 
         def _open():
             safe_run(lambda: self.file_ops.open_version(version_name))
-            _show_info_inview('The selected version has been opened', 'yellow')
+            _show_info_inview(u'The selected version has been opened', 'yellow')
 
         def _import():
             safe_run(lambda: self.file_ops.import_version(version_name))
-            _show_info_inview('The selected version has been imported', 'yellow')
+            _show_info_inview(u'The selected version has been imported', 'yellow')
 
         def _reference():
             ns = version_name.split('.')[0]
-            safe_run(
-                lambda: self.file_ops.reference_version(version_name, namespace=ns)
-            )
-            _show_info_inview('The selected version has been reference', 'yellow')
+            safe_run(lambda: self.file_ops.reference_version(version_name, namespace=ns))
+            _show_info_inview(u'The selected version has been reference', 'yellow')
 
         def _locate():
             safe_run(lambda: self.path_service.open_version_path(version_name))
@@ -770,7 +694,7 @@ class VersionContextMenu(PipelineContext):
         def _delete():
             ok = self.version_service.delete_selected_version(version_name)
             if ok:
-                safe_run(lambda: self.file_ops.write_note_info(self.subtype, version_name, "Delete", True))
+                safe_run(lambda: self.file_ops.write_note_info(self.subtype, version_name, u"Delete", True))
             if ok and hasattr(self.ui, "refresh_all"):
                 self.ui.refresh_all()
 

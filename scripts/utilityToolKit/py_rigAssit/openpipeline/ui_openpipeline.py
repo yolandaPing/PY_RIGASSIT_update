@@ -12,7 +12,7 @@ from datetime import datetime
 try:
     from ui_framework.core.qtCompat import *
     from ui_framework.widgets.widgets import Widgets
-except:
+except Exception:
     from CommonUse.qtCompat import *
     from CommonUse.widgetsUse import Widgets
 
@@ -34,6 +34,7 @@ _ICONS_RENAME = ("rename.png", "edit.png", "pencil.png")
 _ICONS_FOLDER = ("folder-open.png", "folder.png", "openFolder.png")
 _ICONS_SAVE = ("save.png", "fileSave.png", "saveAs.png", "fileSaveAs.png")
 _ICONS_PUBLISH = ("publish.png", "checkin.png", "checkMark.png", "save.png", "fileSave.png")
+
 _FLOAT_BUTTON_STYLE_ICON = """
     QPushButton {
         background-color: rgba(0, 0, 0, 0.55);
@@ -78,8 +79,27 @@ _FLOAT_BUTTON_STYLE_TEXT = """
 """
 
 
+def _u(value):
+    """Py2/Py3 安全转 unicode。"""
+    if value is None:
+        return u''
+    if isinstance(value, bytes):
+        try:
+            return value.decode('utf-8')
+        except Exception:
+            try:
+                return value.decode('gbk')
+            except Exception:
+                return value.decode('utf-8', 'replace')
+    if isinstance(value, str):
+        return value
+    try:
+        return unicode(value)  # noqa: F821
+    except Exception:
+        return u'{}'.format(value)
+
+
 def _load_maya_icon(*names):
-    """按顺序尝试加载 Maya 内置图标，返回第一个可用的 QIcon；全失败返回空 QIcon。"""
     for name in names:
         for cand in (":" + name, name):
             pm = QtGui.QPixmap(cand)
@@ -87,16 +107,8 @@ def _load_maya_icon(*names):
                 return QtGui.QIcon(pm)
     return QtGui.QIcon()
 
-def _set_maya_button_icon(button, names, size=_ICON_SIZE_SMALL):
-    """统一为按钮设置 Maya 图标；图标不存在时保留按钮原样。
 
-    Args:
-        button: 需要设置图标的 QPushButton。
-        names: 按优先级排列的候选图标名称列表或元组。
-        size: 图标宽高，默认 14。
-    Returns:
-        bool: 是否成功加载并设置图标。
-    """
+def _set_maya_button_icon(button, names, size=_ICON_SIZE_SMALL):
     icon = _load_maya_icon(*names)
     if icon.isNull():
         return False
@@ -104,8 +116,8 @@ def _set_maya_button_icon(button, names, size=_ICON_SIZE_SMALL):
     button.setIconSize(QtCore.QSize(size, size))
     return True
 
+
 def _make_snapshot_icon(kind="camera"):
-    """使用 QPainter 绘制图标，不依赖 Maya 图标资源；兼容 PySide2。"""
     pix = QtGui.QPixmap(32, 32)
     pix.fill(QtCore.Qt.transparent)
     painter = QtGui.QPainter(pix)
@@ -138,8 +150,7 @@ def _make_snapshot_icon(kind="camera"):
 
 def _create_text_button(text, property_name=None,
                         height=_BUTTON_MIN_HEIGHT, icons=None):
-    """创建统一样式的文字按钮。"""
-    btn = QtWidgets.QPushButton(text)
+    btn = QtWidgets.QPushButton(_u(text))
     btn.setCursor(QtCore.Qt.PointingHandCursor)
     btn.setMinimumHeight(height)
     if property_name:
@@ -150,11 +161,10 @@ def _create_text_button(text, property_name=None,
 
 
 def _create_icon_button(icon_name, tooltip, extra_props=None):
-    """创建固定尺寸的图标按钮（无文字）。"""
     btn = QtWidgets.QPushButton()
     btn.setIcon(QtGui.QIcon(icon_name))
     btn.setIconSize(QtCore.QSize(_ICON_SIZE_NORMAL, _ICON_SIZE_NORMAL))
-    btn.setToolTip(tooltip)
+    btn.setToolTip(_u(tooltip))
     btn.setProperty("class", "iconBtn")
     btn.setFixedSize(_ICON_BUTTON_FIXED, _ICON_BUTTON_FIXED)
     if extra_props:
@@ -164,8 +174,7 @@ def _create_icon_button(icon_name, tooltip, extra_props=None):
 
 
 def _create_small_text_button(text, icons=None):
-    """创建小型粗体按钮（用于任务列表底部）。"""
-    btn = QtWidgets.QPushButton(text)
+    btn = QtWidgets.QPushButton(_u(text))
     btn.setStyleSheet('font: bold 12px;')
     if icons:
         _set_maya_button_icon(btn, icons, _ICON_SIZE_SMALL)
@@ -173,7 +182,6 @@ def _create_small_text_button(text, icons=None):
 
 
 def _style_float_camera_button(btn, has_icon=True):
-    """预览框右上角的浮动圆形按钮（框选截图 / 直接截图共用）。"""
     btn.setFixedSize(32, 32)
     btn.setCursor(QtCore.Qt.PointingHandCursor)
     btn.setStyleSheet(
@@ -182,8 +190,6 @@ def _style_float_camera_button(btn, has_icon=True):
 
 
 class AutoScalePixmapLabel(QtWidgets.QLabel):
-    """QLabel 尺寸变化时自动缩放预览图，避免 splitter 缩放后图片尺寸不变。"""
-
     def __init__(self, parent=None):
         QtWidgets.QLabel.__init__(self, parent)
         self._source_pixmap = QtGui.QPixmap()
@@ -219,21 +225,10 @@ class AutoScalePixmapLabel(QtWidgets.QLabel):
         QtWidgets.QLabel.setPixmap(self, scaled)
 
 
-
 class ScreenRegionSelector(QtWidgets.QWidget):
-    """
-    全屏截图选区控件：
-      - 显示全屏截图作为背景
-      - 用户拖拽鼠标框选区域
-      - 选区内显示原图（不透明），选区外被半透明黑遮罩
-      - 鼠标释放后发射 region_selected(QRect 全局屏幕坐标)
-      - ESC 取消 -> cancelled
-    """
-
     region_selected = QtCore.Signal(QtCore.QRect)
     cancelled = QtCore.Signal()
 
-    # 绘制样式常量
     MASK_COLOR = QtGui.QColor(0, 0, 0, 120)
     BORDER_COLOR = QtGui.QColor(77, 208, 225)
     TEXT_COLOR = QtGui.QColor(255, 255, 255)
@@ -274,7 +269,6 @@ class ScreenRegionSelector(QtWidgets.QWidget):
         self._draw_size_label(painter, rect)
 
     def _draw_selected_region(self, painter, rect):
-        """在选区内绘制原图（不透明），并绘制边框。"""
         shot = self._screenshot
         if (shot.isNull()
                 or self.width() <= 0 or self.height() <= 0
@@ -291,7 +285,6 @@ class ScreenRegionSelector(QtWidgets.QWidget):
         painter.drawRect(rect)
 
     def _draw_size_label(self, painter, rect):
-        """在选区上方（空间不足时下方）绘制尺寸文本。"""
         text = u"{} × {}".format(rect.width(), rect.height())
         painter.setPen(self.TEXT_COLOR)
         font = painter.font()
@@ -310,7 +303,6 @@ class ScreenRegionSelector(QtWidgets.QWidget):
         painter.fillRect(text_rect, self.TEXT_BG_COLOR)
         painter.drawText(text_rect, QtCore.Qt.AlignCenter, text)
 
-    # ---------------- 交互 ----------------
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self._start = event.pos()
@@ -349,7 +341,6 @@ class ScreenRegionSelector(QtWidgets.QWidget):
 
 
 def crop_region_from_screenshot(screenshot, screen_geometry, global_rect):
-    """从全屏截图中裁切出全局屏幕坐标 global_rect 对应的区域，返回 QPixmap。"""
     if screenshot.isNull() or screen_geometry.width() <= 0 or screen_geometry.height() <= 0:
         return QtGui.QPixmap()
 
@@ -371,12 +362,11 @@ def crop_region_from_screenshot(screenshot, screen_geometry, global_rect):
 
     return screenshot.copy(QtCore.QRect(crop_x, crop_y, crop_w, crop_h))
 
+
 def _build_root_path_row(self, parent_layout):
-    """构建顶部：项目根路径卡片 + 设置路径/检查项目/检查配置。"""
     row = QtWidgets.QHBoxLayout()
     row.setSpacing(6)
 
-    # 路径显示卡片
     path_card = QtWidgets.QFrame()
     path_card.setProperty("card", True)
     path_layout = QtWidgets.QHBoxLayout(path_card)
@@ -407,7 +397,6 @@ def _build_root_path_row(self, parent_layout):
     path_layout.addWidget(self.root_path_label, 1)
     row.addWidget(path_card, 1)
 
-    btn_set_root = _create_text_button(u'[设置路径]', "cld_main")
     btn_set_root = _create_text_button(u'[设置路径]', "cld_main", icons=_ICONS_SELECT)
     btn_set_root.clicked.connect(self.set_project_root_path)
 
@@ -422,8 +411,8 @@ def _build_root_path_row(self, parent_layout):
     row.addWidget(btn_check_config)
     parent_layout.addLayout(row)
 
+
 def _build_project_row(self, parent_layout):
-    """构建当前项目选择行。"""
     row = QtWidgets.QHBoxLayout()
     row.setSpacing(6)
     row.addSpacing(10)
@@ -443,22 +432,29 @@ def _build_project_row(self, parent_layout):
     self.project_combo.setMinimumHeight(_BUTTON_MIN_HEIGHT)
     self.project_combo.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     self.project_combo.currentTextChanged.connect(self.on_project_changed)
+
     btn_new = _create_text_button(u'新建', "cld_main", icons=_ICONS_ADD)
     btn_new.clicked.connect(self.create_project_dialog)
+
     btn_open = _create_text_button(u'打开', "secondary", icons=_ICONS_FOLDER)
     btn_open.setToolTip(u"打开位置")
     btn_open.clicked.connect(self.open_existing_project)
+
     wbl = QtWidgets.QLabel(u'  > workshop:')
     self.version_format_combo = QtWidgets.QComboBox()
     self.version_format_combo.addItem(u" 旧版", "legacy")
     self.version_format_combo.addItem(u" 新版", "new")
     self.version_format_combo.setToolTip(
-        u"选择 workshop 版本保存时的文件命名格式\n" u"旧版: asset_subtype_workshop_001.ma\n" u"新版: asset.subtype.v001.ma\n"
+        u"选择 workshop 版本保存时的文件命名格式\n"
+        u"旧版: asset_subtype_workshop_001.ma\n"
+        u"新版: asset.subtype.v001.ma\n"
     )
     self.version_format_combo.setMinimumHeight(_BUTTON_MIN_HEIGHT)
     self.version_format_combo.currentIndexChanged.connect(self.on_version_format_changed)
+
     btn_refresh = _create_icon_button(":refresh.png", u"刷新项目列表", extra_props={"help": True})
     btn_refresh.clicked.connect(self.load_projects)
+
     btn_about = _create_icon_button(":help.png", u"帮助")
     btn_about.clicked.connect(about)
 
@@ -474,6 +470,7 @@ def _build_project_row(self, parent_layout):
     row.addWidget(btn_about)
     parent_layout.addLayout(row)
 
+
 def _build_left_panel(self):
     panel = QtWidgets.QWidget()
     layout = QtWidgets.QVBoxLayout(panel)
@@ -485,6 +482,7 @@ def _build_left_panel(self):
 
     panel.setMinimumWidth(100)
     return panel
+
 
 def _build_type_group(self):
     group = QtWidgets.QGroupBox(u"类型")
@@ -524,7 +522,6 @@ def _build_asset_group(self):
     layout = QtWidgets.QVBoxLayout(group)
     layout.setContentsMargins(4, 4, 4, 4)
 
-    # 排序 + 搜索
     self.asset_sort_block = _widgets.create_radiogroup(
         "", [(" Name ", 1, None), (" Date ", 2, None)],
         default_id=1
@@ -534,16 +531,17 @@ def _build_asset_group(self):
     self.search_edit = QtWidgets.QLineEdit()
     self.search_edit.setPlaceholderText(u'搜索资产...')
     self.search_edit.textChanged.connect(self.filter_assets)
-    # 资产列表
+
     self.asset_list = QtWidgets.QListWidget()
     self.asset_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
     self.asset_list.setAlternatingRowColors(True)
     self.asset_list.itemClicked.connect(self.on_asset_clicked)
     self.asset_list.customContextMenuRequested.connect(self.show_asset_context_menu)
+
     layout.addWidget(self.asset_sort_block)
     layout.addWidget(self.search_edit)
     layout.addWidget(self.asset_list)
-    # 底部按钮
+
     btn_row = QtWidgets.QHBoxLayout()
     self.asset_count = _widgets.create_text("")
 
@@ -571,6 +569,7 @@ def _build_asset_group(self):
     layout.addLayout(btn_row)
     return group
 
+
 def _build_center_panel(self):
     panel = QtWidgets.QWidget()
     layout = QtWidgets.QVBoxLayout(panel)
@@ -584,6 +583,7 @@ def _build_center_panel(self):
     layout.addWidget(vsplitter)
     panel.setMinimumWidth(150)
     return panel
+
 
 def _build_subtype_frame(self):
     frame = QtWidgets.QGroupBox(u"任务")
@@ -625,25 +625,26 @@ def _build_subtype_frame(self):
     layout.addLayout(btn_row)
     return frame
 
+
 def _build_version_frame(self):
     frame = QtWidgets.QGroupBox(u"版本")
     layout = QtWidgets.QVBoxLayout(frame)
     layout.setContentsMargins(4, 4, 4, 4)
-    # 顶部版本数量
+
     title_row = QtWidgets.QHBoxLayout()
     title_row.addWidget(QtWidgets.QLabel(''))
     self.version_count_text = _widgets.create_text('')
     self.version_count_text.setWordWrap(True)
     title_row.addWidget(self.version_count_text)
     layout.addLayout(title_row)
-    # 版本列表
+
     self.version_list = QtWidgets.QListWidget()
     self.version_list.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
     self.version_list.setAlternatingRowColors(True)
     self.version_list.itemDoubleClicked.connect(self.open_selected_version)
     self.version_list.customContextMenuRequested.connect(self.show_version_context_menu)
     layout.addWidget(self.version_list)
-    # 底部按钮
+
     btn_row = QtWidgets.QHBoxLayout()
 
     self.btn_save_new_version = _create_text_button(
@@ -674,7 +675,7 @@ def _build_version_frame(self):
         self.show_help,
         u"save Workshop 保存过程版\n"
         u"save Master 保存完好版(publish)\n"
-        u"打开\引用 Master 文件,可在任务列表里选择任务右键"
+        u"打开/引用 Master 文件,可在任务列表里选择任务右键"
     ))
 
     btn_row.addWidget(self.btn_save_new_version, 1)
@@ -682,6 +683,7 @@ def _build_version_frame(self):
     btn_row.addWidget(save_btn_about, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
     layout.addLayout(btn_row)
     return frame
+
 
 def _build_right_panel(self):
     panel = QtWidgets.QWidget()
@@ -702,6 +704,7 @@ def _build_right_panel(self):
     layout.addWidget(desc_box, 0)
     return panel
 
+
 def _build_preview_container(self):
     top_container = QtWidgets.QWidget()
     top_layout = QtWidgets.QVBoxLayout(top_container)
@@ -710,7 +713,7 @@ def _build_preview_container(self):
     pv_group = QtWidgets.QGroupBox(u"预览")
     pv_layout = QtWidgets.QVBoxLayout(pv_group)
     pv_layout.setContentsMargins(4, 6, 4, 4)
-    # 预览容器
+
     preview_container = QtWidgets.QWidget()
     preview_container.setMinimumSize(0, 0)
     preview_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -723,7 +726,6 @@ def _build_preview_container(self):
     self.preview_label.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Sunken)
     self.preview_label.setStyleSheet("background-color: #2b2b2b; color: #888;")
 
-    # 框选 + 直接截图
     btn_wrapper = QtWidgets.QWidget()
     btn_wrapper_layout = QtWidgets.QVBoxLayout(btn_wrapper)
     btn_wrapper_layout.setContentsMargins(0, 6, 6, 0)
@@ -763,8 +765,9 @@ def _build_preview_container(self):
     top_container.setMaximumHeight(500)
     return top_container
 
+
 def _build_notes_container(self):
-    box = QtWidgets.QGroupBox("Notes")
+    box = QtWidgets.QGroupBox(u"Notes")
     layout = QtWidgets.QVBoxLayout(box)
     layout.setContentsMargins(4, 6, 4, 4)
 
@@ -775,8 +778,9 @@ def _build_notes_container(self):
     layout.addWidget(self.notes_text)
     return box
 
+
 def _build_description_container(self):
-    box = QtWidgets.QGroupBox("Description")
+    box = QtWidgets.QGroupBox(u"Description")
     box.setFixedHeight(80)
     layout = QtWidgets.QVBoxLayout(box)
     layout.setContentsMargins(4, 4, 4, 4)
@@ -790,8 +794,8 @@ def _build_description_container(self):
     layout.addWidget(self.description_text)
     return box
 
+
 def build_openpipeline_ui(main_window):
-    """为 main_window 构建 OpenPipeline 主界面。"""
     self = main_window
 
     main_layout = QtWidgets.QVBoxLayout(self)
