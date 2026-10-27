@@ -470,7 +470,7 @@ class PYJointEditLayout(PyouPersistentWindow):
 
         self.sk_optimize_hint = _widgest.create_text(self.OPTIMIZE_HINT[1])
         btn_layout, self.sk_optimize_btn, sk_optimize_help_btn = _widgest.create_Qbuttons(" Apply ")
-        sk_optimize_help_btn.clicked.connect(lambda: Help.HelpImage("", "optimize_skin_tool"))
+        sk_optimize_help_btn.clicked.connect(partial(self.show_optimize_skinImage))
         group2 = QtWidgets.QGroupBox(u"Curve计算权重(Maya 2022 and above):")
         layout2 = QtWidgets.QVBoxLayout(group2)
         self.sk_mesh_block = _widgest.create_radiogroup(
@@ -486,7 +486,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.cus_cbx = _widgest.add_checkbox(u'自选顺序(按序选择权重关节 + skin mesh)')
 
         btn_layout2, self.sk_curve_convert_btn, sk_convert_help_btn = _widgest.create_Qbuttons(" Apply ")
-        sk_convert_help_btn.clicked.connect(lambda: Help.HelpImage("", "optimize_skin_tool"))
+        sk_convert_help_btn.clicked.connect(partial(Help.HelpImage,"", "optimize_skin_tool"))
 
         layout.addWidget(self.sk_optimize_block)
         layout.addWidget(self.sk_optimize_hint)
@@ -880,6 +880,17 @@ class PYJointEditLayout(PyouPersistentWindow):
             EditJnt.create_copySkinWeight(new_sc, False, False, True, source, source_field)
         else:
             EditJnt.create_copySkinWeight(new_sc, False, False, True, source, source_field)
+
+    def show_optimize_skinImage(self):
+        id = self.sk_optimize_block.checkedId()
+        if id == 1:
+            Help.HelpImage("", "auto_ik_skin")
+        elif id == 2:
+            Help.HelpImage("", "split_ik_skin")
+        elif id == 3:
+            Help.HelpImage("", "deltaMush_smooth_skin")
+        else:
+            Help.HelpImage("", "divisions_smooth_skin")
 
 
 def main():
