@@ -190,18 +190,159 @@ def _zero_candidates():
     return out
 
 
+
+def _grab_screen_pixmap_win32(screen):
+    """使用 Windows GDI 从桌面 DC 抓取指定屏幕，绕过部分新版 Maya/Qt 的黑屏问题。
+
+    这里不调用 Maya viewport 的 OpenGL framebuffer；BitBlt 读取桌面上实际显示的像素。
+    如果环境不是 Windows、API 不可用或抓取失败，抛出异常由 Qt 路径兜底。
+    """
+    if not sys.platform.startswith('win'):
+        raise RuntimeError('Win32 GDI capture is only available on Windows')
+
+    import ctypes
+    from ctypes import wintypes
+
+    geo = screen.geometry()
+    width = int(geo.width())
+    height = int(geo.height())
+    if width <= 0 or height <= 0:
+        raise RuntimeError('Invalid target screen geometry')
+
+    gdi32 = ctypes.windll.gdi32
+    user32 = ctypes.windll.user32
+
+    # Declare pointer-sized Win32 signatures explicitly; otherwise 64-bit handles
+    # may be truncated by ctypes' default c_int return type in Maya x64.
+    user32.GetDC.argtypes = [wintypes.HWND]
+    user32.GetDC.restype = wintypes.HDC
+    user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    user32.ReleaseDC.restype = ctypes.c_int
+    gdi32.CreateCompatibleDC.argtypes = [wintypes.HDC]
+    gdi32.CreateCompatibleDC.restype = wintypes.HDC
+    gdi32.CreateCompatibleBitmap.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]
+    gdi32.CreateCompatibleBitmap.restype = wintypes.HBITMAP
+    gdi32.SelectObject.argtypes = [wintypes.HDC, wintypes.HANDLE]
+    gdi32.SelectObject.restype = wintypes.HANDLE
+    gdi32.BitBlt.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int,
+                             ctypes.c_int, ctypes.c_int, wintypes.HDC,
+                             ctypes.c_int, ctypes.c_int, wintypes.DWORD]
+    gdi32.BitBlt.restype = wintypes.BOOL
+    gdi32.GetDIBits.argtypes = [wintypes.HDC, wintypes.HBITMAP, wintypes.UINT,
+                                wintypes.UINT, wintypes.LPVOID, wintypes.LPVOID,
+                                wintypes.UINT]
+    gdi32.GetDIBits.restype = ctypes.c_int
+    gdi32.DeleteObject.argtypes = [wintypes.HANDLE]
+    gdi32.DeleteObject.restype = wintypes.BOOL
+    gdi32.DeleteDC.argtypes = [wintypes.HDC]
+    gdi32.DeleteDC.restype = wintypes.BOOL
+
+    class BITMAPINFOHEADER(ctypes.Structure):
+        _fields_ = [
+            ('biSize', wintypes.DWORD),
+            ('biWidth', wintypes.LONG),
+            ('biHeight', wintypes.LONG),
+            ('biPlanes', wintypes.WORD),
+            ('biBitCount', wintypes.WORD),
+            ('biCompression', wintypes.DWORD),
+            ('biSizeImage', wintypes.DWORD),
+            ('biXPelsPerMeter', wintypes.LONG),
+            ('biYPelsPerMeter', wintypes.LONG),
+            ('biClrUsed', wintypes.DWORD),
+            ('biClrImportant', wintypes.DWORD),
+        ]
+
+    class BITMAPINFO(ctypes.Structure):
+        _fields_ = [('bmiHeader', BITMAPINFOHEADER), ('bmiColors', wintypes.DWORD * 3)]
+
+    SRCCOPY = 0x00CC0020
+    DIB_RGB_COLORS = 0
+    BI_RGB = 0
+    screen_dc = None
+    memory_dc = None
+    bitmap = None
+    old_bitmap = None
+    try:
+        screen_dc = user32.GetDC(0)
+        if not screen_dc:
+            raise RuntimeError('GetDC(0) failed')
+        memory_dc = gdi32.CreateCompatibleDC(screen_dc)
+        if not memory_dc:
+            raise RuntimeError('CreateCompatibleDC failed')
+        bitmap = gdi32.CreateCompatibleBitmap(screen_dc, width, height)
+        if not bitmap:
+            raise RuntimeError('CreateCompatibleBitmap failed')
+        old_bitmap = gdi32.SelectObject(memory_dc, bitmap)
+        if not gdi32.BitBlt(memory_dc, 0, 0, width, height,
+                            screen_dc, int(geo.x()), int(geo.y()), SRCCOPY):
+            raise RuntimeError('BitBlt failed')
+
+        info = BITMAPINFO()
+        info.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+        info.bmiHeader.biWidth = width
+        # Negative height requests top-down rows, matching QImage's normal orientation.
+        info.bmiHeader.biHeight = -height
+        info.bmiHeader.biPlanes = 1
+        info.bmiHeader.biBitCount = 32
+        info.bmiHeader.biCompression = BI_RGB
+        info.bmiHeader.biSizeImage = width * height * 4
+        buffer = (ctypes.c_ubyte * (width * height * 4))()
+        lines = gdi32.GetDIBits(memory_dc, bitmap, 0, height,
+                                ctypes.byref(buffer), ctypes.byref(info), DIB_RGB_COLORS)
+        if lines != height:
+            raise RuntimeError('GetDIBits returned {} of {} lines'.format(lines, height))
+
+        # GDI's 32-bit BI_RGB layout is BGRA; Qt copies the data before the buffer is released.
+        fmt = getattr(QtGui.QImage, 'Format_ARGB32', None)
+        if fmt is None:
+            fmt = QtGui.QImage.Format_RGB32
+        image = QtGui.QImage(buffer, width, height, width * 4, fmt).copy()
+        if image.isNull():
+            raise RuntimeError('QImage conversion failed')
+        pix = QtGui.QPixmap.fromImage(image)
+        if pix.isNull():
+            raise RuntimeError('QPixmap conversion failed')
+        _debug(u'Win32 GDI capture success: {}x{} at ({},{})'.format(
+            pix.width(), pix.height(), geo.x(), geo.y()))
+        return pix
+    finally:
+        try:
+            if old_bitmap and memory_dc:
+                gdi32.SelectObject(memory_dc, old_bitmap)
+        except Exception:
+            pass
+        try:
+            if bitmap:
+                gdi32.DeleteObject(bitmap)
+        except Exception:
+            pass
+        try:
+            if memory_dc:
+                gdi32.DeleteDC(memory_dc)
+        except Exception:
+            pass
+        try:
+            if screen_dc:
+                user32.ReleaseDC(0, screen_dc)
+        except Exception:
+            pass
+
 def _grab_screen_pixmap(screen):
-    """抓取目标屏幕的完整截图。
+    """抓取目标屏幕。Windows 优先使用桌面 GDI，失败后再走 Qt 兼容路径。
 
-    修复要点（Maya 2019 / Qt 5.6 多屏问题）：
-      1) 优先 `grabWindow(0, x, y, w, h)` 让 Qt 直接裁剪出目标屏区域，
-         避免 grabWindow(0) 返回主屏或虚拟桌面导致背景错误；
-      2) 若方式 1 失败，回退到 `grabWindow(0)` + `_normalize_screen_pixmap`；
-      3) 再不行再尝试 QPixmap.grabWindow / shiboken2.VoidPtr。
-
-    所有分支都会经过 `_normalize_screen_pixmap` 做最终校验。
+    新版 Maya 在非主显示器上的视口可能无法通过 Qt 的 grabWindow 正确抓取，
+    因此先从桌面 DC 读取实际显示像素；直接截图按钮仍走原有 playblast 流程。
     """
     last_error = None
+
+    # Windows 桌面捕获优先：不依赖 Maya/Qt 对副显示器 grabWindow 的实现。
+    try:
+        pix = _grab_screen_pixmap_win32(screen)
+        if pix is not None and not pix.isNull() and pix.width() > 0 and pix.height() > 0:
+            return pix
+    except Exception as e:
+        last_error = e
+        _debug(u'Win32 GDI capture failed; fallback to Qt: {}'.format(repr(e)))
 
     try:
         geo = screen.geometry()
