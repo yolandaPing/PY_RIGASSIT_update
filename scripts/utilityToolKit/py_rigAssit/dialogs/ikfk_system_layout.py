@@ -14,7 +14,7 @@ import ControllerTool.ikfk_ribbon_mod
 reload(ControllerTool.ikfk_ribbon_mod)
 
 from py_rigAssit import QtWidgets, QtCore, QtGui, Widgets, PyouPersistentWindow
-from py_rigAssit.dialogs import Help, decorator, mayaPrint
+from py_rigAssit.dialogs import Help, decorator, mayaPrint, undo
 from ControllerTool.ikfk_ribbon_mod import IKFKRIGGING
 from py_rigAssit.dialogs.functionality_layout import PYFunctionalityLayout
 import user_defined as _AllowUsers
@@ -121,20 +121,12 @@ class IKFKWidget(QtWidgets.QWidget):
 
         self.ctrl_type_block = _widgest.create_radiogroup(
             "Crtl:",
-            [
-                ("IK ", 1, None),
-                ("FK ", 2, None),
-                ("FKIK ", 3, None),
-            ],
+            [("IK ", 1, None), ("FK ", 2, None), ("FKIK ", 3, None)],
             default_id=1
         )
         self.cons_block = _widgest.create_radiogroup(
             "Constrain:",
-            [
-                ("None ", 1, None),
-                ("Parent ", 2, None),
-                ("Constrain ", 3, None),
-            ],
+            [("None ", 1, None), ("Parent ", 2, None), ("Constrain ", 3, None)],
             default_id=1
         )
 
@@ -166,11 +158,11 @@ class IKFKWidget(QtWidgets.QWidget):
         fk_field_layout_main.addLayout(count_layout)
 
         label = _widgest.create_text(u" > 设置间隔多少个ik生成一个fk， 默认间隔一个 ", 12, "left")
-        checkbox_layout, self.chain_pri_ik_cbx, self.chain_over_cbx, self.chain_over_ik_field, = self.add_ik_box()
+        checkbox_layout, _, self.chain_pri_ik_cbx, self.chain_over_cbx, self.chain_over_ik_field, = self.add_ik_box()
+        _.setVisible(False)
         self.chain_splineikrig_cbx = _widgest.add_checkbox('add splineik rig?')
         self.chain_uvpin_cbx = _widgest.add_checkbox('uvpin?')
         btn_layout = QtWidgets.QHBoxLayout()
-
         self.chain_builda_btn = QtWidgets.QPushButton('Build A')
         self.chain_buildb_btn = QtWidgets.QPushButton('Build B')
         self.chain_help_btn = QtWidgets.QPushButton()
@@ -185,19 +177,11 @@ class IKFKWidget(QtWidgets.QWidget):
 
         self.chain_constrain_type = _widgest.create_radiogroup(
             "Constrain:",
-            [
-                ("Parent ", 1, None),
-                ("Constraint ", 2, None),
-            ],
-            default_id=1
-        )
+            [("Parent ", 1, None), ("Constraint ", 2, None)],
+            default_id=1)
 
-
-        main_layout.addWidget(
-            _widgest.create_text(u"关节名称后缀: _jnt/_bind/_joint"))
-        main_layout.addWidget(
-            _widgest.create_text(u"确定好关节轴向\n选择关节链的第一节Build"))
-
+        main_layout.addWidget(_widgest.create_text(u"关节名称后缀: _jnt/_bind/_joint"))
+        main_layout.addWidget(_widgest.create_text(u"确定好关节轴向\n选择关节链的第一节Build"))
         _widgest.separator(main_layout, True)
         main_layout.addLayout(fk_field_layout_main)
         main_layout.addLayout(checkbox_layout)
@@ -206,7 +190,6 @@ class IKFKWidget(QtWidgets.QWidget):
         main_layout.addWidget(self.chain_uvpin_cbx )
         main_layout.addWidget(self.chain_constrain_type)
         main_layout.addWidget(_widgest.create_text(u" >>> 如果关节不是直的，请选择build B"))
-
         _widgest.separator(main_layout, True)
         main_layout.addLayout(btn_layout)
         frame.addWidget(main_layout)
@@ -220,25 +203,15 @@ class IKFKWidget(QtWidgets.QWidget):
 
         self.node_type_block = _widgest.create_radiogroup(
             "node:",
-            [
-                ("Matrix", 1, None),
-                ("UVPin ", 2, None),
-            ],
+            [("Matrix", 1, None), ("UVPin ", 2, None)],
             default_id=1,
             enabled_map={2: self.uv_pin_en}
         )
 
         self.rig_type_block = _widgest.create_radiogroup(
             "Rig Type:",
-            [
-                ("Default ", 1, None),
-                ("Spline ik ", 2, None),
-                ("Motion Path ", 3, None),
-            ],
-            default_id=1,
-            enabled_map = { 3: self.MotionPath}
-        )
-        # Axis 选择
+            [("Default ", 1, None), ("Spline ik ", 2, None), ("Motion Path ", 3, u"Motion Path 不可撤销")],
+            default_id=1, enabled_map = { 3: self.MotionPath})
         self.axis_menu = QtWidgets.QComboBox()
         self.axis_menu.addItems(['1,0,0', '0,1,0', '0,0,1', '-1,0,0', '0,-1,0', '0,0,-1'])
         self.axis_menu.setFixedWidth(120)  # 设置宽度为 120
@@ -246,18 +219,12 @@ class IKFKWidget(QtWidgets.QWidget):
         axis_layout = QtWidgets.QFormLayout()
         axis_layout.addRow('Axis:', self.axis_menu)
 
-
         self.constrain_type_block = _widgest.create_radiogroup(
             "Joints Constrain:",
-            [
-                ("Parent ", 1, None),
-                ("Constraint ", 2, None),
-            ],
-            default_id=1
-        )
+            [("Parent ", 1, None), ("Constraint ", 2, None)],
+            default_id=1)
 
         btn_layout = QtWidgets.QHBoxLayout()
-
         self.guide_btn = QtWidgets.QPushButton('Create Guide')
         self.build_btn = QtWidgets.QPushButton('Build')
         self.adv_help_btn = QtWidgets.QPushButton()
@@ -269,7 +236,6 @@ class IKFKWidget(QtWidgets.QWidget):
         btn_layout.addWidget(self.guide_btn, 5)
         btn_layout.addWidget(self.build_btn, 5)
         btn_layout.addWidget(self.adv_help_btn)
-
         main_layout.addLayout(name_layout)
         _widgest.separator(main_layout)
         self.ikfk_count_lay(main_layout)
@@ -277,12 +243,9 @@ class IKFKWidget(QtWidgets.QWidget):
         _widgest.separator(main_layout)
         main_layout.addWidget(self.node_type_block)
         main_layout.addWidget(self.rig_type_block)
-
         main_layout.addWidget(self.constrain_type_block)
-
         _widgest.separator(main_layout)
         main_layout.addLayout(btn_layout)
-
         frame.addWidget(group)
         return frame
 
@@ -309,7 +272,7 @@ class IKFKWidget(QtWidgets.QWidget):
         main_layout.addWidget(label)
         main_layout.addLayout(fk_field_layout_main)
 
-        checkbox_layout,  self.enable_pri_ik_cbx, self.enable_over_cbx, self.over_ik_field, = self.add_ik_box()
+        checkbox_layout, self.enable_rev_fk_cbx, self.enable_pri_ik_cbx, self.enable_over_cbx, self.over_ik_field, = self.add_ik_box()
 
         main_layout.addLayout(checkbox_layout)
         parent.addLayout(main_layout)
@@ -331,38 +294,36 @@ class IKFKWidget(QtWidgets.QWidget):
         label = _widgest.create_text('FK Interval: ')
         fk_field_layout.addRow(label, fk_field)
         fk_field_layout_main.addLayout(fk_field_layout)
-
         return fk_field_layout_main, fk_field
 
     def add_ik_box(self):
         checkbox_layout = QtWidgets.QVBoxLayout()
         over_ik_layout = QtWidgets.QHBoxLayout()
         pri_ik_cbx = _widgest.add_checkbox('Enable pri IK ?')
+        rev_fk_cbx = _widgest.add_checkbox(u'Enable Rev FK ? （需要启用pri ik）')
         over_cbx = _widgest.add_checkbox('Enable over IK ?')
-
+        rev_fk_cbx.setEnabled(False)
         over_ik_field = QtWidgets.QSpinBox()
         over_ik_field.setValue(2)
         over_ik_field.setFixedWidth(50)
-
         ik_count_layout = QtWidgets.QFormLayout()
         label = _widgest.create_text('Over IK : ')
         ik_count_layout.addRow(label, over_ik_field)
         over_ik_field.setEnabled(False)
-
         checkbox_layout.addWidget(pri_ik_cbx)
+        checkbox_layout.addWidget(rev_fk_cbx)
         over_ik_layout.addWidget(over_cbx)
         over_ik_layout.addLayout(ik_count_layout)
         checkbox_layout.addLayout(over_ik_layout)
-
-        return checkbox_layout, pri_ik_cbx, over_cbx, over_ik_field
+        return checkbox_layout, rev_fk_cbx, pri_ik_cbx, over_cbx, over_ik_field
 
     def create_connection(self):
         self.base_apply_btn.clicked.connect(partial(self.basa_build))
         self.chain_fk_field.valueChanged.connect(partial(self._calculate_number_ik, self.chain_fk_field, True))
         self.fk_field.valueChanged.connect(partial(self._calculate_number_ik, self.fk_field, False))
-        self.enable_over_cbx.stateChanged.connect(self._on_over_ik_Toggled)
-        self.chain_over_cbx.stateChanged.connect(self._chain_over_ik_Toggled)
-        self.chain_splineikrig_cbx.stateChanged.connect(self._chain_splineik_Toggled)
+        self.enable_over_cbx.stateChanged.connect(self._on_over_ik_toggled)
+        self.chain_over_cbx.stateChanged.connect(self._chain_over_ik_toggled)
+        self.chain_splineikrig_cbx.stateChanged.connect(self._chain_splineik_toggled)
         self.chain_builda_btn.clicked.connect(self.chain_build)
         self.chain_buildb_btn.clicked.connect(partial(self.chain_build, True))
         self.rig_type_block.idClicked.connect(self._on_type_toggled)
@@ -371,6 +332,7 @@ class IKFKWidget(QtWidgets.QWidget):
         self.base_help_btn.clicked.connect(partial(self._show_img, 1))
         self.chain_help_btn.clicked.connect(partial(self._show_img, 2))
         self.adv_help_btn.clicked.connect(partial(self._show_img, 3))
+        self.enable_pri_ik_cbx.stateChanged.connect(self._on_rev_fk_toggled)
 
     def _calculate_number_ik(self, object, chain=False, *args):
         num = object.value()
@@ -382,19 +344,20 @@ class IKFKWidget(QtWidgets.QWidget):
         else:
             var[chain].setText("{}n+1 ".format(num + 1))
 
-    def _chain_splineik_Toggled(self, enabled):
+    def _chain_splineik_toggled(self, enabled):
         if enabled:
             self.chain_uvpin_cbx.setChecked(False)
             self.chain_uvpin_cbx.setEnabled(False)
         else:
             self.chain_uvpin_cbx.setEnabled(True)
 
-    def _chain_over_ik_Toggled(self, enabled):
-        # print(enabled)
+    def _chain_over_ik_toggled(self, enabled):
         self.chain_over_ik_field.setEnabled(enabled)
 
-    def _on_over_ik_Toggled(self, enabled):
-        # print(enabled)
+    def _on_rev_fk_toggled(self, enabled):
+        self.enable_rev_fk_cbx.setEnabled(enabled)
+        
+    def _on_over_ik_toggled(self, enabled):
         self.over_ik_field.setEnabled(enabled)
 
     def get_menu_item(self, item):
@@ -414,6 +377,7 @@ class IKFKWidget(QtWidgets.QWidget):
         filed_name = self.name_field.text()
         ik_value = self.ik_field.value()
         fk_value = self.fk_field.value()
+        rev_fk_en = self.enable_rev_fk_cbx.isChecked()
         pri_ik_en = self.enable_pri_ik_cbx.isChecked()
         over_ik_en = self.enable_over_cbx.isChecked()
         over_ik_value = self.over_ik_field.value() if over_ik_en else 0
@@ -438,8 +402,7 @@ class IKFKWidget(QtWidgets.QWidget):
         else:
             spinkrig = 0
 
-        return filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, spinkrig, self.constrain_type_block.checkedId()
-
+        return filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, spinkrig, self.constrain_type_block.checkedId(), rev_fk_en
 
     def basa_build(self):
         objs = mc.ls(sl=True)
@@ -449,6 +412,11 @@ class IKFKWidget(QtWidgets.QWidget):
             _CURVE_EDIT.create_base_ctrls(objs,self.cons_block.checkedId(),self.ctrl_type_block.checkedId(),self.ctrl_scale_slider.value()+1.0, bool(self.add_pri_cbx.isChecked()), self.hierachy_cbx.isChecked())
         return
 
+    def _add_rev_fk(self, filed_name):
+        from ControllerTool.CurveEdit import add_rev_fk
+        fks = mc.ls("{}_*_fk_ctrl".format(filed_name), type="transform")
+        rev_fks = add_rev_fk(filed_name, fks)
+        value = float(mc.getAttr("{}_guide_root.sz".format(filed_name))) * 0.8
 
     def chain_build(self, crooked=False):
         pri_ik_en = self.chain_pri_ik_cbx.isChecked()
@@ -458,17 +426,15 @@ class IKFKWidget(QtWidgets.QWidget):
             add_spineik = 2
         else:
             add_spineik = 1
-
         uvpin = False
         rigType = self.chain_constrain_type.checkedId()
         if self.chain_uvpin_cbx.isChecked() and self.uv_pin_en:
             uvpin = True
-
         _RIGGING_MOD.joints_chain_rigging_build(pri_ik_en, over_ik_en, add_spineik, over_ik_value, rigType=rigType - 1,  uvpin=uvpin, crooked=crooked, fk_interval=self.chain_fk_field.value())
 
     def create_guide(self):
         """创建引导定位器"""
-        filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, add_spineik, rigType = self.get_adv_values()
+        filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, add_spineik, rigType, rev_fk_en = self.get_adv_values()
         if not filed_name:
             mayaPrint.error("请给予一个名称!!!")
             return
@@ -479,10 +445,8 @@ class IKFKWidget(QtWidgets.QWidget):
         print("Over IK Value: {}".format(over_ik_value))
         print("Aim Axis: {}".format(axis_value))
         print("Joints Rig Type: {}".format(rigType))
-
         from ControllerTool.ikfk_guide_mod import IKFK_GUIDE
         _IKFK_GUIDE = IKFK_GUIDE()
-
         self.joint_aixs = _IKFK_GUIDE.create_guide_system(filed_name, ik_value, fk_value, over_ik_value, axis_value)
 
     def is_aixsExists(self, filed_name):
@@ -508,10 +472,10 @@ class IKFKWidget(QtWidgets.QWidget):
         else:
             return True
 
-
+    @undo
     def build_system(self):
         """构建IKFK系统"""
-        filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, add_spineik, rigType = self.get_adv_values()
+        filed_name, ik_value, fk_value, pri_ik_en, over_ik_value, axis_value, add_spineik, rigType, rev_fk_en = self.get_adv_values()
 
         uvpin = False
         if self.node_type_block.checkedId() == 2:
@@ -523,8 +487,10 @@ class IKFKWidget(QtWidgets.QWidget):
 
         if self.is_aixsExists(filed_name):
             trans_locs = [i.replace("_aixs", "_guide") for i in self.joint_aixs]
-            crooked =  _util.is_aixsCrooked(objects=trans_locs, aim_vector=axis_value)
+            crooked = _util.is_aixsCrooked(objects=trans_locs, aim_vector=axis_value)
             _RIGGING_MOD.complex_rigging_build(filed_name, self.joint_aixs, fk_value, pri_ik_en, over_ik_value, spineik=add_spineik, rigType=rigType - 1, uvpin=uvpin, crooked=crooked)
+            if rev_fk_en:
+                self._add_rev_fk(filed_name)
 
 
 class PYIKFKLayout(PyouPersistentWindow):

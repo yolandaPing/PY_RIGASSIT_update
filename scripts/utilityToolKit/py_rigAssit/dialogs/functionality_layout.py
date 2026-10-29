@@ -37,8 +37,8 @@ def _ADD_MAYA_PLUG_IN_PATH():
 class PYFunctionalityLayout(QtWidgets.QDialog):
 
     DNYM_HINT = {1: u'select the start joint to make dynamic 选择要加动力学绑定的起始关节',
-                     2: u'select start joint and curve to make dynamic 选择需要添加动力学绑定的开始关节和曲线',
-                     3: u'select the curve to make dynamic 选择需要添加动力学的曲线'}
+                 2: u'select start joint and curve to make dynamic 选择需要添加动力学绑定的开始关节和曲线',
+                 3: u'select the curve to make dynamic 选择需要添加动力学的曲线'}
 
     IKSPLINE_HINT = {1: u'select the joint that needs to be stretched 选择拉伸的关节',
                      2: u'select the joints to be created 选择关节链的初始关节',
@@ -79,7 +79,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
 
     def bidirectional_fk_layout(self):
-        frame = _widgest.create_collapsible_frame("Forward Reverse FK ")
+        frame = _widgest.create_collapsible_frame("Forward Reverse FK 双向FK")
         main_layout = _widgest.create_section("Double FK")
         name_layout, self.forward_name_field = _widgest.create_QLineEdit_grp("Name:")
         self.forward_joints_chain_cbx = QtWidgets.QCheckBox(' is joints chain')
@@ -237,11 +237,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
             "Spline curve:")
         self.spline_stretch_aixs_block = _widgest.create_radiogroup(
             "Scale Axis:",
-            [
-                ("X ", 1, None),
-                ("Y ", 2, None),
-                ("Z ", 3, None)
-            ],
+            [("X ", 1, None), ("Y ", 2, None), ("Z ", 3, None)],
             default_id=1
         )
 
@@ -275,11 +271,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
         self.ikfk_type_block = _widgest.create_radiogroup(
             "Ctrl:",
-            [
-                ("IK ", 1, None),
-                ("FK ", 2, None),
-                ("IKFK ", 3, None)
-            ],
+            [("IK ", 1, None), ("FK ", 2, None), ("IKFK ", 3, None)],
             default_id=1
         )
         ikfk_select_main_layout.addLayout(ikfk_count_layout)
@@ -304,7 +296,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         return frame
 
     def variable_fk_layout(self):
-        frame = _widgest.create_collapsible_frame(" Variable FK")
+        frame = _widgest.create_collapsible_frame(" Variable FK 滑动FK")
         group = QtWidgets.QGroupBox(u"滑动的fk:")
         main_layout = QtWidgets.QVBoxLayout(group)
         layout, self.variable_name_field = _widgest.create_QLineEdit_grp("Prefix name:")
@@ -329,14 +321,14 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         return frame
 
     def rivet_layout(self):
-        frame = _widgest.create_collapsible_frame(" Follicle/Rivet/UVPin")
+        frame = _widgest.create_collapsible_frame(" Follicle/Rivet/UVPin 钉子工具")
         rivet_lay = PYRivetFolliceLayout(parent=self)
         rivet_group = rivet_lay.init_ui()
         frame.addWidget(rivet_group)
         return frame
 
     def ribbon_animation_layout(self):
-        frame = _widgest.create_collapsible_frame(" Ribbon(Surface) Animation Rigging")
+        frame = _widgest.create_collapsible_frame(" Surface Animation Rigging 动态绑定")
         group = QtWidgets.QGroupBox(u"Ribbon Animation:")
         main_layout = QtWidgets.QVBoxLayout(group)
         name_count_layout = QtWidgets.QVBoxLayout()
@@ -352,10 +344,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         ribbon_joint_layout.addRow(_widgest.create_text('counts : '), self.ribbon_joint_filed)
         self.ribbon_direction_block = _widgest.create_radiogroup(
             "",
-            [
-                ("U", 1, None),
-                ("V", 2, None),
-            ],
+            [("U", 1, None), ("V", 2, None)],
             default_id=1
         )
         direction_layout.addRow(_widgest.create_text('Direction : '), self.ribbon_direction_block)
@@ -364,24 +353,18 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         show_direction_btn.clicked.connect(self.showSurfaceUV)
 
         self.ribbon_rig_block = _widgest.create_radiogroup(
-            "Rig Type:",
-            [
-                ("None", 1, None),
-                ("Parent", 2, None),
-                ("Constrain", 3, None),
-            ],
+            "Joint Rig Type:",
+            [("None", 1, None), ("Parent", 2, None), ("Constrain", 3, None)],
             default_id=1
         )
 
         self.ribbon_animation_block = _widgest.create_radiogroup(
             "Animation",
-            [
-                ("No", 1, u""),
+            [("No", 1, u""),
                 ("Slide", 2, u"滑动(生长动画)"),
-                ("Spread", 3, u"逐个运动"),
+                ("Spread", 3, u"逐个递进动画"),
                 ("Both", 4, u"Slide+Spread"),
-                ("Tract", 5, u"圆环运动（履带绑定, 确保loft是有效的）"),
-            ],
+                ("Tract", 5, u"圆周运动,履带绑定（确保nurbsSurface是有效的）")],
             default_id=1
         )
 
@@ -395,9 +378,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         self.type_menu.currentIndexChanged.connect(self._on_type_toggled)
         type_menu_layout = QtWidgets.QFormLayout()
         type_menu_layout.addRow('Type:', self.type_menu)
-
         self.ribbon_hint = _widgest.create_text("Ribbon Animation Rigging")
-
         frame_button = _widgest.create_collapsible_frame("Controller ?")
         CTRL_layout = QtWidgets.QVBoxLayout()
         CTRL_type_layout = QtWidgets.QHBoxLayout()
@@ -412,11 +393,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
 
         self.ribbon_ctrl_block = _widgest.create_radiogroup(
             "",
-            [("No", 1, None),
-                ("IK", 2, None),
-                ("FK", 3, None),
-                ("IKFK", 4, None),
-            ],
+            [("No", 1, None), ("IK", 2, None), ("FK", 3, None), ("IKFK", 4, None)],
             default_id=1
         )
 
@@ -448,7 +425,7 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         return frame
 
     def fk_chain_spring_rig_layout(self):
-        frame = _widgest.create_collapsible_frame(" FK Chain Spring Rig")
+        frame = _widgest.create_collapsible_frame(" FK Chain Spring Rig 实时动力学")
         sec = _widgest.create_section("mGear Spring:")
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -460,7 +437,6 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         self.spring_invert_direction = _widgest.add_checkbox('Invert X direction to -X')
         btn_layout, self.spring_apply_btn, help_btn = _widgest.create_Qbuttons(" Apply ")
         # bk_btn_layout, self.spring_baker_apply_btn, baker_help_btn = _widgest.create_Qbuttons(" Baker ")
-
         main_layout.addWidget(_widgest.create_text(u"* 此功能依赖第三方mGear节点"))
         main_layout.addLayout(name_layout)
         main_layout.addWidget(self.spring_distance)
@@ -468,14 +444,11 @@ class PYFunctionalityLayout(QtWidgets.QDialog):
         main_layout.addWidget(_widgest.create_text(u"从根部按顺序fk链组运行"))
         _widgest.separator(main_layout)
         main_layout.addLayout(btn_layout)
-
         # main_layout.addLayout(bk_btn_layout)
         sec.addLayout(main_layout)
         frame.addWidget(sec)
         help_btn.clicked.connect(partial(self.show_help, "按顺序选择添加的fk或fk grp"))
-        # baker_help_btn.clicked.connect(
-        #     partial(self.show_help, "从根部按顺序选择控制器"))
-
+        # baker_help_btn.clicked.connect(partial(self.show_help, "从根部按顺序选择控制器"))
         return frame
 
     def add_ik_box(self):

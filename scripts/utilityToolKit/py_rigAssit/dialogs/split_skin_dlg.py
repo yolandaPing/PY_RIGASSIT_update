@@ -229,6 +229,7 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         super(PYSplitWeightLayout, self).__init__("PYSplitWeightLayout", "PYSplitWeightDialog", parent)
         self.ng2_enable = False
         self.degree_enable = False
+        self.ng_layer = None
         if MAYA_VISON >= 2022:
             self.degree_enable = True
             self.ng2_enable = True
@@ -273,16 +274,28 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         container_main.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         main_layout = QtWidgets.QVBoxLayout(container_main)
 
-        layout1, self.geo_filed, self.geo_btn = PY_WIDGEST.create_QLineEdit_row("Geometry:" )
-        layout2, self.mask_filed, self.mask_btn = PY_WIDGEST.create_QLineEdit_row("Joint/Lay:")
+        layout1, self.geo_filed, self.geo_btn = PY_WIDGEST.create_QLineEdit_row("Geometry:")
+        self.mask_jnt_lay, self.mask_filed, self.mask_btn = PY_WIDGEST.create_QLineEdit_row("Mask Joint:")
+        self.mask_jnt_widget = QtWidgets.QWidget()
+        self.ng_layer_widget = QtWidgets.QWidget()
+        ng_layer_layout = QtWidgets.QVBoxLayout(self.ng_layer_widget)
+        ng_layer_layout.setContentsMargins(0, 8, 0, 8)
+        ng_layer_layout.setSpacing(2)
 
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(QtWidgets.QLabel("    Ng Layer:"))
+        self.layer_combo = QtWidgets.QComboBox()
+        self.layer_refresh_btn = QtWidgets.QPushButton("刷新")
+        self.layer_refresh_btn.setFixedWidth(50)
+        row.addWidget(self.layer_combo, 1)
+        row.addWidget(self.layer_refresh_btn)
+        ng_layer_layout.addLayout(row)
+
+        self.ng_layer_widget.setVisible(False)
         split_type_layout = QtWidgets.QHBoxLayout()
         self.split_mask_block = PY_WIDGEST.create_radiogroup(
             "",
-            [
-                ("Weight Mask", 1, None),
-                ("ng2 Layer", 2, "ng2 层"),
-            ],
+            [("Weight Mask", 1, None), ("ng2 Layer", 2, "ng2 层")],
             default_id=1,
             enabled_map={2: self.ng2_enable}
         )
@@ -315,7 +328,9 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         btn_layout, self.split_btn, self.split_help_btn = PY_WIDGEST.create_Qbuttons(" Apply ")
 
         main_layout.addLayout(layout1)
-        main_layout.addLayout(layout2)
+        self.mask_jnt_widget.setLayout(self.mask_jnt_lay)
+        main_layout.addWidget(self.mask_jnt_widget)
+        main_layout.addWidget(self.ng_layer_widget)
         main_layout.addLayout(split_type_layout)
         PY_WIDGEST.separator(main_layout, True)
         main_layout.addWidget(PY_WIDGEST.create_text(u"Load joints in sequence 按顺序载入关节"))
@@ -392,7 +407,24 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         )
         self.split_mask_block.idClicked.connect(self._on_mask_type_toggled)
         self.split_btn.clicked.connect(self.split_weight)
+        # ng-layer
+        self.layer_refresh_btn.clicked.connect(self.refresh_layers)
+        self.layer_combo.currentIndexChanged.connect(self.on_layer_selected)
 
+    def _get_mesh_target(self):
+        try:
+            from ngSkinTools2.api.session import session
+            if session.active() and session.state.selectedSkinCluster:
+                return session.state.selectedSkinCluster
+        except Exception:
+            pass
+
+        from ngSkinTools2.api.target_info import get_related_skin_cluster
+        for s in cmds.ls(sl=True, long=True) or []:
+            sc = get_related_skin_cluster(s)
+            if sc:
+                return sc
+        return None
 
     def _on_mask_type_toggled(self, btn_id):
 
@@ -400,33 +432,74 @@ class PYSplitWeightLayout(PyouPersistentWindow):
         self.hit_text.setText(maps[btn_id])
 
         if btn_id == 1:
-            self.mask_btn.setEnabled(True)
+            self.mask_jnt_widget.setVisible(True)
+            self.ng_layer_widget.setVisible(False)
+            # self.mask_btn.setEnabled(True)
             self.degree_container.setEnabled(self.degree_enable)
             self.split_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 19))
         else:
-            self.mask_btn.setEnabled(False)
+            self.mask_jnt_widget.setVisible(False)
+            self.ng_layer_widget.setVisible(True)
+            self.refresh_layers()
+            # self.mask_btn.setEnabled(False)
             self.degree_container.setEnabled(True)
             self.split_help_btn.clicked.connect(lambda: dispatcher.execute("Show Help", 20))
 
+    def refresh_layers(self):
+        self.layer_combo.blockSignals(True)
+        self.layer_combo.clear()
 
-    def _attr_block_toggled(self, btn_id):
-        if btn_id == 1:
-            self.add_attr_hit.setText(u"Enum first is the attribute name, then the internal object name\nEnum: 第一个名称是属性名，然后开个后全部是内部对象名")
-        else:
-            self.add_attr_hit.setText(u"\n批量写入多个属性,属性名称用空格分开")
-            # self.add_attr_hit.setVisible(False)
-        if btn_id == 2 or btn_id == 3:
-            self._attr_value_page.setEnabled(True)
-        else:
-            self._attr_value_page.setEnabled(False)
+        mesh = self._get_mesh_target()
+        if mesh is None:
+            self.layer_combo.blockSignals(False)
+            return
 
+        try:
+            from ngSkinTools2.api import Layers
+            layers = Layers(mesh).list()
+        except Exception as err:
+            self.layer_combo.blockSignals(False)
+            return
+
+        leaf_layers = [l for l in layers if l.num_children == 0]
+        for l in leaf_layers:
+            self.layer_combo.addItem(l.name, l)
+
+        self.layer_combo.blockSignals(False)
+
+        if not leaf_layers:
+            mayaPrint.warning("该模型没有可用叶子层（请先在 ngSkinTools2 初始化层）")
+        else:
+            self.on_layer_selected(0)
+
+    def on_layer_selected(self, idx):
+        if idx < 0:
+            self.ng_layer = None
+            return None
+
+        layer = self.layer_combo.itemData(idx)
+        if layer is None:
+            self.ng_layer = None
+            return None
+
+        self.ng_layer = layer.name
+        print("Selected ngSkinTools2 Layer: {}".format(self.ng_layer))
+
+        return self.ng_layer
 
     def split_weight(self):
         from JointEdit import split_skin_weight
         geo_filed = self.geo_filed.text()
-        mask_filed = self.mask_filed.text()
+        mode = self.split_mask_block.checkedId()
+        if mode == 1:
+            mask_filed = self.mask_filed.text()
+        else:
+            mask_filed = self.ng_layer
+
+        print(mask_filed)
         split_joints_list = _obj.get_list_widget_items(self.split_joints_list)
-        v, info = split_skin_weight.split_weight(mesh=geo_filed, mask_joint_layer=mask_filed, mask_type=self.split_mask_block.checkedId(), split_joints=split_joints_list, Type=self.type_block.checkedId(), degree=self.split_degree_block.checkedId())
+        v, info = split_skin_weight.split_weight(mesh=geo_filed, mask_joint_layer=mask_filed, mask_type=mode, split_joints=split_joints_list,
+                                                 Type=self.type_block.checkedId(), degree=self.split_degree_block.checkedId())
 
         if v == True:
             mayaPrint.log(info)
@@ -434,6 +507,7 @@ class PYSplitWeightLayout(PyouPersistentWindow):
             mayaPrint.warning(info)
             return
         Help.end_popDialog()
+
 
 def main():
 

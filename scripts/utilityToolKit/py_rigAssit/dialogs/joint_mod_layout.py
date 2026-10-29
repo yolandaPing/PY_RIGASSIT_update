@@ -450,7 +450,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         return frame
 
     def optimize_skin_lay(self):
-        frame = _widgest.create_collapsible_frame(" Optimize Skin Weight Options")
+        frame = _widgest.create_collapsible_frame(" Optimize Skin Weight Options 自动优化权重")
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(4, 0, 4, 0)
         main_layout.setSpacing(4)
@@ -459,23 +459,21 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_optimize_block = _widgest.create_radiogroup(
             title="",
             items=[
-                ("Auto ik", 1, u"自动计算权重（ik类型）"),
+                ("Ribbon", 1, u"飘带自动计算权重（ik类型）"),
                 ("Split ", 2, u"拆分关节权重"),
                 ("DeltaMush", 3, u"DeltaMush/Tension变形器优化权重"),
                 ("Divisions", 4, u"自动细分优化拷贝权重")
-            ],
-            default_id=1
+            ], default_id=1
         )
-        self.sk_optimize_block.idClicked.connect(self._on_copy_type_toggled)
-
         self.sk_optimize_hint = _widgest.create_text(self.OPTIMIZE_HINT[1])
+        self.sk_optimize_block.idClicked.connect(self._on_copy_type_toggled)
         btn_layout, self.sk_optimize_btn, sk_optimize_help_btn = _widgest.create_Qbuttons(" Apply ")
         sk_optimize_help_btn.clicked.connect(partial(self.show_optimize_skinImage))
         group2 = QtWidgets.QGroupBox(u"Curve计算权重(Maya 2022 and above):")
         layout2 = QtWidgets.QVBoxLayout(group2)
         self.sk_mesh_block = _widgest.create_radiogroup(
             title="Mesh type:",
-            items=[("Linear(条状，柱状)", 1), ("Circular(环形，闭合) ", 2)],
+            items=[("Linear(条\柱状)", 1, u"可（勾选自选顺序）计算手臂；如果手臂不是直的，可以分为为上下两部分计算"), ("Circular(环形，闭合) ", 2)],
             default_id=1
         )
         self.sk_curve_type_block = _widgest.create_radiogroup(
@@ -488,10 +486,9 @@ class PYJointEditLayout(PyouPersistentWindow):
         btn_layout2, self.sk_curve_convert_btn, sk_convert_help_btn = _widgest.create_Qbuttons(" Apply ")
         sk_convert_help_btn.clicked.connect(partial(Help.HelpImage,"", "optimize_skin_tool"))
 
-        layout.addWidget(self.sk_optimize_block)
         layout.addWidget(self.sk_optimize_hint)
+        layout.addWidget(self.sk_optimize_block)
         _widgest.separator(layout, True)
-
         layout.addLayout(btn_layout)
         main_layout.addWidget(group)
         layout2.addWidget(_widgest.create_text(u"参与权重的关节必须是有序选择参与蒙皮"))
@@ -522,7 +519,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         except:
             _num = False
 
-        frame = _widgest.create_collapsible_frame(" Api Export/Import skinWeight")
+        frame = _widgest.create_collapsible_frame(" Api Export/Import skinWeight 权重导入导出")
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(4, 0, 4, 0)
         main_layout.setSpacing(4)
