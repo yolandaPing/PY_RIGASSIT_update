@@ -25,7 +25,7 @@ def show_img(ui, btn_id):
             13: "copy_ffd",
             14: "copy_UV",
             15: "add_attr_Tool",
-            16: "ribbon_rigging",
+            16: "ribbon_animation_rigging",
             17: "lock_curve_visibility",
             18: "mel_script_manager",
             19: "split_skin_weight",
