@@ -549,15 +549,11 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
 
         self.frame_button_infocon = PY_WIDGEAT.create_collapsible_frame(u' Copy Input / Output Info  (拷贝/转移信息) ', True)
         main_layout = QtWidgets.QVBoxLayout()
-
         self.infocon_block = PY_WIDGEAT.create_radiogroup(
             title="Type:",
-            items=[
-                ("transfer Output info", 1, u'源输出对象转移到新对象'),
+            items=[("transfer Output info", 1, u'源输出对象转移到新对象'),
                 ("copy Input info", 2, u'拷贝源对象的输入信息给新对象')
-            ],
-            default_id=1
-        )
+            ], default_id=1)
 
         self.hint_out = PY_WIDGEAT.create_text(
             "Transfer the object information of the source output to the new object output.\n将源输出的对象信息转接到新对象输出")
@@ -570,10 +566,9 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.help_btn_infocon = QtWidgets.QPushButton()
         self.help_btn_infocon.setIcon(QtGui.QIcon(":\help.png"))
         self.help_btn_infocon.setProperty("help", True)
-
+        self.help_btn_infocon.clicked.connect(partial(self._show_img, "copy_input_info"))
         button_layout.addWidget(self.apply_btn_infocon, 9)
         button_layout.addWidget(self.help_btn_infocon)
-
         main_layout.addWidget(self.infocon_block)
         main_layout.addWidget(self.hint_out)
         main_layout.addWidget(self.hint_in)
@@ -584,11 +579,8 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
     def combin_Dirve_wigets_layout(self, parent_layout):
         # 创建并添加"Buttons"的折叠框
         self.frame_button_combine = PY_WIDGEAT.create_collapsible_frame(' Combine connect Dirve  (多个组合控制) ', True)
-
         main_layout = QtWidgets.QVBoxLayout()
-
         label = PY_WIDGEAT.create_text("\n> Two or more drivers are used 载入两个或多个驱动器(1.0*1.0)", 12)
-
         button_layout = QtWidgets.QHBoxLayout()
         self.apply_btn_combine = QtWidgets.QPushButton('Apply')
         self.apply_btn_combine.setProperty("main", True)
@@ -599,7 +591,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         button_layout.addWidget(self.apply_btn_combine, 80)
         button_layout.addStretch(1)
         button_layout.addWidget(self.help_btn_combine, 1)
-
         main_layout.addWidget(label)
         main_layout.addWidget(QtWidgets.QLabel(""))
         main_layout.addLayout(button_layout)

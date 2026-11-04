@@ -190,7 +190,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
         node_grid.clicked.connect(self.run_action)
         global_grid.clicked.connect(self.run_action)
 
-        sec1 = py_widgets.create_section("Add Attribute")
         sec2 = py_widgets.create_section("Attribute Edit")
         grid0 = GridButtons("attribute_edit", 3)
         grid0.clicked.connect(self.run_action)
@@ -242,25 +241,22 @@ class PYGeneralLayout(QtWidgets.QDialog):
         ord_layout.addWidget(self.combo)
         layout_r.addLayout(lh_vis_layout)
         layout_r.addLayout(ord_layout)
-
         layout.addWidget(sec_vlock )
         set_frame.addLayout(layout)
         sec0.addWidget(global_grid)
         sec0.addWidget(node_grid)
         sec3.addWidget(data_grid)
-
-        sec1.addWidget(add_attribute_frame)
         sec2.addWidget(grid0)
         sec2.addLayout(layout_r)
         sec2.addWidget(set_frame)
         sec2.addWidget(edit_attribute_frame)
+        sec2.addWidget(add_attribute_frame)
         sec4.addWidget(rename_container_frame)
         sec4.addWidget(animCurve_convert_frame)
 
         lay.addWidget(sec0)
         lay.addWidget(sec3)
         lay.addWidget(sec2)
-        lay.addWidget(sec1)
         lay.addWidget(sec4)
         lay.addStretch()
         return self.attribute_page
@@ -286,8 +282,8 @@ class PYGeneralLayout(QtWidgets.QDialog):
     def edit_attribute_lay(self):
         frame = py_widgets.create_collapsible_frame(u"LimitInformation 属性限制")
         main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
         self.limit_ui = PYBoxLimitInformation()
-
         main_layout.addWidget(self.limit_ui)
         frame.addLayout(main_layout)
         return frame
@@ -395,7 +391,6 @@ class PYGeneralLayout(QtWidgets.QDialog):
     def split_target_lay(self):
         frame = py_widgets.create_collapsible_frame(u"拆分 blendShape Target")
         sec0 = py_widgets.create_section("Split blendShape Target")
-
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(4, 0, 4, 0)
         main_layout.setSpacing(4)
@@ -557,7 +552,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
                                                       "Translate, Rotate, Scale, Visibility属性显示和隐藏\n")
     def show_vis_help(self):
         QtWidgets.QMessageBox.information(self, "帮助", "Lock/Hide Vis\n\n"
-                                                      "锁定并隐藏创建里所有控制器的visibility\n")
+                                                      "锁定并隐藏场景里所有曲线的visibility\n")
     def show_split_help(self):
         QtWidgets.QMessageBox.information(self, "帮助", "拆分BlendShape目标工具\n\n"
                                                       "1. 选择模型载入Shape\n"

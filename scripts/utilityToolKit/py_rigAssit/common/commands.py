@@ -465,18 +465,42 @@ def shape_move_to_world(ui):
 def uv_move_shape(ui):
     _mesh_edit().mesh_UV_transfer()
 
+@CommandDispatcher.register("Set Default")
+@decorator.undo
+def set_default(ui):
+    sels = cmds.ls(sl=True)
+    attrs = cmds.channelBox("mainChannelBox", q=True, sma=True) or []
+    if sels:
+        for s in sels:
+            if attrs:
+                for attr in attrs:
+                    cmds.addAttr("{}.{}".format(s, attr), e=1, dv=cmds.getAttr("{}.{}".format(s, attr)))
+    mayaPrint.log('set default successfully')
+
+@CommandDispatcher.register("Copy Piovt")
+@decorator.undo
+def copy_pivot(ui):
+    objs = cmds.ls(sl=1)
+    if len(objs) < 2:
+        mayaPrint.error("Not enough objects selected.. exiting\n")
+    if len(objs) > 2:
+        mayaPrint.warning(
+            "more than two objects selected.  Copying the pivot from the first object onto all the other objects.")
+    pos = [0.0] * (3)
+    pos = cmds.xform(objs[0], q=1, ws=1, rp=1)
+    for x in range(1, len(objs)):
+        cmds.xform(objs[x], ws=1, piv=(pos[0], pos[1], pos[2]))
+    mayaPrint.log('copy pivot successfully')
 
 @CommandDispatcher.register("Copy BS Targets")
 @decorator.undo
 def copy_bs_targets(ui):
     _mesh_edit().copyDeformObjs()
 
-
 @CommandDispatcher.register("Export Mesh Data")
 @decorator.undo
 def uv_move_shape(ui, is_uv):
     _mesh_edit().export_selected(is_uv)
-
 
 @CommandDispatcher.register("Import Mesh Data")
 @decorator.undo
@@ -542,26 +566,22 @@ def export_Position(ui):
     __import__('QuickTools.object_postion_info',
                fromlist=['objects_position_save']).objects_position_save()
 
-
 @CommandDispatcher.register("Import Pos")
 @decorator.undo
 def import_Position(ui):
     __import__('QuickTools.object_postion_info',
                fromlist=['load_objects_position']).load_objects_position()
 
-
 @CommandDispatcher.register("Export SDK")
 def export_SDK_Info(ui):
     from Utils import sdk_info
     sdk_info.store_sdk_info()
 
-
 @CommandDispatcher.register("Import SDK")
 @decorator.undo
-def import_curve_data(ui):
+def import_SDK_Info(ui):
     from Utils import sdk_info
     sdk_info.import_sdk_data()
-
 
 @CommandDispatcher.register("Global ctrl")
 @decorator.undo
@@ -569,20 +589,17 @@ def global_ctrl(ui):
     from GeneralTools.ControllerVisFun import ControllerVisTool
     ControllerVisTool().createGlobalCtrl()
 
-
 @CommandDispatcher.register("Create visibility")
 @decorator.undo
 def create_visibility(ui):
     from QuickTools.QuickFunction import MakeGroupPivot
     MakeGroupPivot().createVisCtrl()
 
-
 @CommandDispatcher.register("Connect Mesh")
 @decorator.undo
 def connect_mesh(ui):
     from QuickTools.QuickFunction import QuickFunctions
     QuickFunctions().connectMeshDisplay()
-
 
 @CommandDispatcher.register("zipper Rig")
 @decorator.undo
@@ -622,7 +639,6 @@ def zipper_rig(ui, datas):
 
     return True
 
-
 @CommandDispatcher.register("ribbon rig build")
 @decorator.undo
 def ribbon_rig_build(ui, datas):
@@ -634,7 +650,6 @@ def ribbon_rig_build(ui, datas):
             mayaPrint.log(' Rivets Ribbon Nurbs successfully !')
         else:
             mayaPrint.log(' Follice Ribbon Nurbs successfully !')
-
 
 @CommandDispatcher.register("follicle rivet Rig")
 @decorator.undo
@@ -669,7 +684,6 @@ def follicle_rivet_constrain(ui, datas):
 
     return True
 
-
 @CommandDispatcher.register("mirror constraints")
 @decorator.undo
 def mirror_constraints(ui, datas):
@@ -687,7 +701,6 @@ def mirror_constraints(ui, datas):
     mirror_con.mirror_constraints(selected, mapping, replace_type)
     mayaPrint.log('constraint mirror successfully!')
 
-
 @CommandDispatcher.register("create separator")
 @decorator.undo
 def create_separator(ui, name):
@@ -699,7 +712,6 @@ def create_separator(ui, name):
         if not cmds.listAttr(obj, m=True, st='{}Sep'.format(name)):
             AddAttr.addAttribute(objects=[obj], longName=['{}Sep'.format(name)], niceName=['________________'], at="enum",
                                  en=name, lock=True, k=True)
-
 
 @CommandDispatcher.register("create attrs")
 @decorator.undo
@@ -746,7 +758,6 @@ def create_attrs(ui, datas):
 
     mayaPrint.log("Custom attribute {} has been added to selected objects.".format(names))
 
-
 @CommandDispatcher.register("apply attr vis lock")
 @decorator.undo
 def apply_attr_vis_lock(ui, datas):
@@ -788,7 +799,6 @@ def vector_driver_system(ui, info):
     except Exception as e:
         mayaPrint.warning(e)
 
-# ========== 以下为独立的外部工具导入 ==========
 @CommandDispatcher.register("QuadRemesher")
 def QuadRemesher(ui):
     try:
@@ -797,36 +807,30 @@ def QuadRemesher(ui):
     except:
         mayaPrint.warning("Higher versions are not supported at the moment.")
 
-
 @CommandDispatcher.register("intersecSolver")
 def intersectionSolver(ui):
     import ArtistTools.intersectionSolver as intersectionSolver
     intersectionSolver.intersectionSolver()
-
 
 @CommandDispatcher.register("muscleTool")
 def muscleTool(ui):
     import ArtistTools.muscleTool as muscleTool
     muscleTool.muscleTool()
 
-
 @CommandDispatcher.register("CopySDK")
 def CopySDK(ui):
     from CopyEdit import copySDK as copySDK
     copySDK.runUI()
-
 
 @CommandDispatcher.register("UKDPEyelidRig")
 def UKDP_EyelidRig(ui):
     from ArtistTools.UKDP_AE_eyelid import AER
     AER().UI()
 
-
 @CommandDispatcher.register("EyelidRig")
 def EyelidRig(ui):
     import ArtistTools.eyeLidSetupTool as eyeLidSetupTool
     eyeLidSetupTool.mayaRun()
-
 
 @CommandDispatcher.register("CurveFromTubes")
 def Curve_From_Tubes(ui):
@@ -836,30 +840,25 @@ def Curve_From_Tubes(ui):
     else:
         mayaPrint.warning("This version is not available.")
 
-
 @CommandDispatcher.register("Curve_Rigger")
 def Curve_Rigger(ui):
     import ArtistTools.Curve_Rigger.RigNet_RUN as RigNet_Curve_RiggerLaunch
     RigNet_Curve_RiggerLaunch.run()
-
 
 @CommandDispatcher.register("Ribbon_Nacho")
 def Ribbon_Nacho(ui):
     from ArtistTools.Ribbon_Nacho import Ribbon_NachoUI as Ribbon_NachoUI
     Ribbon_NachoUI.UI()
 
-
 @CommandDispatcher.register("Create Ctrls")
 def create_ctrls(ui):
     mel_file = os.path.join(base_dir, "scripts", "mel", "createFKctrls.mel")
     mel.eval('source ' + json.dumps(mel_file))
 
-
 @CommandDispatcher.register("abSymMesh")
 def abSymMesh(ui):
     mel_file = os.path.join(base_dir, "scripts", "mel", "abSymMesh.mel")
     mel.eval('source ' + json.dumps(mel_file))
-
 
 @CommandDispatcher.register("Quick rename")
 def quick_rename(ui):

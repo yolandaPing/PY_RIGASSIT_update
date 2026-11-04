@@ -235,6 +235,16 @@ lastly select the source transform with attributes you want to duplicate and run
 选择需要拷贝的对象，加选拷贝源，然后选择属性通道里需要拷贝的属性名称]]></tooltip>
             <color><![CDATA[cld]]></color>
         </button>
+        <button>
+            <label>Copy Piovt</label>
+            <tooltip><![CDATA[拷贝轴心位置（选择源对象+需要拷贝的对象）]]></tooltip>
+            <color><![CDATA[cld]]></color>
+        </button>
+        <button>
+            <label>Set Default</label>
+            <tooltip><![CDATA[设置mainChannelBox当前选择的属性值为默认值]]></tooltip>
+            <color><![CDATA[cld]]></color>
+        </button>
     </category>
 
     <category name="node_edit">

@@ -434,8 +434,8 @@ def _build_project_row(self, parent_layout):
     self.project_combo.currentTextChanged.connect(self.on_project_changed)
 
     btn_new = _create_text_button(u'新建', "cld_main", icons=_ICONS_ADD)
+    btn_new.setToolTip(u"新建项目")
     btn_new.clicked.connect(self.create_project_dialog)
-
     btn_open = _create_text_button(u'打开', "secondary", icons=_ICONS_FOLDER)
     btn_open.setToolTip(u"打开位置")
     btn_open.clicked.connect(self.open_existing_project)
@@ -523,13 +523,13 @@ def _build_asset_group(self):
     layout.setContentsMargins(4, 4, 4, 4)
 
     self.asset_sort_block = _widgets.create_radiogroup(
-        "", [(" Name ", 1, None), (" Date ", 2, None)],
+        "", [(" Name ", 1, u"按名称排序"), (" Date ", 2, u"按修改日期排序")],
         default_id=1
     )
     self.asset_sort_block.idClicked.connect(self.on_asset_sort_changed)
 
     self.search_edit = QtWidgets.QLineEdit()
-    self.search_edit.setPlaceholderText(u'搜索资产...')
+    self.search_edit.setPlaceholderText(u'快速查找资产...')
     self.search_edit.textChanged.connect(self.filter_assets)
 
     self.asset_list = QtWidgets.QListWidget()
@@ -668,8 +668,13 @@ def _build_version_frame(self):
     save_btn_about.setIconSize(QtCore.QSize(_ICON_SIZE_LARGE, _ICON_SIZE_LARGE))
     save_btn_about.setProperty("class", "iconBtn")
     save_btn_about.setFixedSize(_ICON_BUTTON_FIXED, _ICON_BUTTON_FIXED)
-    save_btn_about.setSizePolicy(
-        QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+    save_btn_about.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+    save_btn_about.setToolTip(
+        u"save Workshop 保存过程版\n"
+        u"save Master 保存完好版(publish)\n"
+        u"打开/引用 Master 文件,可在任务列表里选择任务右键\n"
+        u"双击任务栏里的对象， 直接打开Workshop最新版\n"
+        u"选择Workshop版鼠标右键，有对应的nemu\n"
     )
     save_btn_about.clicked.connect(partial(
         self.show_help,
