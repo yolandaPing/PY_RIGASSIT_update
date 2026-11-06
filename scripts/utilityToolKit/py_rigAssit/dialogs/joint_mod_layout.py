@@ -172,7 +172,6 @@ class PYJointEditLayout(PyouPersistentWindow):
         return self.py_joint_page
 
     def build_skin_tab(self):
-
         self.py_skin_page = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(self.py_skin_page)
         lay.setSpacing(2)
@@ -183,16 +182,19 @@ class PYJointEditLayout(PyouPersistentWindow):
         frame2 = self.mirror_skin_lay()
         frame1 = self.copy_skin_lay()
         frame3 = self.optimize_skin_lay()
+        frame6 = self.smooth_skin_lay()
         frame4 = self.skin_inverse_lay()
         sec1.addWidget(frame1)
         sec1.addWidget(frame2)
         sec1.addWidget(frame3)
+        sec1.addWidget(frame6)
         sec1.addWidget(frame5)
         sec1.addWidget(frame4)
 
         sec1.main_layout.setAlignment(frame1, QtCore.Qt.AlignTop)
         sec1.main_layout.setAlignment(frame2, QtCore.Qt.AlignTop)
         sec1.main_layout.setAlignment(frame3, QtCore.Qt.AlignTop)
+        sec1.main_layout.setAlignment(frame6, QtCore.Qt.AlignTop)
         sec1.main_layout.setAlignment(frame4, QtCore.Qt.AlignTop)
         sec1.main_layout.setAlignment(frame5, QtCore.Qt.AlignTop)
         lay.addWidget(sec1)
@@ -450,7 +452,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         return frame
 
     def optimize_skin_lay(self):
-        frame = _widgest.create_collapsible_frame(" Optimize Skin Weight Options 自动优化权重")
+        frame = _widgest.create_collapsible_frame(u" Optimize Skin Weight Options 自动优化权重")
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(4, 0, 4, 0)
         main_layout.setSpacing(4)
@@ -474,15 +476,12 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_mesh_block = _widgest.create_radiogroup(
             title="Mesh type:",
             items=[("Linear(条\柱状)", 1, u"可（勾选自选顺序）计算手臂；如果手臂不是直的，可以分为为上下两部分计算"), ("Circular(环形，闭合) ", 2)],
-            default_id=1
-        )
+            default_id=1)
         self.sk_curve_type_block = _widgest.create_radiogroup(
             title="Degree:",
             items=[("1", 1, u"1线性"), ("2", 2), ("3", 3, u"3立方")],
-            default_id=3
-        )
+            default_id=3)
         self.cus_cbx = _widgest.add_checkbox(u'自选顺序(按序选择权重关节 + skin mesh)')
-
         btn_layout2, self.sk_curve_convert_btn, sk_convert_help_btn = _widgest.create_Qbuttons(" Apply ")
         sk_convert_help_btn.clicked.connect(partial(Help.HelpImage,"", "optimize_skin_tool"))
 
@@ -498,6 +497,39 @@ class PYJointEditLayout(PyouPersistentWindow):
         _widgest.separator(layout2, True)
         layout2.addLayout(btn_layout2)
         main_layout.addWidget(group2)
+        frame.addLayout(main_layout)
+        return frame
+
+    def smooth_skin_lay(self):
+        frame = _widgest.create_collapsible_frame(u" Smooth Skin Weight 平滑权重")
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(2, 0, 2, 0)
+        main_layout.setSpacing(2)
+        group = QtWidgets.QGroupBox(u"平滑权重:")
+        layout = QtWidgets.QVBoxLayout(group)
+        fre_layout = QtWidgets.QGridLayout()
+        fre_layout.setHorizontalSpacing(4)
+        fre_layout.setVerticalSpacing(6)
+        self.sm_frequency = QtWidgets.QSpinBox()
+        self.sm_frequency.setMinimum(1)
+        self.sm_frequency.setValue(6)
+        self.sm_frequency.setFixedWidth(30)
+        self.sm_value = _widgest.create_floatSlider("")
+        self.sm_value.setRange(0.01, 1.0)
+        self.sm_value.setValue(0.25)
+        fre_layout.addWidget(_widgest.create_text(u"Frequency 次数: "), 0, 0)
+        fre_layout.addWidget(self.sm_frequency, 0, 1)
+        fre_layout.addWidget(_widgest.create_text(u"Value 值: "), 0, 2)
+        fre_layout.addWidget(self.sm_value, 0, 3)
+        fre_layout.setColumnStretch(4, 1)
+        self.sm_cbx = _widgest.add_checkbox(u'Limit the current range 限制当前范围')
+        btn_layout, self.sm_btn, sm_help_btn = _widgest.create_Qbuttons(" Apply ")
+        sm_help_btn.clicked.connect(partial(Help.HelpImage,"", "smooth_skinWeight"))
+        layout.addWidget(_widgest.create_text(u"可以选择对象或对象顶点"))
+        layout.addLayout(fre_layout)
+        layout.addWidget(self.sm_cbx)
+        layout.addLayout(btn_layout)
+        main_layout.addWidget(group)
         frame.addLayout(main_layout)
         return frame
 
@@ -613,6 +645,7 @@ class PYJointEditLayout(PyouPersistentWindow):
         self.sk_copy_btn.clicked.connect(self.run_batch_copy_skin)
         self.sk_source_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.sk_source_filed, "mesh"))
         self.skin_other_middle_btn.clicked.connect(partial(SelectionLoader.load_lineedit, self, self.skin_other_middle_filed, "joint"))
+        self.sm_btn.clicked.connect(self.smooth_skin)
 
     def show_help(self, text="", *args):
         QtWidgets.QMessageBox.information(self, "帮助", text)
@@ -714,7 +747,6 @@ class PYJointEditLayout(PyouPersistentWindow):
     def mirror_build(self):
         from JointEdit.JointEditFun import EditJnt
         EditJnt = EditJnt()
-
         EditJnt.mirror_joints_build(self.mir_jnt_search_filed.text(), self.mir_jnt_replace_filed.text(),
                                     self.across_block.checkedId(), self.function_block.checkedId())
 
@@ -823,19 +855,12 @@ class PYJointEditLayout(PyouPersistentWindow):
                     failed_objects.append(obj)
 
         finally:
-
             if cmds.objExists("PoseMirrorSkin_Temp_grp"):
                 cmds.delete("PoseMirrorSkin_Temp_grp")
-
             if chunk_opened:
                 cmds.undoInfo(closeChunk=True)
-
         if failed_objects:
-            mayaPrint.warning(
-                "Mirror completed with errors:\n{}".format(
-                    "\n".join(failed_objects)
-                )
-            )
+            mayaPrint.warning("Mirror completed with errors:\n{}".format("\n".join(failed_objects)))
 
     def execute_optimize_weight(self):
         map = {1: "IK Weight", 2: "Split Weight", 3: "DeltaMush Weight", 4: "Divisions Weight"}
@@ -857,7 +882,6 @@ class PYJointEditLayout(PyouPersistentWindow):
     def run_batch_copy_skin(self):
         from JointEdit.JointEditFun import EditJnt
         EditJnt = EditJnt()
-
         source_field = self.sk_source_filed.text()
         type = self.sk_copy_block.checkedId()
         new_sc = False
@@ -877,6 +901,12 @@ class PYJointEditLayout(PyouPersistentWindow):
             EditJnt.create_copySkinWeight(new_sc, False, False, True, source, source_field)
         else:
             EditJnt.create_copySkinWeight(new_sc, False, False, True, source, source_field)
+
+    def smooth_skin(self):
+        from JointEdit.smoothWeight import smooth_weight
+        objs = cmds.ls(sl=True)
+        if objs:
+            smooth_weight(objs, self.sm_frequency.value(), self.sm_value.value(), self.sm_cbx.isChecked())
 
     def show_optimize_skinImage(self):
         id = self.sk_optimize_block.checkedId()

@@ -414,9 +414,9 @@ class IKFKWidget(QtWidgets.QWidget):
 
     def _add_rev_fk(self, filed_name):
         from ControllerTool.CurveEdit import add_rev_fk
-        fks = mc.ls("{}_*_fk_ctrl".format(filed_name), type="transform")
-        rev_fks = add_rev_fk(filed_name, fks)
         value = float(mc.getAttr("{}_guide_root.sz".format(filed_name))) * 0.8
+        fks = mc.ls("{}_*_fk_ctrl".format(filed_name), type="transform")
+        add_rev_fk(filed_name, fks, value)
 
     def chain_build(self, crooked=False):
         pri_ik_en = self.chain_pri_ik_cbx.isChecked()

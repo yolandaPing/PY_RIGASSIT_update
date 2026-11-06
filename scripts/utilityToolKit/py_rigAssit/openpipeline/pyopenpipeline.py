@@ -1271,6 +1271,8 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
                 if versions:
                     for v in versions:
                         self.version_list.addItem(_u(v))
+                notes = self.pm.get_notes(self.current_asset_type, self.selected_asset, self.selected_subtype)
+                self.notes_text.setHtml(self.format_notes_text(notes))
             else:
                 self.show_warning(u'失败', u'保存新版本失败')
         except Exception as e:
@@ -1290,6 +1292,8 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
             return
         try:
             if fops.save_master(None, self.pm, self.current_asset_type, self.selected_asset, self.selected_subtype):
+                notes = self.pm.get_notes(self.current_asset_type, self.selected_asset, self.selected_subtype)
+                self.notes_text.setHtml(self.format_notes_text(notes))
                 self.show_info_inview(u'Master has been saved', 'green')
             else:
                 self.show_warning(u'失败', u'Master保存失败')
