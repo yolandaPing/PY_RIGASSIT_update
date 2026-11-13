@@ -10,12 +10,9 @@
 FBX导出设置对话框模块
 独立的非模态对话框，解决界面阻塞问题。
 """
-try:
-    from ui_framework.core.qtCompat import *
-    from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
-except:
-    from CommonUse.qtCompat import *
-    from CommonUse.widgetsUse import Widgets, PyouPersistentWindow
+
+from ui_framework.core.qtCompat import *
+from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
 
 try:
     import maya.cmds as cmds
@@ -23,58 +20,64 @@ try:
 except Exception:
     IN_MAYA = False
 
-_widgest = Widgets()
+_widgets = Widgets()
+
+DEFAULT_UE_CONFIG = {
+    'UnrealEditor': 'D:/UEProjects/MyProject/UnrealEngine/Engine/Binaries/Win64/UnrealEditor-Cmd.exe',
+    'UE_PROJECT': 'D:/UEProjects/MyProject/MyProject.uproject',
+    'CONTENT': 'test/Assets'
+}
 
 
 class FBXExportDialog(QtWidgets.QDialog):
     """FBX导出设置对话框（非模态）"""
 
-    def __init__(self, parent=None, fbx_config=None):
+    def __init__(self, parent=None, fbx_config=None, ue_config=None):
         super(FBXExportDialog, self).__init__(parent)
         self.fbx_config = fbx_config or ['Geo_grp', 'root_jnt']
-        self.setWindowTitle(u'设置FBX导出对象')
-        self.setFixedSize(400, 200)
+        self.ue_config = dict(DEFAULT_UE_CONFIG)
+        if isinstance(ue_config, dict):
+            self.ue_config.update(ue_config)
+        self.setWindowTitle(u'设置 FBX / UE 导出配置')
+        self.setFixedSize(620, 310)
         self.init_ui()
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setFocus()
 
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
-        geo_layout = QtWidgets.QHBoxLayout()
-        geo_label = QtWidgets.QLabel(u'几何体组名称:')
-        geo_label.setFixedWidth(120)
-        self.geo_name_edit = QtWidgets.QLineEdit()
-        self.geo_name_edit.setText(self.fbx_config[0])
-        get_geo_btn = QtWidgets.QPushButton(u'<<<')
-        get_geo_btn.clicked.connect(lambda: self.get_object_from_scene(self.geo_name_edit))
-        geo_layout.addWidget(geo_label)
-        geo_layout.addWidget(self.geo_name_edit)
-        geo_layout.addWidget(get_geo_btn)
-        layout.addLayout(geo_layout)
+        geo_layout, self.geo_name_edit, get_geo_btn = _widgets.create_QLineEdit_row(u"几何体组名称:")
+        joint_layout, self.joint_name_edit, get_joint_btn = _widgets.create_QLineEdit_row(u"根关节名称:")
+        self.geo_name_edit.setText(self.fbx_config[0] if len(self.fbx_config) > 0 else '')
+        self.joint_name_edit.setText(self.fbx_config[1] if len(self.fbx_config) > 1 else '')
 
-        joint_layout = QtWidgets.QHBoxLayout()
-        joint_label = QtWidgets.QLabel(u'根关节名称:')
-        joint_label.setFixedWidth(120)
-        self.joint_name_edit = QtWidgets.QLineEdit()
-        self.joint_name_edit.setText(self.fbx_config[1])
-        get_joint_btn = QtWidgets.QPushButton(u'<<<')
-        get_joint_btn.clicked.connect(lambda: self.get_object_from_scene(self.joint_name_edit, 'joint'))
-        joint_layout.addWidget(joint_label)
-        joint_layout.addWidget(self.joint_name_edit)
-        joint_layout.addWidget(get_joint_btn)
-        layout.addLayout(joint_layout)
+        ue_form_layout = QtWidgets.QFormLayout()
+        self.unreal_editor_edit = QtWidgets.QLineEdit(self.ue_config.get('UnrealEditor', ''))
+        self.ue_project_edit = QtWidgets.QLineEdit(self.ue_config.get('UE_PROJECT', ''))
+        self.content_edit = QtWidgets.QLineEdit(self.ue_config.get('CONTENT', ''))
+        ue_form_layout.addRow(u'UnrealEditor:', self.unreal_editor_edit)
+        ue_form_layout.addRow(u'UE_PROJECT:', self.ue_project_edit)
+        ue_form_layout.addRow(u'CONTENT:', self.content_edit)
 
-        info_label = QtWidgets.QLabel(u'提示：这些名称将在导出FBX时自动查找并导出')
-        info_label.setStyleSheet('color: #666; font-size: 11px;')
+        info_label = _widgets.create_text(
+            u'提示：FBX 名称会在导出时自动查找；UE 配置用于将 FBX 导入 Unreal。'
+        )
         info_label.setWordWrap(True)
+        layout.addLayout(geo_layout)
+        layout.addLayout(joint_layout)
+        layout.addLayout(ue_form_layout)
         layout.addWidget(info_label)
-
+        get_geo_btn.clicked.connect(lambda: self.get_object_from_scene(self.geo_name_edit))
+        get_joint_btn.clicked.connect(lambda: self.get_object_from_scene(self.joint_name_edit, 'joint'))
+        
         button_layout = QtWidgets.QHBoxLayout()
         test_btn = QtWidgets.QPushButton(u'测试对象')
         test_btn.clicked.connect(self.test_fbx_objects)
         button_layout.addWidget(test_btn)
         button_layout.addStretch()
-        self.ok_btn = QtWidgets.QPushButton(u'确定')
+        self.ok_btn = QtWidgets.QPushButton(u'  确定  ')
         self.ok_btn.clicked.connect(self.accept)
-        self.cancel_btn = QtWidgets.QPushButton(u'取消')
+        self.cancel_btn = QtWidgets.QPushButton(u'  取消  ')
         self.cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(self.ok_btn)
         button_layout.addWidget(self.cancel_btn)
@@ -131,3 +134,11 @@ class FBXExportDialog(QtWidgets.QDialog):
             self.geo_name_edit.text().strip(),
             self.joint_name_edit.text().strip()
         ]
+
+    def get_ue_settings(self):
+        """获取对话框中设置的 Unreal Engine 导出配置。"""
+        return {
+            'UnrealEditor': self.unreal_editor_edit.text().strip(),
+            'UE_PROJECT': self.ue_project_edit.text().strip(),
+            'CONTENT': self.content_edit.text().strip()
+        }

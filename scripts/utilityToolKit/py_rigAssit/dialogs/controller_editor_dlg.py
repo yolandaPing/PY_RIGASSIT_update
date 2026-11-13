@@ -63,7 +63,6 @@ class PYCustomColorButton(QtWidgets.QLabel):
 
     def __init__(self, color=QtCore.Qt.white, parent=None):
         super(PYCustomColorButton, self).__init__(parent)
-
         self._color = QtGui.QColor()
         self.set_size(60, 18)
         self.set_color(color)
@@ -116,12 +115,10 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setContentsMargins(2, 2, 2, 2)
-
         container = QtWidgets.QWidget()
         self.scroll_layout = QtWidgets.QVBoxLayout(container)
         self.scroll_layout.setContentsMargins(6, 0, 6, 0)
         self.scroll_layout.setSpacing(6)
-
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
         self.scroll_layout.addWidget(self.build_curve_edit())
@@ -130,7 +127,6 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         self.scroll_layout.addStretch()
 
         self.create_connections()
-
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setFocus()
 
@@ -148,26 +144,19 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         type_layout.setContentsMargins(0, 0, 8, 0)
         self.type_group = PY_WIDGEAT.create_radiogroup(
             "",
-            [
-                ("Default ", 1, "对象shape overrideColor"),
-                ("Outliner ", 2, "大纲对象显示颜色")
-            ],
-            default_id=2
-        )
-
+            [("Default ", 1, "对象shape overrideColor"), ("Outliner ", 2, "大纲对象显示颜色")],
+            default_id=2)
         type_layout.addWidget(PY_WIDGEAT.create_text("Custom Type:"), 1)
         type_layout.addWidget(self.type_group, 1)
         type_layout.addWidget(PY_WIDGEAT.create_text(" Color:"),1)
         type_layout.addWidget(self.custom_color_button,2)
         layout.addLayout(type_layout)
-
         return layout
 
     # ---------------------- RESIZE / ROTATE ----------------------
     def build_resize_block(self):
         layout = PY_WIDGEAT.create_section("Curve Editor")
         layout.setContentsMargins(0, 0, 12, 0)
-
         scale_layout = QtWidgets.QHBoxLayout()
         size_layout = QtWidgets.QHBoxLayout()
         rotate_layout = QtWidgets.QVBoxLayout()
@@ -181,12 +170,8 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
 
         self.rot_type_block = PY_WIDGEAT.create_radiogroup(
             "",
-            [
-                ("Center ", 1, "中心"),
-                ("Piovt ", 2, "轴心")
-            ],
-            default_id=1
-        )
+            [("Center ", 1, "中心"), ("Piovt ", 2, "轴心")],
+            default_id=1)
         rot_type_layout.addWidget(PY_WIDGEAT.create_text("调整方式:  "))
         rot_type_layout.addWidget(self.rot_type_block, 1)
         self.scale_slider = PY_WIDGEAT.create_floatSlider()
@@ -201,7 +186,6 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         self.subtract_btn.setIcon(QtGui.QIcon(self.icon_path + "/SubtractSets.png"))
         self.subtract_btn.setProperty("help", True)
         self.subtract_btn.setIconSize(size)
-
         self.add_btn.setFixedSize(35, 25)
         self.subtract_btn.setFixedSize(35, 25)
 
@@ -237,10 +221,16 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
     def build_curve_shape(self):
         layout = PY_WIDGEAT.create_section("Custom Shape")
         layout.setContentsMargins(0, 0, 4, 0)
-        text_layout, self.text_edit, self.create_btn = PY_WIDGEAT.create_QLineEdit_row("Text:")
-        self.create_btn.setText("Create")
-        text_layout.setContentsMargins(8, 0, 20, 0)
-
+        txt_layout = QtWidgets.QHBoxLayout()
+        self.txt_type_block = PY_WIDGEAT.create_radiogroup(
+            "", [("ctrl  ", 1, "default ctrl"), (" visibility", 2, "visibility label")], default_id=1)
+        self.text_edit = QtWidgets.QLineEdit()
+        self.create_btn = QtWidgets.QPushButton("add Prefix")
+        self.text_edit.setPlaceholderText(u" 输入文本")
+        self.create_btn.setText(" Create ")
+        txt_layout.addWidget(self.txt_type_block)
+        txt_layout.addWidget(self.text_edit)
+        txt_layout.addWidget(self.create_btn)
         self.cons_block = PY_WIDGEAT.create_radiogroup(
             u"约束方式:",
             [
@@ -249,17 +239,14 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
                 ("parent", 3, u"父子约束"),
                 ("point", 4, u"点约束"),
                 ("orient", 5, u"旋转约束")
-            ],
-            default_id=1
-        )
+            ], default_id=1)
 
         checkbox_layout = QtWidgets.QHBoxLayout()
         self.add_scale_cbx = QtWidgets.QCheckBox(' add scale ?')
         self.add_grp_cbx = QtWidgets.QCheckBox(' add sec/pri group ?')
         checkbox_layout.addWidget(self.add_scale_cbx)
         checkbox_layout.addWidget(self.add_grp_cbx)
-
-        layout.addLayout(text_layout)
+        layout.addLayout(txt_layout)
         PY_WIDGEAT.separator(layout, True)
         layout.addWidget(self.cons_block)
         layout.addLayout(checkbox_layout)
@@ -300,6 +287,7 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
         self.subtract_btn.clicked.connect(lambda: self.on_scale_shape(False))
         self.add_btn.clicked.connect(lambda: self.on_scale_shape(True))
         self.create_btn.clicked.connect(self.on_create_text)
+        self.text_edit.returnPressed.connect(self.on_create_text)
         self.btn_x.clicked.connect(lambda: self.rotate_curve(1))
         self.btn_y.clicked.connect(lambda: self.rotate_curve(2))
         self.btn_z.clicked.connect(lambda: self.rotate_curve(3))
@@ -327,8 +315,17 @@ class PYControllerEditorLayout(QtWidgets.QWidget):
 
     def on_create_text(self):
         txt = self.text_edit.text()
-        curve_shape.creat_text_shape(txt)
-        print("Create text:", txt)
+        if self.txt_type_block.checkedId() == 1:
+            curve_shape.creat_text_shape(txt)
+            mayaPrint.log("Create text: {}".format(txt))
+        else:
+            from QuickTools.QuickFunction import MakeGroupPivot
+            _mak = MakeGroupPivot()
+            if cmds.objExists('visibility_ctrl'):
+                _mak.createVisCtrl(ctrlName='visibility_ctrl', FileName=txt, hi=6, scale=1, New=False)
+            else:
+                _mak.createVisCtrl(ctrlName='visibility_ctrl',FileName=txt)
+            mayaPrint.log("Create visibility label: {}".format(txt))
 
 
     def on_create_ctrl(self, shape):

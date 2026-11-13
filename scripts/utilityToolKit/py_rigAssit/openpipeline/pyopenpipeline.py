@@ -39,7 +39,7 @@ from py_rigAssit.openpipeline.ui_openpipeline import build_openpipeline_ui
 from py_rigAssit.openpipeline.description_manager import DescriptionMixin
 from py_rigAssit.openpipeline.snapshot_manager import SnapshotMixin
 from Pipeline import file_operations as fops
-from Pipeline.pipelineConfig import OpenPipelineConfig
+from Pipeline.pipelineConfig import OpenPipelineConfig, DEFAULT_UE_CONFIG
 from Pipeline.projectManager import ProjectManager
 from Pipeline.pipelineUtils import (
     load_projects_from_xml, get_projects_xml_path, ensure_projects_xml,
@@ -49,6 +49,7 @@ from ui_framework.core.qtCompat import *
 from ui_framework.widgets.widgets import Widgets, PyouPersistentWindow
 
 _widgets = Widgets()
+UE_CONFIG = dict(DEFAULT_UE_CONFIG)
 _USER_DEFINED_CANDIDATES = (
     "user_defined",
     "Pipeline.user_defined",
@@ -155,6 +156,7 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
         self.new_proj_path = None
         self.new_asset_name = None
         self.fbx_config = None
+        self.UE_CONFIG = dict(DEFAULT_UE_CONFIG)
         self._fbx_dialog = None
         self._snapshot_selector = None
 
@@ -272,6 +274,9 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
             if not self.fbx_config:
                 self.fbx_config = ['Geo_grp', 'root_jnt']
                 self.save_fbx_config(self.fbx_config)
+            self.UE_CONFIG = self.cfg.get_ue_config()
+            UE_CONFIG.clear()
+            UE_CONFIG.update(self.UE_CONFIG)
         except Exception as e:
             print(u"加载FBX配置失败: {}".format(_u(e)))
 
@@ -281,6 +286,17 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
         except Exception as e:
             print(u"保存FBX配置失败: {}".format(_u(e)))
 
+    def save_ue_config(self, ue_config):
+        """保存 Unreal Engine 导出配置，并同步运行时 UE_CONFIG。"""
+        try:
+            self.UE_CONFIG = self.cfg.get_ue_config()
+            self.UE_CONFIG.update(ue_config)
+            UE_CONFIG.clear()
+            UE_CONFIG.update(self.UE_CONFIG)
+            self.cfg.set_ue_config(self.UE_CONFIG)
+        except Exception as e:
+            print(u"保存UE配置失败: {}".format(_u(e)))
+
     def set_fbx_export_objects(self):
         from py_rigAssit.openpipeline.fbx_dialog import FBXExportDialog
 
@@ -289,7 +305,11 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
             self._fbx_dialog.activateWindow()
             return
 
-        dialog = FBXExportDialog(parent=self, fbx_config=self.fbx_config)
+        dialog = FBXExportDialog(
+            parent=self,
+            fbx_config=self.fbx_config,
+            ue_config=self.UE_CONFIG
+        )
         dialog.setWindowFlags(QtCore.Qt.Window)
         self._fbx_dialog = dialog
 
@@ -301,12 +321,18 @@ class PYPenpipelineDialog(DescriptionMixin, SnapshotMixin, PyouPersistentWindow)
 
     def _on_fbx_dialog_accepted(self, dialog):
         new_settings = dialog.get_settings()
+        new_ue_settings = dialog.get_ue_settings()
         if new_settings[0] and new_settings[1]:
             self.fbx_config = new_settings
             self.save_fbx_config(self.fbx_config)
-            self.show_info(u'成功',
-                           u'FBX导出设置已保存:\n\n几何体组: {}\n根关节: {}'.format(
-                               _u(new_settings[0]), _u(new_settings[1])))
+        self.save_ue_config(new_ue_settings)
+        self.show_info(u'成功',
+                       u'FBX/UE 导出设置已保存:\n\n几何体组: {}\n根关节: {}\n\n'
+                       u'UnrealEditor: {}\nUE_PROJECT: {}\nCONTENT: {}'.format(
+                           _u(new_settings[0]), _u(new_settings[1]),
+                           _u(new_ue_settings['UnrealEditor']),
+                           _u(new_ue_settings['UE_PROJECT']),
+                           _u(new_ue_settings['CONTENT'])))
         self._fbx_dialog = None
 
     def set_project_root_path(self):

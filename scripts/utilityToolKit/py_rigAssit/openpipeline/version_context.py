@@ -21,7 +21,6 @@ from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
 
 try:
-    from Pipeline.pipelineUtils import *
     from Pipeline.pipelineUtils import (
         load_projects_from_xml,
         get_projects_xml_path,
@@ -35,6 +34,9 @@ except ImportError:
         from .pipelineUtils import *
     except ImportError:
         print(u"version_context导入工具pipeline_utils模块失败")
+
+from py_rigAssit.common.quick_ng_transfer import export_to, import_from, cleanup_scene_ng
+from Utils.undo import undo
 
 try:
     import maya.cmds as cmds
@@ -81,17 +83,14 @@ def _show_info_inview(title=u"Finished", color='yellow'):
     help.inView_Message(color, u"{}".format(_u(title)))
 
 
-def add_menu_label(menu, text):
+def add_menu_label(menu, text, color="yellow"):
     widget = QtWidgets.QWidget()
     layout = QtWidgets.QHBoxLayout(widget)
-
     label = QtWidgets.QLabel(_u(text))
-    label.setStyleSheet("color: yellow;")
-
+    label.setStyleSheet("color: {};".format(color))
     layout.addWidget(label)
     layout.setContentsMargins(20, 2, 5, 2)
     widget.setLayout(layout)
-
     label_action = QtWidgets.QWidgetAction(menu)
     label_action.setDefaultWidget(widget)
     menu.addAction(label_action)
@@ -145,6 +144,9 @@ class PathService(PipelineContext):
 
     def version_path(self, version_name):
         return os.path.join(self.workshop_dir(), version_name)
+
+    def skin_dir(self):
+        return os.path.join(self.subtype_dir(), 'skin')
 
     def open_asset_path(self, asset_name):
         if not self.validate_asset():
@@ -368,16 +370,10 @@ class FBXExporter(PathService):
             attrs = cmds.listAttr(skin, multi=True) or []
             matrix_attrs = [a for a in attrs if a.startswith("matrix")]
             for mx in matrix_attrs:
-                cons = cmds.listConnections(
-                    u"{}.{}".format(_u(skin), _u(mx)),
-                    d=True
-                ) or []
-
+                cons = cmds.listConnections("{}.{}".format(_u(skin), _u(mx)), d=True) or []
                 if not cons:
                     continue
-
                 matrix_node = cons[0]
-
                 if cmds.objExists(matrix_node):
                     try:
                         cmds.delete(matrix_node)
@@ -386,20 +382,15 @@ class FBXExporter(PathService):
 
     def delete_blendshape_nodes(self):
         meshes = cmds.ls(type="mesh", long=True) or []
-
         transforms = []
-
         for mesh in meshes:
             parent = cmds.listRelatives(mesh, parent=True, fullPath=True) or []
             if parent:
                 transforms.extend(parent)
-
         transforms = list(set(transforms))
-
         for obj in transforms:
             history = cmds.listHistory(obj) or []
             blend_nodes = cmds.ls(history, type='blendShape') or []
-
             for bs in blend_nodes:
                 if cmds.objExists(bs):
                     try:
@@ -413,14 +404,10 @@ class FBXExporter(PathService):
 
     def build_fbx_path(self, version_filename):
         fbx_dir = os.path.join(self.subtype_dir(), "fbx")
-
         if not os.path.exists(fbx_dir):
             os.makedirs(fbx_dir)
-
         base_name = os.path.splitext(_u(version_filename))[0]
-
         fbx_path = os.path.join(fbx_dir, base_name + u".fbx")
-
         return fbx_path.replace("\\", "/")
 
     def export_selected_to_fbx(self, fbx_path):
@@ -431,32 +418,33 @@ class FBXExporter(PathService):
         return os.path.exists(fbx_path)
 
     def _export_to_unreal(self, fbx_path):
+        ue_config = self.ui.UE_CONFIG
+
         try:
-            import work_patch.project_asset_browser.fbx_to_unreal as fbx_to_unreal
-            reload(fbx_to_unreal)
+            from py_rigAssit.common.to_ue.fbx_to_unreal import export_to_unreal
             obj_fold = {"chr": "Chr",
                         "Chr": "Chr",
                         "char": "Chr",
                         "prp": "Prp",
                         "Prp": "Prp"}
-            ue_content_path = u"/Game/{}/{}".format(_u(CONTENT), _u(obj_fold.get(self.asset_type, "Chr")))
-            fbx_to_unreal.export_to_unreal(fbx_path, UnrealEditor, UE_PROJECT, ue_content_path, self.asset)
+            ue_content_path = u"/Game/{}/{}".format(_u(ue_config['CONTENT']), _u(obj_fold.get(self.asset_type, "Chr")))
+            export_to_unreal(fbx_path, ue_config['UnrealEditor'], ue_config['UE_PROJECT'], ue_content_path, self.asset)
         except Exception as e:
             self.ui.show_warning_delayed(
                 u'UE 导出警告',
                 u'{}\n前往ue手动运行ue_importer.py移动材质贴图即可'.format(_u(e)))
 
     def _save_json_for_ue(self, fbx_path):
+        ue_config = self.ui.UE_CONFIG
         try:
-            import work_patch.project_asset_browser.fbx_to_unreal as fbx_to_unreal
-            reload(fbx_to_unreal)
+            from py_rigAssit.common.to_ue.fbx_to_unreal import save_json
             obj_fold = {"chr": "Chr",
                         "Chr": "Chr",
                         "char": "Chr",
                         "prp": "Prp",
                         "Prp": "Prp"}
-            ue_content_path = u"/Game/{}/{}".format(_u(CONTENT), _u(obj_fold.get(self.asset_type, "Chr")))
-            fbx_to_unreal.save_json(fbx_path, ue_content_path, self.asset)
+            ue_content_path = u"/Game/{}/{}".format(_u(ue_config['CONTENT']), _u(obj_fold.get(self.asset_type, "Chr")))
+            save_json(fbx_path, ue_content_path, self.asset)
         except Exception:
             pass
 
@@ -550,6 +538,29 @@ class FileOperationService(PathService):
         self.pm.write_note_info(task_dir, version_filename, info, workshop)
 
 
+class OpSkinWeight(PathService):
+
+    def export_ng(self, *args):
+        selected = cmds.ls(sl=1) or []
+        _path = self.skin_dir()
+        if not os.path.exists(_path):
+            os.makedirs(_path)
+        file_path = os.path.join(_path, '{}_ng.json'.format(selected[0]))
+        export_to(file_path)
+
+    # @undo
+    def import_ng(self, mode=1, *ages):
+        selected = cmds.ls(sl=1)
+        if selected:
+            _path = os.path.join(self.skin_dir(), '{}_ng.json'.format(selected[0]))
+            import_from(file_path=_path, mode=mode)
+
+    def open_sk_path(self):
+        if os.path.exists(self.skin_dir()):
+            open_folder_in_explorer(self.skin_dir().replace("/", "\\"))
+        else:
+            self.ui.show_warning(u'错误', u'任务路径不存在:\n{}'.format(self.skin_dir()))
+
 class VersionContextMenu(PipelineContext):
 
     def __init__(self, main_window):
@@ -559,6 +570,7 @@ class VersionContextMenu(PipelineContext):
         self.version_service = VersionService(main_window)
         self.exporter = FBXExporter(main_window)
         self.file_ops = FileOperationService(main_window)
+        self.ng_ops = OpSkinWeight(main_window)
 
     def show_asset_menu(self, position):
         list_widget = self.ui.asset_list
@@ -632,34 +644,6 @@ class VersionContextMenu(PipelineContext):
         menu.exec_(list_widget.mapToGlobal(position))
 
     def show_version_menu(self, position):
-        list_widget = self.ui.version_list
-        item = list_widget.itemAt(position)
-
-        if not item:
-            return
-
-        version_name = _u(item.text())
-        menu = QtWidgets.QMenu(list_widget)
-
-        add_menu_label(menu, u'📋 版本信息: {}'.format(version_name))
-        locate_action = menu.addAction(u"📂 打开版本路径")
-        menu.addSeparator()
-        open_action = menu.addAction(u" 打开")
-        import_action = menu.addAction(u" 导入")
-        reference_action = menu.addAction(u" 引用")
-        menu.addSeparator()
-        set_master_action = menu.addAction(u"⚙ Set Master ")
-        menu.addSeparator()
-        add_menu_label(menu, u"⭐ fbx:")
-
-        set_fbx_action = menu.addAction(u'⚙ 设置FBX导出对象')
-        menu.addSeparator()
-        fbx_menu = menu.addMenu(u"Export FBX")
-        export_fbx_action = fbx_menu.addAction(u"📤 导出 FBX")
-        export_fbx_ue_action = fbx_menu.addAction(u'📤 导出FBX to UE')
-        menu.addSeparator()
-        add_menu_label(menu, u"  删除:")
-        delete_action = menu.addAction(u"🗑️ 删除当前选择")
 
         def safe_run(func):
             try:
@@ -698,15 +682,65 @@ class VersionContextMenu(PipelineContext):
             if ok and hasattr(self.ui, "refresh_all"):
                 self.ui.refresh_all()
 
-        open_action.triggered.connect(_open)
-        import_action.triggered.connect(_import)
-        reference_action.triggered.connect(_reference)
-        locate_action.triggered.connect(_locate)
-        set_master_action.triggered.connect(_set_master)
-        set_fbx_action.triggered.connect(self.ui.set_fbx_export_objects)
-        export_fbx_action.triggered.connect(_export)
-        export_fbx_ue_action.triggered.connect(lambda: _export(True))
-        delete_action.triggered.connect(_delete)
+        def _export_ng():
+            safe_run(lambda: self.ng_ops.export_ng())
+
+        def _import_ng(mode=1):
+            safe_run(lambda: self.ng_ops.import_ng(mode))
+
+        list_widget = self.ui.version_list
+        item = list_widget.itemAt(position)
+
+        if item:
+            version_name = _u(item.text())
+            menu = QtWidgets.QMenu(list_widget)
+            add_menu_label(menu, u'📋 版本信息: {}'.format(version_name))
+            locate_action = menu.addAction(u"📂 打开版本路径")
+            menu.addSeparator()
+            open_action = menu.addAction(u" 打开")
+            import_action = menu.addAction(u" 导入")
+            reference_action = menu.addAction(u" 引用")
+            menu.addSeparator()
+            set_master_action = menu.addAction(u"⚙ Set Master ")
+            menu.addSeparator()
+            add_menu_label(menu, u"⭐ fbx:")
+            fbx_menu = menu.addMenu(u"Export FBX")
+            export_fbx_action = fbx_menu.addAction(u"📤 导出 FBX")
+            export_fbx_ue_action = fbx_menu.addAction(u'📤 导出FBX to UE')
+            menu.addSeparator()
+            add_menu_label(menu, u"  删除:")
+            delete_action = menu.addAction(u"🗑️ 删除当前选择")
+            open_action.triggered.connect(_open)
+            import_action.triggered.connect(_import)
+            reference_action.triggered.connect(_reference)
+            locate_action.triggered.connect(_locate)
+            set_master_action.triggered.connect(_set_master)
+            export_fbx_action.triggered.connect(_export)
+            export_fbx_ue_action.triggered.connect(lambda: _export(True))
+            delete_action.triggered.connect(_delete)
+        else:
+            menu = QtWidgets.QMenu()
+            add_menu_label(menu, u'📋 功能区:', "red")
+            set_fbx_action = menu.addAction(u'⚙ 设置FBX导出对象')
+            menu.addSeparator()
+            add_menu_label(menu, u'📤 导入导出对象: {} > ng'.format(self.subtype), "red")
+            ng_exp_action = menu.addAction(u" 导出 ng")
+            ng_imp_action1 = menu.addAction(u" closestPoint导入")
+            ng_imp_action2 = menu.addAction(u" uvSpace导入")
+            ng_imp_action3 = menu.addAction(u" vertexId导入")
+            menu.addSeparator()
+            ng_clean_action = menu.addAction(u" 清除场景ng节点")
+            menu.addSeparator()
+            sk_action = menu.addAction(u"📂 打开skin路径")
+            if not self.subtype:
+                [_i.setEnabled(False) for _i in [ng_exp_action, ng_imp_action1, ng_imp_action2, ng_imp_action3, sk_action]]
+            set_fbx_action.triggered.connect(self.ui.set_fbx_export_objects)
+            ng_exp_action.triggered.connect(_export_ng)
+            ng_imp_action1.triggered.connect(lambda: _import_ng(1))
+            ng_imp_action2.triggered.connect(lambda: _import_ng(2))
+            ng_imp_action3.triggered.connect(lambda: _import_ng(3))
+            ng_clean_action.triggered.connect(cleanup_scene_ng)
+            sk_action.triggered.connect(self.ng_ops.open_sk_path)
 
         menu.exec_(list_widget.mapToGlobal(position))
 
