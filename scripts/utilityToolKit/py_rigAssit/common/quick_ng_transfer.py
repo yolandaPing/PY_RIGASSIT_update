@@ -12,8 +12,9 @@ ngSkinTools2 快速操作脚本
   2. 快速导入指定路径 JSON 文件中的 ngSkinTools 权重到当前选择模型
      - 若目标模型没有 skinCluster，会从 JSON 读取关节，自动创建 skinCluster 后再导入
   3. 清理场景中所有 ngSkinTools 自定义节点
-
 """
+
+from __future__ import print_function, unicode_literals
 
 import os
 from maya import cmds
@@ -22,6 +23,22 @@ from ngSkinTools2.api import export_json, import_json, FileFormat, VertexTransfe
 from ngSkinTools2.api.plugin import load_plugin, is_plugin_loaded
 from ngSkinTools2.api.target_info import get_related_skin_cluster
 from py_rigAssit.dialogs import mayaPrint
+
+
+def _log(message):
+    try:
+        mayaPrint.log(message)
+        return
+    except Exception:
+        pass
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        try:
+            print(message.encode("utf-8") if hasattr(message, "encode") else message)
+        except Exception:
+            pass
+
 
 def _ensure_plugin_loaded():
     load_plugin()
@@ -74,7 +91,6 @@ def _resolve_selected_mesh():
         if cmds.nodeType(node) == "skinCluster":
             geo = _get_mesh_from_skin_cluster(node)
             if geo:
-                # 返回 transform 更保险
                 parents = cmds.listRelatives(geo, parent=True, fullPath=True) or []
                 return parents[0] if parents else geo
             continue
@@ -145,7 +161,7 @@ def _create_skin_cluster_for_mesh(mesh, influences):
     if not joint_paths:
         raise RuntimeError("JSON 中没有可用的关节信息，无法自动绑定")
 
-    # 去重但保持顺序（避免同名关节导致 influence 数对不上）
+    # 去重但保持顺序
     seen = set()
     unique_joints = []
     for p in joint_paths:
@@ -155,17 +171,18 @@ def _create_skin_cluster_for_mesh(mesh, influences):
 
     max_influences = max(4, len(unique_joints))
 
-    result = cmds.skinCluster(
-        mesh,
-        *unique_joints,
-        toSelectedBones=False,
-        normalizeWeights=1,
-        maximumInfluences=max_influences,
-        obeyMaxInfluences=False,
-        removeUnusedInfluence=False,
-    )
+    # *args 之后只能用 **kwargs 展开。
+    skin_kwargs = {
+        "toSelectedBones": False,
+        "normalizeWeights": 1,
+        "maximumInfluences": max_influences,
+        "obeyMaxInfluences": False,
+        "removeUnusedInfluence": False,
+    }
+    result = cmds.skinCluster(mesh, *unique_joints, **skin_kwargs)
+
     skin_cluster = result[0] if isinstance(result, (list, tuple)) else result
-    print("[ngSkinTools] 已自动创建 skinCluster: %s (influences=%d)" % (skin_cluster, len(unique_joints)))
+    _log("[ngSkinTools] 已自动创建 skinCluster: %s (influences=%d)" % (skin_cluster, len(unique_joints)))
     return skin_cluster
 
 
@@ -203,15 +220,20 @@ def export_selected(file_path=None, format=FileFormat.JSON):
     if not file_path:
         file_path = _pick_save_path()
         if not file_path:
-            print("[ngSkinTools] 已取消导出")
+            _log("[ngSkinTools] 已取消导出")
             return None
 
     parent_dir = os.path.dirname(file_path)
     if parent_dir and not os.path.isdir(parent_dir):
-        os.makedirs(parent_dir)
+        try:
+            os.makedirs(parent_dir)
+        except OSError:
+            # 并发/权限等边缘情况，忽略已存在的目录
+            if not os.path.isdir(parent_dir):
+                raise
 
     export_json(target, file_path, format=format)
-    mayaPrint.log("[ngSkinTools] 已导出: %s -> %s" % (target, file_path))
+    _log("[ngSkinTools] 已导出: %s -> %s" % (target, file_path))
     return file_path
 
 
@@ -234,7 +256,7 @@ def import_selected(
     if not file_path:
         file_path = _pick_open_path()
         if not file_path:
-            print("[ngSkinTools] 已取消导入")
+            _log("[ngSkinTools] 已取消导入")
             return False
 
     if not os.path.isfile(file_path):
@@ -243,14 +265,13 @@ def import_selected(
     target = _resolve_selected_target()
 
     if target is None:
-        # 目标模型没有 skinCluster
         if not auto_bind:
             raise RuntimeError(
                 "当前模型没有 skinCluster。请先手动绑定，或使用 auto_bind=True 让脚本从 JSON 自动创建绑定。"
             )
 
         mesh = _resolve_selected_mesh()
-        print("[ngSkinTools] 目标模型无 skinCluster，准备自动绑定: %s" % mesh)
+        _log("[ngSkinTools] 目标模型无 skinCluster，准备自动绑定: %s" % mesh)
         influences = _read_influences_from_json(file_path, format=format)
         target = _create_skin_cluster_for_mesh(mesh, influences)
 
@@ -271,7 +292,7 @@ def import_selected(
     except Exception:
         pass
 
-    mayaPrint.log("[ngSkinTools] 已导入: %s -> %s" % (file_path, target))
+    _log("[ngSkinTools] 已导入: %s -> %s" % (file_path, target))
     return True
 
 
@@ -284,10 +305,10 @@ def cleanup_scene_ng():
     try:
         from ngSkinTools2.operations.removeLayerData import remove_custom_nodes
         remove_custom_nodes(interactive=False)
-        print("[ngSkinTools] 场景清理完成")
+        _log("[ngSkinTools] 场景清理完成")
         return
     except Exception as err:
-        print("[ngSkinTools] 官方清理失败，回退到直接删除: %s" % err)
+        _log("[ngSkinTools] 官方清理失败，回退到直接删除: %s" % err)
 
     node_types = ["ngst2MeshDisplay", "ngst2SkinLayerData"]
     nodes_to_delete = []
@@ -295,11 +316,11 @@ def cleanup_scene_ng():
         nodes_to_delete.extend(cmds.ls(type=t) or [])
 
     if not nodes_to_delete:
-        print("[ngSkinTools] 场景中没有 ngSkinTools 自定义节点")
+        _log("[ngSkinTools] 场景中没有 ngSkinTools 自定义节点")
         return
 
     cmds.delete(nodes_to_delete)
-    mayaPrint.log("[ngSkinTools] 已删除 %d 个 ngSkinTools 节点" % len(nodes_to_delete))
+    _log("[ngSkinTools] 已删除 %d 个 ngSkinTools 节点" % len(nodes_to_delete))
 
 
 def import_vertex_mode(mode=1):
@@ -317,7 +338,6 @@ def export_to(file_path=None):
 
 def import_from(file_path, mode=1, auto_bind=True):
     return import_selected(file_path=file_path, vertex_transfer_mode=import_vertex_mode(mode), auto_bind=auto_bind)
-
 
 
 if __name__ == "__main__":

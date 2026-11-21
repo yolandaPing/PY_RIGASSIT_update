@@ -30,5 +30,9 @@ CurveDataPath = ParentPath+"files/CurveData"
 
 
 # print(ParentPath,ScriptsPath,IconsPath,CurveDataPath)
+# print("py_rigassit:", get_py_rigassit_dirs())
 
-# print("py_rigassit:", get_py_rigassit_root())
+__all__ = [
+    "py_rigassit_dir", "scripts_dir", "current_dir", "icons_dir", "curve_data_dir",
+    "ParentPath", "ScriptsPath", "IconsPath", "CurveDataPath"
+]
