@@ -89,22 +89,16 @@ def DeleteunUsedDagPose(ui):
     ).OptimizeScene().delete_unused_dagpose_nodes()
 
 
-@CommandDispatcher.register("UnLockNode Selected")
+@CommandDispatcher.register("UnLockNode selected")
 @decorator.undo
 def UnLockNodeSelected(ui):
-    __import__(
-        'OptimizeSceneFun',
-        fromlist=['OptimizeScene']
-    ).OptimizeScene().CleanUNLockNode(False)
+    __import__('OptimizeSceneFun', fromlist=['OptimizeScene']).OptimizeScene().CleanUNLockNode(False)
 
 
 @CommandDispatcher.register("UnLockNode Scene")
 @decorator.undo
 def unLockNodeScene(ui):
-    __import__(
-        'OptimizeSceneFun',
-        fromlist=['OptimizeScene']
-    ).OptimizeScene().CleanUNLockNode(True)
+    __import__('OptimizeSceneFun', fromlist=['OptimizeScene']).OptimizeScene().CleanUNLockNode(True)
 
 
 @CommandDispatcher.register("UnLock initialShading")

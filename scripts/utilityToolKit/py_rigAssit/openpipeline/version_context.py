@@ -19,6 +19,8 @@ from ui_framework.core.qtCompat import *
 from Pipeline import file_operations as file_ops
 from Pipeline.pipelineConfig import OpenPipelineConfig
 from Pipeline.projectManager import ProjectManager
+from .text_utils import _u
+from .fbx_service import FBXExporter, add_fbx_menu
 
 try:
     from Pipeline.pipelineUtils import (
@@ -41,31 +43,9 @@ from Utils.undo import undo
 try:
     import maya.cmds as cmds
     import maya.mel as mel
-    import maya.OpenMaya as om
     IN_MAYA = True
 except Exception:
     IN_MAYA = False
-
-
-def _u(value):
-    """Py2/Py3 安全转 unicode。"""
-    if value is None:
-        return u''
-    if isinstance(value, bytes):
-        try:
-            return value.decode('utf-8')
-        except Exception:
-            try:
-                return value.decode('gbk')
-            except Exception:
-                return value.decode('utf-8', 'replace')
-    if isinstance(value, str):
-        return value
-    try:
-        return unicode(value)  # noqa: F821
-    except Exception:
-        return u'{}'.format(value)
-
 
 _cfg = OpenPipelineConfig()
 
@@ -308,187 +288,9 @@ class VersionService(PathService):
 
         self.refresh_version_list()
 
-        if hasattr(self.ui, "show_info"):
-            try:
-                self.ui.show_info(u'文件删除成功', u"已删除 {}".format(_u(version_filename)))
-            except Exception:
-                pass
+        _show_info_inview(u'版本文件已删除', 'green')
 
         return True
-
-
-class FBXExporter(PathService):
-
-    def ensure_scene_safe(self):
-        if not IN_MAYA:
-            return False
-
-        modified = cmds.file(q=True, modified=True)
-
-        if not modified:
-            return True
-
-        reply = QtWidgets.QMessageBox.question(
-            self.ui,
-            u"警告",
-            u"当前场景有未保存内容。\n继续导出会清空当前场景，是否继续？",
-            QtWidgets.QMessageBox.Yes |
-            QtWidgets.QMessageBox.No
-        )
-
-        return reply == QtWidgets.QMessageBox.Yes
-
-    def get_export_objects(self):
-        if not hasattr(self.ui, "fbx_config"):
-            raise RuntimeError("fbx_config missing")
-
-        config = self.ui.fbx_config
-
-        if len(config) < 2:
-            raise RuntimeError("FBX config invalid")
-
-        geo_grp = config[0]
-        root_joint = config[1]
-
-        export_objects = []
-
-        if geo_grp and cmds.objExists(geo_grp):
-            export_objects.append(geo_grp)
-
-        if root_joint and cmds.objExists(root_joint):
-            export_objects.append(root_joint)
-
-        if not export_objects:
-            raise RuntimeError("Export objects missing")
-        self.geo_grp = geo_grp
-        self.root_joint = root_joint
-        return export_objects
-
-    def delete_matrix_nodes(self):
-        skins = cmds.ls(type="skinCluster") or []
-        for skin in skins:
-            attrs = cmds.listAttr(skin, multi=True) or []
-            matrix_attrs = [a for a in attrs if a.startswith("matrix")]
-            for mx in matrix_attrs:
-                cons = cmds.listConnections("{}.{}".format(_u(skin), _u(mx)), d=True) or []
-                if not cons:
-                    continue
-                matrix_node = cons[0]
-                if cmds.objExists(matrix_node):
-                    try:
-                        cmds.delete(matrix_node)
-                    except Exception:
-                        pass
-
-    def delete_blendshape_nodes(self):
-        meshes = cmds.ls(type="mesh", long=True) or []
-        transforms = []
-        for mesh in meshes:
-            parent = cmds.listRelatives(mesh, parent=True, fullPath=True) or []
-            if parent:
-                transforms.extend(parent)
-        transforms = list(set(transforms))
-        for obj in transforms:
-            history = cmds.listHistory(obj) or []
-            blend_nodes = cmds.ls(history, type='blendShape') or []
-            for bs in blend_nodes:
-                if cmds.objExists(bs):
-                    try:
-                        cmds.delete(bs)
-                    except Exception:
-                        pass
-
-    def cleanup_scene(self):
-        self.delete_matrix_nodes()
-        self.delete_blendshape_nodes()
-
-    def build_fbx_path(self, version_filename):
-        fbx_dir = os.path.join(self.subtype_dir(), "fbx")
-        if not os.path.exists(fbx_dir):
-            os.makedirs(fbx_dir)
-        base_name = os.path.splitext(_u(version_filename))[0]
-        fbx_path = os.path.join(fbx_dir, base_name + u".fbx")
-        return fbx_path.replace("\\", "/")
-
-    def export_selected_to_fbx(self, fbx_path):
-        export_objects = self.get_export_objects()
-        cmds.select(clear=True)
-        cmds.select(export_objects, r=True)
-        mel.eval(u'file -force -options "v=0;" -typ "FBX export" -pr -es "{}";'.format(_u(fbx_path)))
-        return os.path.exists(fbx_path)
-
-    def _export_to_unreal(self, fbx_path):
-        ue_config = self.ui.UE_CONFIG
-
-        try:
-            from py_rigAssit.common.to_ue.fbx_to_unreal import export_to_unreal
-            obj_fold = {"chr": "Chr",
-                        "Chr": "Chr",
-                        "char": "Chr",
-                        "prp": "Prp",
-                        "Prp": "Prp"}
-            ue_content_path = u"/Game/{}/{}".format(_u(ue_config['CONTENT']), _u(obj_fold.get(self.asset_type, "Chr")))
-            export_to_unreal(fbx_path, ue_config['UnrealEditor'], ue_config['UE_PROJECT'], ue_content_path, self.asset)
-        except Exception as e:
-            self.ui.show_warning_delayed(
-                u'UE 导出警告',
-                u'{}\n前往ue手动运行ue_importer.py移动材质贴图即可'.format(_u(e)))
-
-    def _save_json_for_ue(self, fbx_path):
-        ue_config = self.ui.UE_CONFIG
-        try:
-            from py_rigAssit.common.to_ue.fbx_to_unreal import save_json
-            obj_fold = {"chr": "Chr",
-                        "Chr": "Chr",
-                        "char": "Chr",
-                        "prp": "Prp",
-                        "Prp": "Prp"}
-            ue_content_path = u"/Game/{}/{}".format(_u(ue_config['CONTENT']), _u(obj_fold.get(self.asset_type, "Chr")))
-            save_json(fbx_path, ue_content_path, self.asset)
-        except Exception:
-            pass
-
-    def export_fbx_for_version(self, version_filename, to_ue=False):
-        if not IN_MAYA:
-            self.ui.show_critical(u"错误", u"只能在 Maya 中运行")
-            return False
-
-        if not self.ensure_scene_safe():
-            return False
-
-        version_path = self.version_path(version_filename)
-
-        if not os.path.exists(version_path):
-            raise RuntimeError(u"Version file missing:\n{}".format(_u(version_path)))
-
-        fbx_path = self.build_fbx_path(version_filename)
-
-        try:
-            cmds.file(new=True, force=True)
-            file_ops.import_file(version_path)
-
-            self.cleanup_scene()
-
-            ok = self.export_selected_to_fbx(fbx_path)
-            if ok:
-                cmds.file(new=True, force=True)
-
-                if to_ue:
-                    self._export_to_unreal(fbx_path)
-                else:
-                    self._save_json_for_ue(fbx_path)
-                    self.ui.show_info_delayed(
-                        u'导出成功',
-                        u'FBX导出完成:\n\n导出对象: {} 和 {}\n导出路径: {}'.format(
-                            _u(self.geo_grp), _u(self.root_joint), _u(fbx_path)))
-            if not ok:
-                raise RuntimeError("FBX export failed")
-
-            return fbx_path
-
-        except Exception as e:
-            self.ui.show_warning_delayed(u'导出失败', _u(e))
-            return False
 
 
 class FileOperationService(PathService):
@@ -669,11 +471,7 @@ class VersionContextMenu(PipelineContext):
 
         def _set_master():
             safe_run(lambda: self.file_ops.set_master(version_name))
-            if hasattr(self.ui, "show_info"):
-                self.ui.show_info(u'设置Master成功', u'{} 设置Master完成'.format(version_name))
-
-        def _export(to_ue=False):
-            safe_run(lambda: self.exporter.export_fbx_for_version(version_name, to_ue))
+            _show_info_inview(u'Master 设置成功', 'green')
 
         def _delete():
             ok = self.version_service.delete_selected_version(version_name)
@@ -703,10 +501,7 @@ class VersionContextMenu(PipelineContext):
             menu.addSeparator()
             set_master_action = menu.addAction(u"⚙ Set Master ")
             menu.addSeparator()
-            add_menu_label(menu, u"⭐ fbx:")
-            fbx_menu = menu.addMenu(u"Export FBX")
-            export_fbx_action = fbx_menu.addAction(u"📤 导出 FBX")
-            export_fbx_ue_action = fbx_menu.addAction(u'📤 导出FBX to UE')
+            add_fbx_menu(menu, version_name, self.exporter, add_menu_label, safe_run)
             menu.addSeparator()
             add_menu_label(menu, u"  删除:")
             delete_action = menu.addAction(u"🗑️ 删除当前选择")
@@ -715,19 +510,17 @@ class VersionContextMenu(PipelineContext):
             reference_action.triggered.connect(_reference)
             locate_action.triggered.connect(_locate)
             set_master_action.triggered.connect(_set_master)
-            export_fbx_action.triggered.connect(_export)
-            export_fbx_ue_action.triggered.connect(lambda: _export(True))
             delete_action.triggered.connect(_delete)
         else:
             menu = QtWidgets.QMenu()
             add_menu_label(menu, u'📋 功能区:', "red")
-            set_fbx_action = menu.addAction(u'⚙ 设置FBX导出配置')
+            set_fbx_action = menu.addAction(u'⚙ 设置FBX导出对象')
             menu.addSeparator()
-            add_menu_label(menu, u'📤 NG权重导入|出对象: {}'.format(self.subtype), "red")
+            add_menu_label(menu, u'📤 导入导出对象: {} > ng'.format(self.subtype), "red")
             ng_exp_action = menu.addAction(u" 导出 ng")
-            ng_imp_action1 = menu.addAction(u" closestPoint 导入")
-            ng_imp_action2 = menu.addAction(u" uvSpace 导入")
-            ng_imp_action3 = menu.addAction(u" vertexId 导入")
+            ng_imp_action1 = menu.addAction(u" closestPoint导入")
+            ng_imp_action2 = menu.addAction(u" uvSpace导入")
+            ng_imp_action3 = menu.addAction(u" vertexId导入")
             menu.addSeparator()
             ng_clean_action = menu.addAction(u" 清除场景ng节点")
             menu.addSeparator()

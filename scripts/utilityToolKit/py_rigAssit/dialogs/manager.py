@@ -156,7 +156,6 @@ def load_menu_config(force_reload=False):
                 "checked": _bool_attr(child, "checked", False),
                 "item_id": item_id,
             })
-
         data[menu_name] = items
 
     _MENU_CONFIG_CACHE = data
@@ -343,7 +342,7 @@ class PYRiggingDialogManager(PyouPersistentWindow):
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setSpacing(4)
-        self.main_layout.setContentsMargins(4, 4, 4, 4)
+        self.main_layout.setContentsMargins(8, 4, 8, 4)
         self.build_menu_bar()
         self.build_logo_area()
         self.build_tabs()
@@ -699,3 +698,4 @@ def show(dialog_data=None):
     _WINDOW_CACHE.show()
 
     return _WINDOW_CACHE
+

@@ -16,6 +16,8 @@ except Exception:
     from CommonUse.qtCompat import *
     from CommonUse.widgetsUse import Widgets
 
+from .text_utils import _u
+
 _widgets = Widgets()
 
 
@@ -77,26 +79,6 @@ _FLOAT_BUTTON_STYLE_TEXT = """
         border-color: rgba(255, 255, 255, 0.12);
     }
 """
-
-
-def _u(value):
-    """Py2/Py3 安全转 unicode。"""
-    if value is None:
-        return u''
-    if isinstance(value, bytes):
-        try:
-            return value.decode('utf-8')
-        except Exception:
-            try:
-                return value.decode('gbk')
-            except Exception:
-                return value.decode('utf-8', 'replace')
-    if isinstance(value, str):
-        return value
-    try:
-        return unicode(value)  # noqa: F821
-    except Exception:
-        return u'{}'.format(value)
 
 
 def _load_maya_icon(*names):
@@ -433,14 +415,36 @@ def _build_project_row(self, parent_layout):
     self.project_combo.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     self.project_combo.currentTextChanged.connect(self.on_project_changed)
 
-    btn_new = _create_text_button(u'新建', "cld_main", icons=_ICONS_ADD)
+    btn_new = _create_text_button(u' [ 新建 ] ', "cld_main", icons=_ICONS_ADD)
     btn_new.setToolTip(u"新建项目")
     btn_new.clicked.connect(self.create_project_dialog)
-    btn_open = _create_text_button(u'打开', "secondary", icons=_ICONS_FOLDER)
-    btn_open.setToolTip(u"打开位置")
-    btn_open.clicked.connect(self.open_existing_project)
 
-    wbl = QtWidgets.QLabel(u'  > workshop:')
+    btn_tools = QtWidgets.QToolButton()
+    btn_tools.setText(u'项目帮助  ')
+    btn_tools.setToolTip(u'项目工具')
+    btn_tools.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
+    btn_tools.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+    btn_tools.setStyleSheet("border-radius: 4px; border:1px solid #696a6b; "
+        "padding: 2px 4px;")
+    btn_tools.setMinimumHeight(26)
+    btn_tools.setMinimumWidth(80)
+    tools_menu = QtWidgets.QMenu(btn_tools)
+    act_open = tools_menu.addAction(u'打开项目位置')
+    act_open.triggered.connect(self.open_existing_project)
+    act_refresh = tools_menu.addAction(u'刷新项目列表')
+    act_refresh.triggered.connect(self.load_projects)
+    btn_tools.setMenu(tools_menu)
+
+    btn_about = QtWidgets.QPushButton()
+    btn_about.setIcon(QtGui.QIcon(":help.png"))
+    btn_about.setIconSize(QtCore.QSize(_ICON_SIZE_LARGE, _ICON_SIZE_LARGE))
+    btn_about.setProperty("class", "iconBtn")
+    btn_about.setFixedSize(_ICON_BUTTON_FIXED, _ICON_BUTTON_FIXED)
+    btn_about.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+    btn_about.setToolTip(u'About')
+    btn_about.clicked.connect(about)
+
+    wbl = _widgets.create_text(u'  > workshop:')
     self.version_format_combo = QtWidgets.QComboBox()
     self.version_format_combo.addItem(u" 旧版", "legacy")
     self.version_format_combo.addItem(u" 新版", "new")
@@ -449,24 +453,17 @@ def _build_project_row(self, parent_layout):
         u"旧版: asset_subtype_workshop_001.ma\n"
         u"新版: asset.subtype.v001.ma\n"
     )
-    self.version_format_combo.setMinimumHeight(_BUTTON_MIN_HEIGHT)
+    self.version_format_combo.setMinimumHeight(26)
     self.version_format_combo.currentIndexChanged.connect(self.on_version_format_changed)
-
-    btn_refresh = _create_icon_button(":refresh.png", u"刷新项目列表", extra_props={"help": True})
-    btn_refresh.clicked.connect(self.load_projects)
-
-    btn_about = _create_icon_button(":help.png", u"帮助")
-    btn_about.clicked.connect(about)
 
     row.addWidget(proj_icon)
     row.addWidget(lbl)
     row.addWidget(self.project_combo)
     row.addWidget(btn_new)
-    row.addWidget(btn_open)
+    row.addWidget(btn_tools)
+    row.addStretch(1)
     row.addWidget(wbl)
     row.addWidget(self.version_format_combo)
-    row.addStretch(1)
-    row.addWidget(btn_refresh)
     row.addWidget(btn_about)
     parent_layout.addLayout(row)
 
@@ -593,8 +590,7 @@ def _build_subtype_frame(self):
 
     self.info_label = QtWidgets.QLabel(u'未选择资产')
     self.info_label.setWordWrap(True)
-    self.info_label.setAlignment(QtCore.Qt.AlignLeft)
-    self.info_label.setMaximumHeight(15)
+    self.info_label.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
     self.info_label.setStyleSheet('color: yellow; font-size: 12px;')
     layout.addWidget(self.info_label)
 
@@ -819,12 +815,11 @@ def build_openpipeline_ui(main_window):
     splitter.addWidget(_build_right_panel(self))
     splitter.setSizes([120, 220, 160])
     main.addWidget(splitter)
-
     _widgets.create_copyrightText(main_layout, self.timeStamp)
 
-    main_layout.setStretch(0, 1)
-    main_layout.setStretch(1, 0)
-    main_layout.setStretch(2, 0)
+    count = main_layout.count()
+    for i in range(count):
+        main_layout.setStretch(i, 1 if i == 0 else 0)
 
 
 def about():

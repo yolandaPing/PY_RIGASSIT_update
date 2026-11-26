@@ -41,17 +41,15 @@ def save_json(fbx_path, ue_base_path, name):
 
     CONFIG_PATH = os.path.join(
         os.path.expanduser("~"),
-        "Documents",
         "Unreal Projects",
         "ue_import.json"
-    )
+    )  #"Documents",
 
     with open(CONFIG_PATH, "w") as f:
         json.dump(config, f)
 
 
 def export_to_unreal(fbx_path, UE_EXE, ue_project, ue_base_path, name):
-
     if not os.path.exists(fbx_path):
         raise RuntimeError("FBX not found: {}".format(fbx_path))
 

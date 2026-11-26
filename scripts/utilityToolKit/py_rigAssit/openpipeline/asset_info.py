@@ -8,3 +8,4 @@
 
 PROJECTS_XML = 'openPipeline_projects.xml'
 ENABLE_DESC_TIP = True
+ENABLE_MAYABATCH = True

@@ -3,7 +3,7 @@
 
     <!-- ============ Clear ============ -->
     <menu name="Clear">
-        <item label="Clean NameSpace"        command="Clean NameSpace"/>
+        <item label="Clean NameSpace"        command="Clean NameSpace"         bold="true"/>
         <item label="Optimize Scene"         command="Optimize Scene"/>
         <separator/>
         <item label="Check Scene Name"       command="Check Scene Name"        bold="true"/>

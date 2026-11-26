@@ -476,14 +476,12 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         self.search_replace_widget = QtWidgets.QWidget()
         search_all_layout = QtWidgets.QVBoxLayout(self.search_replace_widget)
         label = PY_WIDGEAT.create_text('> need to search and replace prefix/name 搜索和替换前缀/名字"', 12)
-
         # Search 1
         search_prefixname_layout = QtWidgets.QHBoxLayout()
         search_label = QtWidgets.QLabel("Search: ")
         self.search_text = QtWidgets.QLineEdit("_L_")
         search_prefixname_layout.addWidget(search_label)
         search_prefixname_layout.addWidget(self.search_text)
-
         # Replace 1
         replace_prefixname_layout = QtWidgets.QHBoxLayout()
         replace_label = QtWidgets.QLabel("Replace: ")
@@ -498,14 +496,12 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         main_search_prefixname_layout.addLayout(replace_prefixname_layout)
 
         self.replace_AttrCheckbox_cmsdk = QtWidgets.QCheckBox(' Replace Attr 替换属性?')
-
         # Search 2
         search_Attrname_layout = QtWidgets.QHBoxLayout()
         self.search_Attr_label = QtWidgets.QLabel("Search Attr: ")
         self.search_Attr_text = QtWidgets.QLineEdit("")
         search_Attrname_layout.addWidget(self.search_Attr_label)
         search_Attrname_layout.addWidget(self.search_Attr_text)
-
         # Replace 2
         replace_Attrname_layout = QtWidgets.QHBoxLayout()
         self.replace_Attr_label = QtWidgets.QLabel("Replace Attr: ")
@@ -546,7 +542,6 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         parent_layout.addWidget(self.frame_button_cmsdk)
 
     def copy_INFOconnect_wigrts_layout(self, parent_layout):
-
         self.frame_button_infocon = PY_WIDGEAT.create_collapsible_frame(u' Copy Input / Output Info  (拷贝/转移信息) ', True)
         main_layout = QtWidgets.QVBoxLayout()
         self.infocon_block = PY_WIDGEAT.create_radiogroup(
@@ -825,53 +820,55 @@ class PYOptionalDriveLayout(QtWidgets.QWidget):
         driver_value, driven_value = self._mfd.sift_list_value(driver_value, driven_value)
         self._mfd.SetDrivenKey(driver, driven, driver_value, driven_value, pre_Cycle, post_Cycle)
 
-
     def copy_sdk_apply(self):
         from ConstrainEdit.copySDKAttr import CopySDKFun
-        _cysdk = CopySDKFun()
-        
-        prefix_Search = self.search_text.text()
-        prefix_Replace = self.replace_text.text()
-        _type = self.cmsdk_type_block.checkedId()
-        is_rev = self.cmsdk_value_block.checkedId()
-        ReplaceAttr_ABLE = self.replace_AttrCheckbox_cmsdk.isChecked()
-        map = {1: "+", 2: "-"}
 
-        if ReplaceAttr_ABLE:
-            search_Attr = self.search_Attr_text.text()
-            replace_Attr = self.replace_Attr_text.text()
+        search_prefix = self.search_text.text()
+        replace_prefix = self.replace_text.text()
+        copy_type = self.cmsdk_type_block.checkedId()
+        is_rev = self.cmsdk_value_block.checkedId()
+        replace_attr_enabled = self.replace_AttrCheckbox_cmsdk.isChecked()
+        sign_map = {1: "+", 2: "-"}
+
+        if replace_attr_enabled:
+            search_attr = self.search_Attr_text.text()
+            replace_attr = self.replace_Attr_text.text()
         else:
-            search_Attr = None
-            replace_Attr = None
+            search_attr = replace_attr = None
+
+        if copy_type != 3 and (not search_prefix or not replace_prefix):
+            mayaPrint.error("Please enter a string to search/replace !")
+            return
+
+        driver, driven = self._list_objects()
+        self._mfd._cheek_pairs([driver, driven])
+
+        copy_sdk_fun = CopySDKFun()
 
         cmds.undoInfo(openChunk=True)
         try:
-            driver, driven = self._list_objects()
-            self._mfd._cheek_pairs([driver, driven])
-            if prefix_Search is None or prefix_Replace is None:
-                mayaPrint.error(" Please enter a string to search/replace ! ")
-                return
-
-            else:
-                print("------------------The following are the running results------------------")
-                for dri, drn in _pair_iter(driver, driven):
-                    if _type != 3:
-                        if "." not in dri or "." not in drn:
-                            mayaPrint.error("The loaded object has no attributes, please check")
-                            return
-                        if _type == 1:
-                            _cysdk.copy_sdk(dri, drn, prefix_Search, prefix_Replace,search_Attr, replace_Attr)
-                            print(" {} >>> {} is ok".format(dri, drn))
-                        elif _type == 2:
-                            _cysdk.copy_input_sdk(dri, drn, prefix_Search, prefix_Replace, search_Attr, replace_Attr, posneg=map[is_rev])
-                            print(" {} >>> {} is ok".format(dri, drn))
-                        else:
-                            pass
+            print("------------------The following are the running results------------------")
+            for dri, drn in _pair_iter(driver, driven):
+                if copy_type == 3:
+                    copy_sdk_fun.mirror_specify_sdk(dri, drn, sign_map[is_rev])
+                else:
+                    if "." not in dri or "." not in drn:
+                        mayaPrint.error("The loaded object has no attributes, please check")
+                        return
+                    if copy_type == 1:
+                        copy_sdk_fun.copy_sdk(
+                            dri, drn, search_prefix, replace_prefix,
+                            search_attr, replace_attr,
+                        )
+                    elif copy_type == 2:
+                        copy_sdk_fun.copy_input_sdk(
+                            dri, drn, search_prefix, replace_prefix,
+                            search_attr, replace_attr, posneg=sign_map[is_rev],
+                        )
                     else:
-                        _cysdk.mirror_specify_sdk(dri, drn, map[is_rev])
-                        print(" {} >>> {} is ok".format(dri, drn))
-
-                mayaPrint.log(" SDK copy succeeded!")
+                        continue
+                print(" {} >>> {} is ok".format(dri, drn))
+            mayaPrint.log(" SDK copy succeeded!")
         finally:
             cmds.undoInfo(closeChunk=True)
 

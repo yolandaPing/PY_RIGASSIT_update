@@ -136,7 +136,7 @@ class PYGeneralLayout(QtWidgets.QDialog):
     def init_ui(self):
 
         main = QtWidgets.QVBoxLayout(self)
-        main.setContentsMargins(2, 2, 2, 2)
+        main.setContentsMargins(4, 2, 4, 2)
 
         main.addWidget(py_widgets.create_title("General Dialog", 15, 30))
 

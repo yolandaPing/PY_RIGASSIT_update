@@ -404,7 +404,7 @@ class PYScriptButtonsPanel(object):
 
         row = 0
         col = 0
-        max_col = 4
+        max_col = 3
 
         for i, info in enumerate(scripts_info):
             # 兼容两种传入格式
@@ -439,46 +439,34 @@ class PYCustomLayout(QtWidgets.QWidget):
         main = QtWidgets.QVBoxLayout(container)
         main.setContentsMargins(2, 2, 2, 2)
         main.setSpacing(2)
-
         main.addWidget(PY_WIDGEAT.create_title("Custom", 15, None))
-        # main.addWidget(
-        #     self.build_artist_tab()
-        # )
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setContentsMargins(0, 0, 0, 0)
-
         cld_widget = QtWidgets.QWidget()
         scroll_layout = QtWidgets.QVBoxLayout(cld_widget)
         scroll_layout.setContentsMargins(6, 0, 6, 0)
         scroll_layout.setSpacing(6)
-
         scroll.setWidget(cld_widget)
         main.addWidget(scroll)
         scroll_layout.addWidget(self.build_artist_tab())
-
         scroll_layout.addStretch()
-
         return container
 
     def build_artist_tab(self):
-
         self.dispatcher = CommandDispatcher()
-
         page = QtWidgets.QWidget()
         lay = QtWidgets.QVBoxLayout(page)
         lay.setContentsMargins(0, 0, 4, 0)
         lay.setSpacing(4)
-
         sec1 = PY_WIDGEAT.create_section("Artist:")
         sec1.setContentsMargins(0, 0, 4, 0)
         grid1 = GridButtons("artist_tool", 3)
         grid1.clicked.connect(self.run_action)
         sec1.addWidget(grid1)
-
         # Custom 区域
         sec2 = PY_WIDGEAT.create_section("Custom:")
-        sec2.setContentsMargins(0, 0, 4, 0)
+        sec2.setContentsMargins(0, 0, 2, 0)
         sec2.addWidget(PY_WIDGEAT.create_text(u"> 下面是用户自定义脚本管理 <"))
         wrapper = QtWidgets.QVBoxLayout()
         self.core = PYScriptManagerCore()
@@ -518,7 +506,6 @@ class PYCustomLayout(QtWidgets.QWidget):
             self.core,
             refresh_callback=self.refresh_custom_buttons
         )
-
         self.refresh_custom_buttons()
         # -------------------------------------------------
         self.open_manager_btn.clicked.connect(self.manager.show)
@@ -527,7 +514,6 @@ class PYCustomLayout(QtWidgets.QWidget):
         lay.addWidget(sec1)
         lay.addWidget(sec2)
         lay.addStretch()
-
         return page
 
     # -----------------------------------------------------
@@ -548,7 +534,6 @@ class PYCustomLayout(QtWidgets.QWidget):
             mel_scripts = self._collect_scripts_from_dir(self.core.mel_dir, 'mel')
             py_scripts = self._collect_scripts_from_dir(self.core.py_dir, 'py')
             scripts_info = self._merge_with_suffix(mel_scripts, py_scripts)
-
         self.panel.build_buttons(scripts_info)
 
     # -----------------------------------------------------
@@ -616,7 +601,6 @@ class PYCustomDiadlg(PyouPersistentWindow):
 
         self.setWindowTitle("IFKF Rigging Dialog")
         self.resize(360, 680)
-
         self._build_ui()
 
 
@@ -624,19 +608,15 @@ class PYCustomDiadlg(PyouPersistentWindow):
         main = QtWidgets.QVBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(4)
-
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setContentsMargins(0, 0, 0, 0)
-
         cld_widget = QtWidgets.QWidget()
         scroll_layout = QtWidgets.QVBoxLayout(cld_widget)
         scroll_layout.setContentsMargins(0, 0, 0, 0)
         scroll_layout.setSpacing(4)
-
         scroll.setWidget(cld_widget)
         main.addWidget(scroll)
-
         widget = PYCustomLayout(parent=self)
         scroll_layout.addWidget(widget.init_ui())
 

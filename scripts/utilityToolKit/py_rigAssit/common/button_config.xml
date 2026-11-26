@@ -152,9 +152,9 @@
             <color><![CDATA[cld_main]]></color>
         </button>
         <button>
-            <label>Group Clearing</label>
-            <tooltip><![CDATA[添加loc清零组]]></tooltip>
-            <color><![CDATA[cld]]></color>
+            <label>Make Group</label>
+            <tooltip><![CDATA[添加组]]></tooltip>
+            <color><![CDATA[cld_main]]></color>
         </button>
         <button>
             <label>snape center</label>
@@ -163,7 +163,7 @@
             <color><![CDATA[cld]]></color>
         </button>
         <button>
-            <label>Make Group</label>
+            <label>Make Follow</label>
             <tooltip><![CDATA[添加组]]></tooltip>
             <color><![CDATA[cld_main]]></color>
         </button>

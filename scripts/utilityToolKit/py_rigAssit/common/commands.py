@@ -234,6 +234,11 @@ def group_Clearing(ui):
     _edit_jnt().createLocgrp()
 
 
+@CommandDispatcher.register("Make Follow")
+def follow_tool(ui):
+    __import__('QuickTools.follow_tool', fromlist=['main']).main()
+
+
 @CommandDispatcher.register("Add Chain Loc")
 @decorator.undo
 def add_jointLoc_system(ui):
