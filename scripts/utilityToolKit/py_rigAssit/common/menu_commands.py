@@ -246,8 +246,8 @@ def py_rigassit_gui(ui):
 
 @CommandDispatcher.register("Rename")
 def rename_tool(ui):
-    from py_rigAssit.dialogs import rename_dialog as rename_dialog
-    rename_dialog.main()
+    from py_rigAssit.dialogs import quick_hash_rename as quick_hash_rename
+    quick_hash_rename.show()
 
 
 @CommandDispatcher.register("Joint Orient")
